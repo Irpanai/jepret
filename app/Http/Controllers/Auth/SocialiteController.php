@@ -66,6 +66,10 @@ class SocialiteController extends Controller
 
         Auth::login($user, true);
 
+        if ($user->role === 'pembeli') {
+            return redirect()->intended(route('galeri', absolute: false));
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 }

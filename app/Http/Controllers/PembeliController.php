@@ -89,4 +89,35 @@ class PembeliController extends Controller
 
         return view('pembeli.library', compact('transactions'));
     }
+
+    public function checkoutPage()
+    {
+        // Mock cart data for UI if session is empty
+        $cart = session()->get('cart', [
+            1 => ['id' => 1, 'price' => 20000, 'event' => 'CFD Banjarbaru', 'fotografer' => 'Dwi Visual'],
+            2 => ['id' => 2, 'price' => 15000, 'event' => 'Sunday Running', 'fotografer' => 'Arah Visual'],
+        ]);
+        $total = collect($cart)->sum('price');
+        return view('checkout', compact('cart', 'total'));
+    }
+
+    public function processCheckout(Request $request)
+    {
+        // Simulate order creation
+        $orderId = 'JEPRET-' . strtoupper(uniqid());
+        session()->forget('cart'); // clear cart
+        
+        return redirect()->route('payment.page', ['order_id' => $orderId]);
+    }
+
+    public function paymentPage($order_id)
+    {
+        return view('payment', compact('order_id'));
+    }
+
+    public function simulatePay($order_id)
+    {
+        // Simulate payment success and redirect to library/download page
+        return redirect()->route('pembeli.library')->with('success', 'Pembayaran berhasil. Foto siap diunduh.');
+    }
 }

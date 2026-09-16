@@ -15,8 +15,14 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        if (! $request->user() || $request->user()->role !== $role) {
-            abort(403, 'Unauthorized access.');
+        if (! $request->user()) {
+            abort(401, 'Silakan login terlebih dahulu.');
+        }
+        
+        if ($request->user()->role !== $role) {
+            $userRole = $request->user()->role;
+            $userEmail = $request->user()->email;
+            abort(403, "Akses Ditolak (403). Akun Anda ($userEmail) terdaftar sebagai '$userRole', namun halaman ini membutuhkan akses '$role'.");
         }
 
         return $next($request);
