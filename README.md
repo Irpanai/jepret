@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000&auto=format&fit=crop" alt="Jepret Banner" width="100%" style="border-radius: 12px; max-height: 300px; object-fit: cover;">
+  <!-- <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000&auto=format&fit=crop" alt="Jepret Banner" width="100%" style="border-radius: 12px; max-height: 300px; object-fit: cover;"> -->
   
   <br />
   <br />
