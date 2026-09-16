@@ -9,8 +9,14 @@ use App\Http\Controllers\PembeliController;
 use App\Http\Controllers\MarketplaceController;
 
 Route::get('/', function () {
+    if (auth()->check() && auth()->user()->role === 'pembeli') {
+        return redirect()->route('galeri');
+    }
     return view('welcome');
-});
+})->name('landing');
+
+Route::get('/galeri', [MarketplaceController::class, 'galeri'])->name('galeri');
+
 
 Route::get('/p/{photo}', [MarketplaceController::class, 'show'])->name('marketplace.show');
 Route::middleware('auth')->group(function () {
@@ -32,7 +38,7 @@ Route::get('/dashboard', function () {
     } elseif ($role === 'fotografer') {
         return redirect()->route('fotografer.dashboard');
     }
-    return redirect()->route('pembeli.dashboard');
+    return redirect()->route('galeri');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
@@ -67,6 +73,17 @@ Route::middleware(['auth', 'role:pembeli'])->prefix('pembeli')->name('pembeli.')
     Route::post('/checkout', [PembeliController::class, 'checkout'])->name('checkout');
     Route::get('/library', [PembeliController::class, 'library'])->name('library');
     Route::get('/invoice/{transaction}', [PembeliController::class, 'invoice'])->name('invoice');
+    
+    // Cart Routes
+    Route::get('/cart', [\App\Http\Controllers\CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/add', [\App\Http\Controllers\CartController::class, 'store'])->name('cart.store');
+    Route::post('/cart/remove', [\App\Http\Controllers\CartController::class, 'destroy'])->name('cart.destroy');
+    
+    // Checkout & Payment Flow
+    Route::get('/checkout-page', [PembeliController::class, 'checkoutPage'])->name('checkout.page');
+    Route::post('/checkout-process', [PembeliController::class, 'processCheckout'])->name('checkout.process');
+    Route::get('/payment/{order_id}', [PembeliController::class, 'paymentPage'])->name('payment.page');
+    Route::post('/payment/{order_id}/pay', [PembeliController::class, 'simulatePay'])->name('payment.simulate');
     
     // Stubbed routes for missing menus
     Route::get('/favorites', [PembeliController::class, 'favorites'])->name('favorites');
