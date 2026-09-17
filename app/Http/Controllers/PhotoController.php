@@ -142,13 +142,12 @@ class PhotoController extends Controller
     private function storeWatermarkedPreview(string $sourcePath, string $eventName): string
     {
         $manager = new ImageManager(new Driver);
-        $image = $manager->read($sourcePath);
+        $image = $manager->decodePath($sourcePath);
 
-        $image->text('JEPRET', $image->width() / 2, $image->height() / 2, function ($font): void {
+        $image->text('JEPRET', intdiv($image->width(), 2), intdiv($image->height(), 2), function ($font): void {
             $font->size(48);
             $font->color('rgba(255, 255, 255, 0.55)');
-            $font->align('center');
-            $font->valign('middle');
+            $font->align('center', 'center');
         });
 
         $watermarkDirectory = 'photos/watermark/'.$eventName;

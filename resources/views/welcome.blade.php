@@ -38,11 +38,23 @@
                     </div>
                 </div>
 
-                <dl class="mt-10 grid gap-5 border-t border-public-line pt-5 text-xs sm:grid-cols-3" data-hero-copy style="--reveal-index: 5">
-                    <div class="flex gap-3"><span class="font-extrabold text-public-ink">01</span><div><dt class="font-extrabold uppercase text-public-muted">Website</dt><dd class="mt-1 font-bold text-public-ink">jepretcfd.id</dd></div></div>
-                    <div class="flex gap-3"><span class="font-extrabold text-public-ink">02</span><div><dt class="font-extrabold uppercase text-public-muted">WhatsApp</dt><dd class="mt-1 font-bold text-public-ink">0851 5676 7900</dd></div></div>
-                    <div class="flex gap-3"><span class="font-extrabold text-public-ink">03</span><div><dt class="font-extrabold uppercase text-public-muted">Coverage</dt><dd class="mt-1 font-bold text-public-ink">Event Indonesia</dd></div></div>
-                </dl>
+                <div class="mt-10 border-t border-public-line pt-6" data-hero-copy style="--reveal-index: 5">
+                    <dl class="grid grid-cols-3 gap-3 sm:gap-5">
+                        <div class="flex flex-col gap-2">
+                            <dt class="text-xs font-semibold text-public-muted sm:text-sm">Foto Terjual</dt>
+                            <dd class="order-first text-3xl font-extrabold leading-none text-public-ink sm:text-4xl">200+</dd>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <dt class="text-xs font-semibold text-public-muted sm:text-sm">Photographers</dt>
+                            <dd class="order-first text-3xl font-extrabold leading-none text-public-ink sm:text-4xl">25+</dd>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <dt class="text-xs font-semibold text-public-muted sm:text-sm">Foto Tersedia</dt>
+                            <dd class="order-first text-3xl font-extrabold leading-none text-public-ink sm:text-4xl">500+</dd>
+                        </div>
+                    </dl>
+                    <p class="mt-5 max-w-lg text-xs font-semibold leading-5 text-public-muted">Dipercaya photographer dan komunitas untuk menemukan, menjual, dan menyimpan momen terbaik.</p>
+                </div>
             </div>
 
             <a href="{{ route('register', ['role' => 'fotografer']) }}" class="relative min-h-[430px] overflow-hidden bg-public-mist lg:min-h-full" data-hero-media>
@@ -143,7 +155,6 @@
                         'description' => 'Untuk photographer dengan aktivitas dan koleksi lebih besar.',
                         'features' => ['20 GB Cloud Storage', 'Semua fitur Starter', 'Dashboard & monitoring penjualan', 'Statistik transaksi & pendapatan', 'Pengelolaan storage'],
                         'cta' => 'Pilih Creator',
-                        'featured' => true,
                     ],
                     [
                         'name' => 'Studio',
@@ -173,9 +184,6 @@
                     <article class="flex min-w-0 flex-col border p-5 sm:p-6 {{ $isFeatured ? 'border-public-ink bg-public-ink text-white' : 'border-public-line bg-white text-public-ink' }}">
                         <div class="flex min-h-7 items-start justify-between gap-3">
                             <h3 class="text-xl font-extrabold">{{ $plan['name'] }}</h3>
-                            @if($isFeatured)
-                                <span class="border border-white/25 px-2 py-1 text-[10px] font-extrabold uppercase text-white/75">Pilihan Utama</span>
-                            @endif
                         </div>
 
                         <div class="mt-8 flex min-h-12 flex-wrap items-baseline gap-x-1">

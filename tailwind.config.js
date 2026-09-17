@@ -20,7 +20,7 @@ export default {
                 public: {
                     ink: '#050505',
                     paper: '#ffffff',
-                    bone: '#f7f5f1',
+                    bone: '#E5E5E5',
                     mist: '#ece9e3',
                     line: '#d8d4cc',
                     muted: '#6f6a61',

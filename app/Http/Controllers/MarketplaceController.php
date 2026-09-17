@@ -59,18 +59,24 @@ class MarketplaceController extends Controller
             $query->where('daypart', $request->string('daypart')->toString());
         }
 
+        match ($request->string('sort')->toString()) {
+            'oldest' => $query->orderBy('published_at')->orderBy('created_at'),
+            'price_low' => $query->orderBy('harga'),
+            'price_high' => $query->orderByDesc('harga'),
+            default => $query->orderByDesc('published_at')->orderByDesc('created_at'),
+        };
+
         $photos = $query
-            ->orderByDesc('published_at')
-            ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(25)
             ->withQueryString();
 
         $photographers = User::where('role', 'fotografer')->orderBy('name')->get(['id', 'name', 'studio_name']);
         $events = Event::orderByDesc('tanggal_event')->get(['id', 'nama_event', 'lokasi', 'tanggal_event']);
+        $locations = Event::query()->whereNotNull('lokasi')->distinct()->orderBy('lokasi')->pluck('lokasi');
         $categories = Photo::query()->whereNotNull('category')->distinct()->orderBy('category')->pluck('category');
 
-        return view('galeri', compact('photos', 'photographers', 'events', 'categories'));
+        return view('galeri', compact('photos', 'photographers', 'events', 'locations', 'categories'));
     }
 
     public function show(Photo $photo): View

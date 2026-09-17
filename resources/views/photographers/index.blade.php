@@ -12,17 +12,19 @@
     description="Temukan photographer JepretCFD berdasarkan nama, studio, kategori, dan lokasi. Lihat profil dan foto event yang tersedia untuk dibeli."
     :structured-data="$structuredData"
 >
-    <section class="border-b border-public-line bg-white py-10 sm:py-14">
-        <div class="public-container">
+    <section class="relative overflow-hidden border-b border-public-line bg-public-ink py-10 text-white sm:py-14">
+        <img src="{{ asset('images/photographers.jpg') }}" alt="" class="absolute inset-0 h-full w-full object-cover" aria-hidden="true">
+        <div class="absolute inset-0 bg-black/55" aria-hidden="true"></div>
+        <div class="public-container relative z-10">
             <p class="public-kicker">Directory</p>
             <div class="mt-4 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
                 <div>
-                    <h1 class="public-heading">Photographers.</h1>
-                    <p class="mt-4 max-w-2xl text-sm font-semibold leading-6 text-public-muted">
+                    <h1 class="public-heading text-white">Photographers.</h1>
+                    <p class="mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/85">
                         Direktori photographer event yang aktif mempublikasikan karya di JepretCFD. Cari berdasarkan studio, kota, atau kategori.
                     </p>
                 </div>
-                <p class="text-sm font-extrabold uppercase text-public-muted">{{ number_format($photographers->total()) }} photographer</p>
+                <p class="text-sm font-extrabold uppercase text-white/85">{{ number_format($photographers->total()) }} photographer</p>
             </div>
         </div>
     </section>

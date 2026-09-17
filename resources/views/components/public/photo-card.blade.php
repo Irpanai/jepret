@@ -1,54 +1,49 @@
 @props(['photo'])
 
-<article {{ $attributes->merge(['class' => 'group min-w-0']) }}>
-    <a href="{{ route('marketplace.show', $photo) }}" class="protected-photo relative block aspect-[4/5] overflow-hidden border border-public-line bg-public-mist">
+@php
+    [$imageWidth, $imageHeight] = array_pad(array_map('intval', preg_split('/[xX×]/', $photo->resolusi ?? '') ?: []), 2, 0);
+    $hasImageDimensions = $imageWidth > 0 && $imageHeight > 0;
+    $photoTitle = $photo->title ?: ($photo->event?->nama_event ?? 'Foto JepretCFD');
+    $photographerName = $photo->fotografer?->studio_name ?: ($photo->fotografer?->name ?? 'Photographer');
+@endphp
+
+<article data-gallery-item data-photo-id="{{ $photo->id }}" {{ $attributes->merge(['class' => 'gallery-tile group min-w-0 break-inside-avoid']) }}>
+    <a href="{{ route('marketplace.show', $photo) }}" class="gallery-photo relative block overflow-hidden rounded-[10px] bg-public-mist" aria-label="Lihat {{ $photoTitle }}">
         <img
-            src="{{ $photo->file_watermark ? Storage::url($photo->file_watermark) : 'https://placehold.co/700x875/f7f5f1/050505?text=JEPRET' }}"
-            alt="{{ $photo->title ?: ($photo->event?->nama_event ? 'Foto '.$photo->event->nama_event : 'Foto JepretCFD') }}"
+            src="{{ $photo->file_watermark ? Storage::url($photo->file_watermark) : asset('images/galeri.jpeg') }}"
+            alt="{{ $photoTitle }}"
             loading="lazy"
-            class="h-full w-full object-cover blur-[1.5px]"
+            @if($hasImageDimensions)
+                width="{{ $imageWidth }}"
+                height="{{ $imageHeight }}"
+            @endif
+            class="block h-auto w-full blur-[1px]"
         >
-        <span class="absolute left-2 top-2 bg-white px-2 py-1 text-[10px] font-extrabold uppercase text-public-ink">Protected</span>
+        <span class="gallery-protected absolute left-2 top-2 inline-flex items-center gap-1.5 rounded bg-black/75 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-white">
+            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+            Protected
+        </span>
+        <span class="absolute bottom-2 right-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/55" aria-hidden="true">Jepret</span>
     </a>
 
-    <div class="grid min-w-0 gap-2 border-x border-b border-public-line bg-white p-3">
-        <div class="flex min-w-0 items-center justify-between gap-3 text-[10px] font-extrabold uppercase text-public-muted">
-            <span class="truncate">{{ $photo->event?->lokasi ?? 'Lokasi event' }}</span>
-            <span class="shrink-0">{{ optional($photo->taken_at ?? $photo->published_at ?? $photo->created_at)->format('d M Y') }}</span>
+    <div class="grid min-w-0 gap-1.5 px-1 pt-2.5">
+        <div class="flex min-w-0 items-start justify-between gap-2">
+            <a href="{{ route('marketplace.show', $photo) }}" class="line-clamp-2 text-[13px] font-bold leading-[1.25] text-public-ink hover:underline sm:text-sm">
+                {{ $photoTitle }}
+            </a>
+            <p class="public-serif shrink-0 text-sm leading-none text-public-ink sm:text-base">Rp{{ number_format($photo->harga, 0, ',', '.') }}</p>
         </div>
-
-        <a href="{{ route('marketplace.show', $photo) }}" class="line-clamp-2 min-h-[2.5rem] text-sm font-extrabold leading-5 text-public-ink hover:underline">
-            {{ $photo->title ?: ($photo->event?->nama_event ?? 'Foto JepretCFD') }}
-        </a>
-
-        <div class="flex min-w-0 items-center gap-2 text-xs font-bold text-public-muted">
+        <div class="flex min-w-0 items-center gap-2 text-[10px] font-medium text-public-muted sm:text-xs">
             <img
                 src="{{ $photo->fotografer?->avatar ?? 'https://ui-avatars.com/api/?name='.urlencode($photo->fotografer?->name ?? 'Photographer').'&background=050505&color=fff' }}"
                 alt=""
                 loading="lazy"
-                class="h-6 w-6 object-cover"
+                class="h-5 w-5 shrink-0 rounded-full object-cover"
             >
-            <span class="truncate">{{ $photo->fotografer?->studio_name ?: ($photo->fotografer?->name ?? 'Photographer') }}</span>
+            <span class="truncate">{{ $photographerName }}</span>
         </div>
-
-        <div class="mt-1 flex items-center justify-between gap-3 border-t border-public-line pt-3">
-            <p class="shrink-0 text-base font-extrabold text-public-ink">Rp{{ number_format($photo->harga, 0, ',', '.') }}</p>
-
-            @auth
-                @if(auth()->user()->role === 'pembeli')
-                    <form method="POST" action="{{ route('cart.store') }}">
-                        @csrf
-                        <input type="hidden" name="photo_id" value="{{ $photo->id }}">
-                        <button class="border border-public-ink bg-public-ink px-3 py-2 text-[10px] font-extrabold uppercase text-white hover:bg-neutral-800">
-                            Cart
-                        </button>
-                    </form>
-                @endif
-            @else
-                <a href="{{ route('login') }}" class="border border-public-line px-3 py-2 text-[10px] font-extrabold uppercase text-public-ink hover:border-public-ink">
-                    Login
-                </a>
-            @endauth
-        </div>
+        <time class="pl-7 text-[9px] font-medium text-public-muted sm:text-[10px]" datetime="{{ optional($photo->taken_at ?? $photo->published_at ?? $photo->created_at)->toDateString() }}">
+            {{ optional($photo->taken_at ?? $photo->published_at ?? $photo->created_at)->translatedFormat('d M Y') }}
+        </time>
     </div>
 </article>
