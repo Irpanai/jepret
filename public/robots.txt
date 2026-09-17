@@ -1,2 +1,11 @@
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /cart
+Disallow: /checkout
+Disallow: /purchases
+Disallow: /profile
+Disallow: /dashboard
+Disallow: /fotografer
+Disallow: /superadmin
+
+Sitemap: /sitemap.xml

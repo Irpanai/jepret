@@ -13,15 +13,18 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Inter', ...defaultTheme.fontFamily.sans],
+                sans: ['Instrument Sans', ...defaultTheme.fontFamily.sans],
+                serif: ['Instrument Serif', ...defaultTheme.fontFamily.serif],
             },
             colors: {
-                accent: {
-                    DEFAULT: '#6366f1', // Indigo 500
-                    hover: '#4f46e5',   // Indigo 600
+                public: {
+                    ink: '#050505',
+                    paper: '#ffffff',
+                    bone: '#f7f5f1',
+                    mist: '#ece9e3',
+                    line: '#d8d4cc',
+                    muted: '#6f6a61',
                 },
-                glass: 'rgba(255, 255, 255, 0.05)',
-                glassBorder: 'rgba(255, 255, 255, 0.1)',
             }
         },
     },

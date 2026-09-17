@@ -7,9 +7,12 @@ use App\Http\Controllers\FotograferController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\PembeliController;
 use App\Http\Controllers\PhotoController;
+use App\Http\Controllers\PhotographerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PurchaseDownloadController;
 use App\Http\Controllers\SuperAdminController;
+use App\Models\Photo;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -17,7 +20,27 @@ Route::get('/', function () {
         return redirect()->route('galeri');
     }
 
-    return view('welcome');
+    $heroPhotos = Photo::query()
+        ->where('status', 'active')
+        ->with(['event', 'fotografer'])
+        ->orderByDesc('published_at')
+        ->orderByDesc('id')
+        ->limit(6)
+        ->get();
+
+    $featuredPhotographers = User::query()
+        ->where('role', 'fotografer')
+        ->with('featuredPhoto.event')
+        ->withCount([
+            'photos as active_photos_count' => fn ($query) => $query->where('status', 'active'),
+            'photographerTransactions as paid_sales_count' => fn ($query) => $query->where('payment_status', 'paid'),
+        ])
+        ->orderByDesc('paid_sales_count')
+        ->orderByDesc('active_photos_count')
+        ->limit(4)
+        ->get();
+
+    return view('welcome', compact('heroPhotos', 'featuredPhotographers'));
 })->name('landing');
 
 Route::get('/galeri', [MarketplaceController::class, 'galeri'])->name('galeri');
@@ -27,13 +50,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/p/{photo}/checkout', [MarketplaceController::class, 'checkout'])->name('marketplace.checkout');
 });
 
-Route::get('/photographers', function () {
-    return view('photographers.index');
-})->name('photographers.index');
+Route::get('/photographers', [PhotographerController::class, 'index'])->name('photographers.index');
+Route::get('/photographers/{photographer}', [PhotographerController::class, 'show'])->name('photographers.show');
 
-Route::get('/photographers/{id}', function ($id) {
-    return view('photographers.show', compact('id'));
-})->name('photographers.show');
+Route::get('/sitemap.xml', function () {
+    $photos = Photo::query()->where('status', 'active')->select(['id', 'updated_at'])->get();
+    $photographers = User::query()->where('role', 'fotografer')->select(['id', 'slug', 'updated_at'])->get();
+
+    return response()
+        ->view('sitemap', compact('photos', 'photographers'))
+        ->header('Content-Type', 'application/xml');
+})->name('sitemap');
 
 Route::get('/dashboard', function () {
     $role = request()->user()->role;

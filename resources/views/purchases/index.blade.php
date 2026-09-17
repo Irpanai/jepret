@@ -1,124 +1,33 @@
-<x-marketplace-layout>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-8">
-            <div>
-                <h1 class="text-3xl sm:text-4xl font-black text-black tracking-tight">Pembelian Saya</h1>
-                <p class="mt-2 text-sm font-medium text-gray-500 max-w-2xl">
-                    Lihat riwayat foto yang pernah kamu beli dan unduh kembali file original dari transaksi yang berhasil.
-                </p>
+<x-marketplace-layout title="Pembelian Saya | JepretCFD" description="Riwayat pembelian foto JepretCFD." :noindex="true">
+    <section class="bg-white py-10 sm:py-14">
+        <div class="public-container">
+            <div class="grid gap-6 border-b border-public-line pb-8 lg:grid-cols-[1fr_auto] lg:items-end">
+                <div><p class="public-kicker">Library</p><h1 class="public-heading mt-3">Pembelian Saya</h1><p class="mt-3 max-w-2xl text-sm font-semibold leading-6 text-public-muted">Riwayat order dan akses unduh ulang untuk foto yang sudah dibayar.</p></div>
+                @php($filters = ['' => 'Semua', 'paid' => 'Paid', 'pending' => 'Pending', 'failed' => 'Failed', 'expired' => 'Expired'])
+                <nav class="flex flex-wrap gap-2" aria-label="Filter status pembelian">
+                    @foreach($filters as $value => $label)
+                        <a href="{{ route('purchases.index', $value === '' ? [] : ['status' => $value]) }}" class="border px-3 py-2 text-xs font-extrabold uppercase {{ $status === $value || ($status === '' && $value === '') ? 'border-public-ink bg-public-ink text-white' : 'border-public-line bg-white text-public-muted hover:border-public-ink hover:text-public-ink' }}">{{ $label }}</a>
+                    @endforeach
+                </nav>
             </div>
-
-            <div class="flex flex-wrap gap-2">
-                @php
-                    $filters = [
-                        '' => 'Semua',
-                        'paid' => 'Paid',
-                        'pending' => 'Pending',
-                        'failed' => 'Failed',
-                        'expired' => 'Expired',
-                    ];
-                @endphp
-
-                @foreach($filters as $value => $label)
-                    <a href="{{ route('purchases.index', $value === '' ? [] : ['status' => $value]) }}" class="px-3 py-2 rounded-lg text-xs font-bold border transition {{ $status === $value || ($status === '' && $value === '') ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-black hover:text-black' }}">
-                        {{ $label }}
-                    </a>
-                @endforeach
+            <div class="mt-8 border border-public-line">
+                @forelse($orders as $order)
+                    @php($firstItem = $order['items']->first())
+                    <article class="grid gap-5 border-b border-public-line p-5 last:border-b-0 md:grid-cols-[96px_minmax(0,1fr)_auto] md:items-center">
+                        <div class="protected-photo aspect-square overflow-hidden bg-public-bone">
+                            @if($firstItem?->photo?->file_watermark)<img src="{{ Storage::url($firstItem->photo->file_watermark) }}" alt="Preview {{ $firstItem->photo->title ?: 'foto JepretCFD' }}" class="h-full w-full object-cover">@endif
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-3"><h2 class="break-all font-mono text-sm font-extrabold text-public-ink">{{ $order['order_number'] }}</h2><span class="border border-public-line bg-public-bone px-2 py-1 text-[10px] font-extrabold uppercase text-public-muted">{{ $order['status'] }}</span></div>
+                            <p class="mt-2 text-sm font-extrabold text-public-ink">{{ $firstItem?->photo?->title ?: ($firstItem?->photo?->event?->nama_event ?? 'Foto JepretCFD') }}</p>
+                            <p class="mt-1 text-xs font-bold text-public-muted">{{ $order['count'] }} foto · {{ optional($order['created_at'])->format('d M Y, H:i') }} · Rp{{ number_format($order['total'], 0, ',', '.') }}</p>
+                        </div>
+                        <a href="{{ route('purchases.show', ['order' => $order['order_number']]) }}" class="public-button public-button-secondary">Lihat Order</a>
+                    </article>
+                @empty
+                    <div class="p-10 text-center"><h2 class="text-xl font-extrabold text-public-ink">Belum ada pembelian.</h2><p class="mt-2 text-sm font-semibold text-public-muted">Foto yang dibeli akan tersimpan di sini.</p><a href="{{ route('galeri') }}" class="public-button mt-6">Buka Galeri</a></div>
+                @endforelse
             </div>
         </div>
-
-        <div class="hidden md:block bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-            <table class="w-full text-left">
-                <thead class="bg-gray-50 border-b border-gray-100 text-[10px] uppercase tracking-widest text-gray-400 font-black">
-                    <tr>
-                        <th class="px-5 py-4">Order ID</th>
-                        <th class="px-5 py-4">Tanggal</th>
-                        <th class="px-5 py-4">Foto</th>
-                        <th class="px-5 py-4">Photographer</th>
-                        <th class="px-5 py-4 text-right">Total</th>
-                        <th class="px-5 py-4 text-center">Status</th>
-                        <th class="px-5 py-4 text-right">Action</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    @forelse($orders as $order)
-                        @php($firstItem = $order['items']->first())
-                        <tr class="hover:bg-gray-50/60 transition">
-                            <td class="px-5 py-5 align-top">
-                                <div class="font-mono text-xs font-black text-black">{{ $order['order_number'] }}</div>
-                            </td>
-                            <td class="px-5 py-5 align-top text-xs font-medium text-gray-500">
-                                {{ optional($order['created_at'])->format('d M Y, H:i') }}
-                            </td>
-                            <td class="px-5 py-5 align-top">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0">
-                                        <img src="{{ $firstItem?->photo?->file_watermark ? Storage::url($firstItem->photo->file_watermark) : 'https://placehold.co/120/f3f4f6/111827?text=J' }}" alt="" class="w-full h-full object-cover">
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-black text-gray-900">{{ $firstItem?->photo?->title ?: ($firstItem?->photo?->event?->nama_event ?? 'Foto Jepret') }}</div>
-                                        <div class="text-[10px] font-medium text-gray-500 mt-1">{{ $order['count'] }} foto</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-5 py-5 align-top text-xs font-medium text-gray-600">
-                                {{ $firstItem?->photo?->fotografer?->name ?? 'Photographer' }}
-                            </td>
-                            <td class="px-5 py-5 align-top text-right text-xs font-black text-black">
-                                Rp{{ number_format($order['total'], 0, ',', '.') }}
-                            </td>
-                            <td class="px-5 py-5 align-top text-center">
-                                <span class="inline-flex px-2.5 py-1 rounded text-[10px] font-black uppercase {{ $order['status'] === 'paid' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-600 border border-gray-200' }}">
-                                    {{ $order['status'] }}
-                                </span>
-                            </td>
-                            <td class="px-5 py-5 align-top text-right">
-                                <a href="{{ route('purchases.show', ['order' => $order['order_number']]) }}" class="inline-flex items-center justify-center bg-black text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-gray-800 transition">
-                                    {{ $order['status'] === 'paid' ? 'Lihat Pembelian' : 'Detail Order' }}
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-5 py-14 text-center">
-                                <h2 class="text-lg font-black text-gray-900">Belum ada pembelian</h2>
-                                <p class="text-sm text-gray-500 mt-1 mb-5">Foto yang kamu beli akan muncul di sini.</p>
-                                <a href="{{ route('galeri') }}" class="inline-flex bg-black text-white text-sm font-bold px-5 py-3 rounded-xl hover:bg-gray-800 transition">Buka Galeri</a>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        <div class="md:hidden space-y-4">
-            @forelse($orders as $order)
-                @php($firstItem = $order['items']->first())
-                <article class="bg-white border border-gray-200 rounded-2xl shadow-sm p-4">
-                    <div class="flex gap-3">
-                        <div class="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden shrink-0">
-                            <img src="{{ $firstItem?->photo?->file_watermark ? Storage::url($firstItem->photo->file_watermark) : 'https://placehold.co/160/f3f4f6/111827?text=J' }}" alt="" class="w-full h-full object-cover">
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-start justify-between gap-2">
-                                <h2 class="text-xs font-mono font-black text-black truncate">{{ $order['order_number'] }}</h2>
-                                <span class="shrink-0 px-2 py-1 rounded text-[9px] font-black uppercase {{ $order['status'] === 'paid' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-600 border border-gray-200' }}">{{ $order['status'] }}</span>
-                            </div>
-                            <p class="text-sm font-black text-gray-900 mt-2 line-clamp-1">{{ $firstItem?->photo?->title ?: ($firstItem?->photo?->event?->nama_event ?? 'Foto Jepret') }}</p>
-                            <p class="text-xs text-gray-500 mt-1">{{ $order['count'] }} foto • Rp{{ number_format($order['total'], 0, ',', '.') }}</p>
-                        </div>
-                    </div>
-                    <a href="{{ route('purchases.show', ['order' => $order['order_number']]) }}" class="mt-4 block w-full text-center bg-black text-white text-xs font-bold py-3 rounded-xl hover:bg-gray-800 transition">
-                        {{ $order['status'] === 'paid' ? 'Lihat Pembelian' : 'Detail Order' }}
-                    </a>
-                </article>
-            @empty
-                <div class="bg-white border border-gray-200 rounded-2xl p-10 text-center">
-                    <h2 class="text-lg font-black text-gray-900">Belum ada pembelian</h2>
-                    <p class="text-sm text-gray-500 mt-1 mb-5">Foto yang kamu beli akan muncul di sini.</p>
-                    <a href="{{ route('galeri') }}" class="inline-flex bg-black text-white text-sm font-bold px-5 py-3 rounded-xl hover:bg-gray-800 transition">Buka Galeri</a>
-                </div>
-            @endforelse
-        </div>
-    </div>
+    </section>
 </x-marketplace-layout>

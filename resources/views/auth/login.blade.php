@@ -1,166 +1,21 @@
 <x-guest-layout>
-    <div class="w-full max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-8 lg:gap-12">
-        
-        <!-- Left Side (Info Card) -->
-        <div class="w-full lg:w-[55%] bg-white rounded-3xl p-8 md:p-10 border border-gray-100 shadow-sm flex flex-col justify-between">
-            <div class="mb-10">
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-md mb-8">
-                    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                    <span class="text-[10px] font-bold text-gray-600 uppercase tracking-widest">ARSIP DIGITAL OLAHRAGA & KOMUNITAS</span>
-                </div>
-                
-                <h1 class="text-3xl md:text-4xl font-medium text-black leading-tight mb-4 tracking-tight">
-                    Satu gerbang untuk menemukan, mengunduh, dan merayakan setiap jepretan Anda.
-                </h1>
-                
-                <p class="text-gray-500 text-sm leading-relaxed max-w-md">
-                    Baik sebagai pelari, pesepeda, peserta festival, maupun juru kamera lapangan—JEPRET menyatukan momen autentik dalam resolusi museum.
-                </p>
-            </div>
-
-            <!-- Image Card -->
-            <div class="relative rounded-2xl overflow-hidden mb-8">
-                <img src="https://images.unsplash.com/photo-1552674605-15c2145e9ca4?q=80&w=800&auto=format&fit=crop" class="w-full h-[280px] md:h-[320px] object-cover grayscale" alt="Runners">
-                
-                <!-- Overlay Gradients -->
-                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                
-                <!-- Overlay Elements -->
-                <div class="absolute top-4 right-4 bg-white/90 backdrop-blur text-black text-[10px] font-bold px-3 py-1.5 rounded-sm flex items-center gap-2">
-                    RAW 6000x4000 <span class="text-gray-300">|</span> 35mm f/1.8 <span class="text-gray-300">|</span> 1/2000s
-                </div>
-
-                <div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-                    <div>
-                        <p class="text-[10px] font-semibold text-gray-300 uppercase tracking-widest mb-1">DOKUMENTASI CFD SUDIRMAN</p>
-                        <p class="text-white font-bold text-lg">Miles & Milestones Series #04</p>
-                    </div>
-                    <div class="flex items-center gap-1.5 text-white/90 text-[10px] font-medium bg-black/40 backdrop-blur px-2.5 py-1.5 rounded-full border border-white/10">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        Fotografer Terkurasi
-                    </div>
-                </div>
-            </div>
-
-            <!-- Stats -->
-            <div class="grid grid-cols-3 gap-4 border-t border-gray-100 pt-6">
-                <div>
-                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">FOTOGRAFER</p>
-                    <p class="text-xl font-bold text-black leading-none mb-1">380+</p>
-                    <p class="text-[10px] text-gray-400">Terverifikasi</p>
-                </div>
-                <div>
-                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">MOMEN ARSIP</p>
-                    <p class="text-xl font-bold text-black leading-none mb-1">48.000+</p>
-                    <p class="text-[10px] text-gray-400">Resolusi Tinggi</p>
-                </div>
-                <div>
-                    <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">PEMBAYARAN</p>
-                    <p class="text-xl font-bold text-black leading-none mb-1">QRIS & Auto</p>
-                    <p class="text-[10px] text-gray-400">Unduh Langsung</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Side (Form) -->
-        <div class="w-full lg:w-[45%] flex flex-col justify-center py-6">
-            <div class="bg-white rounded-3xl p-8 md:p-10 border border-gray-200 shadow-xl shadow-gray-200/40">
-                
-                <!-- Tabs -->
-                <div class="flex bg-gray-50 rounded-lg p-1 mb-10 border border-gray-200">
-                    <a href="{{ route('login') }}" class="flex-1 py-2.5 bg-white rounded-md text-sm font-semibold text-black shadow-sm text-center border border-gray-100">
-                        Masuk Akun
-                    </a>
-                    <a href="{{ route('register') }}" class="flex-1 py-2.5 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 transition text-center">
-                        Daftar Baru
-                    </a>
-                </div>
-
-                <div class="mb-8">
-                    <h2 class="text-2xl font-semibold text-black mb-2">Selamat Datang Kembali</h2>
-                    <p class="text-sm text-gray-500 leading-relaxed">Akses koleksi foto olahraga Anda atau kelola galeri karya dalam satu tempat.</p>
-                </div>
-
-                <!-- Google Auth -->
-                <a href="{{ route('auth.google.redirect') }}" class="w-full bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition flex items-center justify-center gap-3 text-sm mb-6">
-                    <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                    Lanjutkan dengan Google
-                </a>
-
-                <!-- Divider -->
-                <div class="relative flex items-center mb-6">
-                    <div class="flex-grow border-t border-gray-200"></div>
-                    <span class="flex-shrink-0 mx-4 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center leading-tight">
-                        ATAU DENGAN EMAIL <br> / NOMOR
-                    </span>
-                </div>
-
-                <!-- Form -->
-                <form method="POST" action="{{ route('login') }}" class="space-y-5">
-                    @csrf
-                    
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Email Atau Nomor WhatsApp</label>
-                        <div class="relative">
-                            <input type="text" name="email" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-3 focus:ring-1 focus:ring-black focus:border-black transition placeholder-gray-400" placeholder="contoh: budi@domain.com atau 0812..." value="{{ old('email') }}" required>
-                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                <span class="text-gray-400 text-sm font-serif">@</span>
-                            </div>
-                        </div>
-                        <x-input-error :messages="$errors->get('email')" class="mt-1 text-red-500 text-xs" />
-                    </div>
-
-                    <div>
-                        <div class="flex justify-between items-center mb-2">
-                            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide">Kata Sandi</label>
-                            <a href="{{ route('password.request') }}" class="text-xs font-medium text-gray-500 hover:text-black transition underline">Lupa sandi?</a>
-                        </div>
-                        <div class="relative">
-                            <input type="password" name="password" class="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg px-4 py-3 focus:ring-1 focus:ring-black focus:border-black transition placeholder-gray-400" placeholder="Masukkan kata sandi akun" required>
-                            <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-black transition">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                            </button>
-                        </div>
-                        <x-input-error :messages="$errors->get('password')" class="mt-1 text-red-500 text-xs" />
-                    </div>
-
-                    <div class="flex items-center justify-between py-1">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" name="remember" class="w-4 h-4 rounded border-gray-300 text-black focus:ring-black" checked>
-                            <span class="text-xs font-medium text-gray-600">Ingat saya di perangkat ini</span>
-                        </label>
-                        <span class="text-[9px] font-bold text-gray-400 tracking-widest uppercase">
-                            SECURE_COOKIE
-                        </span>
-                    </div>
-
-                    <button type="submit" class="w-full bg-black hover:bg-gray-900 text-white font-semibold py-3.5 rounded-lg transition flex items-center justify-center gap-2 text-sm mt-2">
-                        Masuk ke Akun
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                    </button>
-                </form>
-
-                <!-- Footer Badges -->
-                <div class="mt-8 pt-6 border-t border-gray-100 flex justify-between items-center px-2">
-                    <div class="flex items-center gap-1.5 text-[9px] font-bold text-gray-500">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                        Enkripsi SSL 256-Bit
-                    </div>
-                    <div class="flex items-center gap-1.5 text-[9px] font-bold text-gray-500">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                        Privasi Terlindungi
-                    </div>
-                    <div class="flex items-center gap-1.5 text-[9px] font-bold text-gray-500">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        Sinkron Multi-Device
-                    </div>
-                </div>
-            </div>
-
-            <!-- Help text -->
-            <p class="text-xs text-center text-gray-500 mt-6">
-                Mengalami kendala saat masuk? Hubungi tim kurasi via <a href="#" class="font-medium text-black underline">Bantuan WhatsApp</a>
-            </p>
-        </div>
+    <div class="mx-auto grid w-full max-w-5xl border border-public-line bg-white lg:grid-cols-[1fr_440px]">
+        <section class="hidden bg-public-ink p-10 text-white lg:flex lg:flex-col lg:justify-between">
+            <div><p class="text-xs font-extrabold uppercase text-white/55">JepretCFD account</p><h1 class="mt-4 text-5xl font-extrabold leading-[0.95]">Temukan momenmu. Simpan originalnya.</h1><p class="mt-5 max-w-md text-sm font-semibold leading-6 text-white/65">Masuk untuk melanjutkan checkout, melihat pembelian, dan mengunduh ulang foto yang sudah lunas.</p></div>
+            <a href="{{ route('galeri') }}" class="text-xs font-extrabold uppercase text-white">Lihat galeri →</a>
+        </section>
+        <section class="p-6 sm:p-10">
+            <p class="public-kicker">Selamat datang kembali</p><h2 class="mt-3 text-3xl font-extrabold text-public-ink">Masuk ke akun.</h2>
+            <div class="mt-7 grid grid-cols-2 border border-public-line p-1 text-center text-xs font-extrabold uppercase"><a href="{{ route('login') }}" class="bg-public-ink px-3 py-3 text-white">Masuk</a><a href="{{ route('register') }}" class="px-3 py-3 text-public-muted">Daftar</a></div>
+            <x-auth-session-status class="mt-5 text-sm font-semibold text-green-700" :status="session('status')" />
+            <a href="{{ route('auth.google.redirect') }}" class="public-button public-button-secondary mt-6 w-full">Lanjutkan dengan Google</a>
+            <div class="my-6 flex items-center gap-3"><span class="h-px flex-1 bg-public-line"></span><span class="text-[10px] font-extrabold uppercase text-public-muted">atau email</span><span class="h-px flex-1 bg-public-line"></span></div>
+            <form method="POST" action="{{ route('login') }}" class="grid gap-5">@csrf
+                <div><label for="email" class="text-xs font-extrabold uppercase text-public-muted">Email</label><input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" class="public-input mt-2 min-h-12 px-3"><x-input-error :messages="$errors->get('email')" class="mt-2" /></div>
+                <div><div class="flex justify-between gap-4"><label for="password" class="text-xs font-extrabold uppercase text-public-muted">Password</label><a href="{{ route('password.request') }}" class="text-xs font-bold text-public-muted hover:text-public-ink">Lupa password?</a></div><input id="password" type="password" name="password" required autocomplete="current-password" class="public-input mt-2 min-h-12 px-3"><x-input-error :messages="$errors->get('password')" class="mt-2" /></div>
+                <label class="flex items-center gap-3 text-sm font-semibold text-public-muted"><input type="checkbox" name="remember" class="h-4 w-4 border-public-line text-public-ink focus:ring-public-ink"> Ingat saya</label>
+                <button type="submit" class="public-button w-full">Masuk</button>
+            </form>
+        </section>
     </div>
 </x-guest-layout>

@@ -82,6 +82,7 @@ class MarketplaceController extends Controller
             ->where('fotografer_id', $photo->fotografer_id)
             ->where('id', '!=', $photo->id)
             ->where('status', 'active')
+            ->with(['event', 'fotografer'])
             ->limit(4)
             ->get();
 
