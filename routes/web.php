@@ -20,27 +20,15 @@ Route::get('/', function () {
         return redirect()->route('galeri');
     }
 
-    $heroPhotos = Photo::query()
+    $galleryPhotos = Photo::query()
         ->where('status', 'active')
         ->with(['event', 'fotografer'])
         ->orderByDesc('published_at')
         ->orderByDesc('id')
-        ->limit(6)
-        ->get();
-
-    $featuredPhotographers = User::query()
-        ->where('role', 'fotografer')
-        ->with('featuredPhoto.event')
-        ->withCount([
-            'photos as active_photos_count' => fn ($query) => $query->where('status', 'active'),
-            'photographerTransactions as paid_sales_count' => fn ($query) => $query->where('payment_status', 'paid'),
-        ])
-        ->orderByDesc('paid_sales_count')
-        ->orderByDesc('active_photos_count')
         ->limit(4)
         ->get();
 
-    return view('welcome', compact('heroPhotos', 'featuredPhotographers'));
+    return view('welcome', compact('galleryPhotos'));
 })->name('landing');
 
 Route::get('/galeri', [MarketplaceController::class, 'galeri'])->name('galeri');

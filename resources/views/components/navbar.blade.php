@@ -7,9 +7,7 @@
     <div class="public-container">
         <div class="flex min-h-16 items-center justify-between gap-5">
             <a href="{{ route('landing') }}" class="flex items-center gap-3 text-sm font-extrabold uppercase tracking-normal text-public-ink" aria-label="JepretCFD home">
-                <span class="grid h-8 w-8 place-items-center border border-public-ink bg-public-ink text-white">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>
-                </span>
+                <img src="{{ asset('images/jepret.png') }}" alt="" class="h-11 w-11 shrink-0 object-contain">
                 JepretCFD
             </a>
 
