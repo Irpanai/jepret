@@ -7,7 +7,7 @@
             </div>
             <h1 class="text-3xl font-black text-black tracking-tight mb-2">Manajemen Foto & Cloud Upload</h1>
             <p class="text-sm text-gray-500 font-medium max-w-xl">
-                Kelola kurasi galeri, hak cipta watermark, dan harga jual per foto. Komisi fotografer terdistribusi otomatis 70%.
+                Kelola kurasi galeri, hak cipta watermark, dan harga jual per foto. Komisi fotografer terdistribusi otomatis 90%.
             </p>
         </div>
         <div class="flex items-center gap-4 shrink-0">
@@ -40,6 +40,22 @@
 
             <!-- Event Selection & Folder Creation -->
             <div class="mb-4 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="title" class="block text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-widest">Judul Foto</label>
+                        <input type="text" name="title" id="title" value="{{ old('title') }}" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-0 focus:border-black transition-colors" placeholder="Contoh: Finisher di KM 5">
+                    </div>
+                    <div>
+                        <label for="camera_id" class="block text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-widest">Kamera</label>
+                        <select name="camera_id" id="camera_id" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-0 focus:border-black transition-colors">
+                            <option value="">-- Tanpa metadata kamera --</option>
+                            @foreach($cameras as $camera)
+                                <option value="{{ $camera->id }}" @selected(old('camera_id') == $camera->id)>{{ $camera->name }} - {{ $camera->brand_model }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
                 <div>
                     <label for="event_id" class="block text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-widest">Pilih Event/Folder (Opsional)</label>
                     <select name="event_id" id="event_id" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-0 focus:border-black transition-colors">
@@ -60,6 +76,27 @@
                     <label for="new_folder" class="block text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-widest">Nama Folder / Event Baru</label>
                     <input type="text" name="new_folder" id="new_folder" value="{{ old('new_folder') }}" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-0 focus:border-black transition-colors" placeholder="Contoh: Jakarta Marathon 2026">
                     <p class="text-[9px] text-gray-400 mt-2 font-medium">Sistem otomatis membuatkan folder untuk foto Anda.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="category" class="block text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-widest">Kategori</label>
+                        <input type="text" name="category" id="category" value="{{ old('category') }}" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-0 focus:border-black transition-colors" placeholder="Run, bike, portrait">
+                    </div>
+                    <div>
+                        <label for="taken_at" class="block text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-widest">Tanggal Ambil</label>
+                        <input type="datetime-local" name="taken_at" id="taken_at" value="{{ old('taken_at') }}" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-0 focus:border-black transition-colors">
+                    </div>
+                    <div>
+                        <label for="daypart" class="block text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-widest">Waktu</label>
+                        <select name="daypart" id="daypart" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-0 focus:border-black transition-colors">
+                            <option value="">Auto / Tidak diisi</option>
+                            <option value="morning" @selected(old('daypart') === 'morning')>Pagi</option>
+                            <option value="afternoon" @selected(old('daypart') === 'afternoon')>Siang</option>
+                            <option value="evening" @selected(old('daypart') === 'evening')>Sore</option>
+                            <option value="night" @selected(old('daypart') === 'night')>Malam</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -123,7 +160,7 @@
                         <span class="font-bold text-lg">%</span>
                         <h3 class="text-xs font-bold uppercase tracking-widest">KALKULATOR BAGI HASIL</h3>
                     </div>
-                    <span class="bg-green-100 text-green-700 text-[9px] font-bold px-2 py-1 rounded">Skema 70/30</span>
+                    <span class="bg-green-100 text-green-700 text-[9px] font-bold px-2 py-1 rounded">Skema 90/10</span>
                 </div>
 
                 <div class="mb-4">
@@ -145,20 +182,20 @@
                     <div class="bg-white border border-gray-200 rounded-xl p-4 flex justify-between items-center shadow-sm">
                         <div class="flex items-center gap-2">
                             <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                            <span class="text-xs font-bold text-black">Pendapatan Bersih Anda (70%)</span>
+                            <span class="text-xs font-bold text-black">Pendapatan Bersih Anda (90%)</span>
                         </div>
                         <div class="text-right">
                             <span class="text-[10px] font-bold text-black block mb-0.5">Rp</span>
-                            <span class="text-xl font-black text-black leading-none" x-text="new Intl.NumberFormat('id-ID').format(Math.floor(harga * 0.7))">14.000</span>
+                            <span class="text-xl font-black text-black leading-none" x-text="new Intl.NumberFormat('id-ID').format(Math.floor(harga * 0.9))">18.000</span>
                         </div>
                     </div>
                     <div class="flex justify-between items-center mt-3">
-                        <span class="text-[10px] font-bold text-gray-500">Biaya Platform & Server CDN (30%)</span>
-                        <span class="text-[10px] font-bold text-gray-400" x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(Math.ceil(harga * 0.3))">Rp 6.000</span>
+                        <span class="text-[10px] font-bold text-gray-500">Biaya Platform & Server CDN (10%)</span>
+                        <span class="text-[10px] font-bold text-gray-400" x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(Math.ceil(harga * 0.1))">Rp 2.000</span>
                     </div>
                     <div class="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden mt-2 flex">
-                        <div class="h-full bg-black rounded-l-full" style="width: 70%;"></div>
-                        <div class="h-full bg-gray-300 rounded-r-full" style="width: 30%;"></div>
+                        <div class="h-full bg-black rounded-l-full" style="width: 90%;"></div>
+                        <div class="h-full bg-gray-300 rounded-r-full" style="width: 10%;"></div>
                     </div>
                 </div>
             </div>
@@ -246,11 +283,11 @@
                     <div class="bg-gray-50 rounded-lg p-3 grid grid-cols-2 gap-4 mb-4 mt-auto">
                         <div>
                             <span class="text-[9px] font-bold text-gray-400 block mb-0.5">Harga Satuan:</span>
-                            <span class="text-xs font-bold text-black">Rp {{ number_format($photo->harga, 0, ',', '.') }} <span class="text-[9px] font-medium text-gray-400">(Net Rp {{ number_format($photo->harga * 0.7, 0, ',', '.') }})</span></span>
+                            <span class="text-xs font-bold text-black">Rp {{ number_format($photo->harga, 0, ',', '.') }} <span class="text-[9px] font-medium text-gray-400">(Net Rp {{ number_format($photo->net_harga, 0, ',', '.') }})</span></span>
                         </div>
                         <div>
                             <span class="text-[9px] font-bold text-gray-400 block mb-0.5">Statistik Penjualan:</span>
-                            <span class="text-[9px] font-medium text-gray-500">0 tayangan • <span class="text-gray-400 font-bold">0 terjual</span></span>
+                            <span class="text-[9px] font-medium text-gray-500">{{ number_format($photo->views_count ?? 0) }} tayangan • <span class="text-gray-400 font-bold">{{ $photo->transactions()->where('status', 'paid')->count() }} terjual</span></span>
                         </div>
                     </div>
                     

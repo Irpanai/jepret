@@ -208,15 +208,16 @@
 
                     <!-- Actions -->
                     <div class="w-full flex flex-col sm:flex-row items-center gap-3">
-                        <button class="w-full sm:w-auto flex-1 bg-white border border-gray-200 text-gray-700 font-bold text-sm px-6 py-3.5 rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2">
+                        <a href="{{ route('marketplace.show', $photo) }}" class="w-full sm:w-auto flex-1 bg-white border border-gray-200 text-gray-700 font-bold text-sm px-6 py-3.5 rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                            Cek Status Manual
-                        </button>
-                        <form action="#" method="POST" class="w-full sm:w-auto flex-1">
+                            Kembali ke Detail
+                        </a>
+                        <form action="{{ route('cart.store') }}" method="POST" class="w-full sm:w-auto flex-1">
                             @csrf
-                            <button type="button" onclick="alert('Ini hanya simulasi UI mockup. Belum ada logic integrasi payment gateway (seperti Midtrans/Xendit) yang dibuat. Secara fungsional akan diarahkan ke halaman berhasil jika diimplementasikan.')" class="w-full bg-black text-white font-bold text-sm px-6 py-3.5 rounded-xl hover:bg-gray-800 transition flex items-center justify-center gap-2">
+                            <input type="hidden" name="photo_id" value="{{ $photo->id }}">
+                            <button class="w-full bg-black text-white font-bold text-sm px-6 py-3.5 rounded-xl hover:bg-gray-800 transition flex items-center justify-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                Simulasikan Sukses (Bayar)
+                                Tambah ke Keranjang
                             </button>
                         </form>
                     </div>

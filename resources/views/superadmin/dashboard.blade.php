@@ -51,14 +51,14 @@
         <!-- Card 2: Platform Share -->
         <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col h-full">
             <div class="flex justify-between items-start mb-4">
-                <span class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest leading-tight">02 /<br>PLATFORM<br>SHARE (30%)</span>
+                <span class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest leading-tight">02 /<br>PLATFORM<br>SHARE (10%)</span>
                 <span class="text-[9px] font-mono font-bold text-gray-400 text-right">
                     Nett<br>Fee
                 </span>
             </div>
             <div class="mt-auto">
                 <div class="text-sm font-bold text-black mb-0.5">Rp</div>
-                <h3 class="text-2xl font-black text-black leading-none">{{ number_format($totalGmv * 0.3, 0, ',', '.') }}</h3>
+                <h3 class="text-2xl font-black text-black leading-none">{{ number_format($platformShare, 0, ',', '.') }}</h3>
                 <p class="text-[9px] text-gray-500 font-mono mt-2">Margin bersih<br>terverifikasi</p>
             </div>
             <div class="flex justify-between items-end mt-4 pt-3 border-t border-gray-100">
@@ -70,7 +70,7 @@
         <!-- Card 3: Payout Kreator -->
         <div class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col h-full">
             <div class="flex justify-between items-start mb-4">
-                <span class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest leading-tight">03 /<br>PAYOUT<br>KREATOR<br>(70%)</span>
+                <span class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest leading-tight">03 /<br>PAYOUT<br>KREATOR<br>(90%)</span>
                 <span class="text-[9px] font-mono font-bold text-gray-400 text-right">
                     Disbursed
                 </span>

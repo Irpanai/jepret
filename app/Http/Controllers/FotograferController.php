@@ -2,25 +2,33 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Event;
+use App\Models\FgLocation;
+use App\Models\Package;
+use App\Models\Transaction;
+use App\Models\Withdrawal;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class FotograferController extends Controller
 {
     public function dashboard(Request $request)
     {
         $user = $request->user();
-        
+
+        $paidTransactions = Transaction::whereHas('photo', function ($q) use ($user) {
+            $q->where('fotografer_id', $user->id);
+        })->where('status', 'paid')->get();
+
         $stats = [
             'saldo' => $user->saldo,
             'storage_terpakai' => $user->storage_terpakai_mb,
             'storage_total' => $user->package ? $user->package->kuota_storage_mb : 5000,
-            'total_sales' => \App\Models\Transaction::whereHas('photo', function ($q) use ($user) {
-                $q->where('fotografer_id', $user->id);
-            })->where('status', 'paid')->sum('total_bayar'),
+            'total_sales' => $paidTransactions->sum(fn ($transaction) => $transaction->jumlah_fotografer),
         ];
 
-        $radar = \App\Models\FgLocation::where('fotografer_id', $user->id)->first();
-        $withdrawals = \App\Models\Withdrawal::where('fotografer_id', $user->id)->latest()->take(5)->get();
+        $radar = FgLocation::where('fotografer_id', $user->id)->first();
+        $withdrawals = Withdrawal::where('fotografer_id', $user->id)->latest()->take(5)->get();
 
         return view('fotografer.dashboard', compact('stats', 'radar', 'withdrawals'));
     }
@@ -28,14 +36,14 @@ class FotograferController extends Controller
     public function toggleRadar(Request $request)
     {
         $request->validate(['nama_spot' => 'required|string']);
-        
+
         $user = $request->user();
-        $location = \App\Models\FgLocation::updateOrCreate(
+        $location = FgLocation::updateOrCreate(
             ['fotografer_id' => $user->id],
             ['nama_spot' => $request->nama_spot, 'is_active' => true]
         );
 
-        return back()->with('success', 'Radar activated at ' . $location->nama_spot);
+        return back()->with('success', 'Radar activated at '.$location->nama_spot);
     }
 
     public function withdraw(Request $request)
@@ -51,7 +59,7 @@ class FotograferController extends Controller
             return back()->withErrors(['jumlah_tarik' => 'Insufficient balance.']);
         }
 
-        \App\Models\Withdrawal::create([
+        Withdrawal::create([
             'fotografer_id' => $user->id,
             'jumlah_tarik' => $request->jumlah_tarik,
             'metode_pembayaran' => $request->metode_pembayaran,
@@ -67,7 +75,7 @@ class FotograferController extends Controller
     public function orders(Request $request)
     {
         $user = $request->user();
-        $transactions = \App\Models\Transaction::whereHas('photo', function ($q) use ($user) {
+        $transactions = Transaction::whereHas('photo', function ($q) use ($user) {
             $q->where('fotografer_id', $user->id);
         })->with(['photo', 'pembeli'])->latest()->get();
 
@@ -77,18 +85,16 @@ class FotograferController extends Controller
     public function earnings(Request $request)
     {
         $user = $request->user();
-        
-        $transactions = \App\Models\Transaction::whereHas('photo', function ($q) use ($user) {
+
+        $transactions = Transaction::whereHas('photo', function ($q) use ($user) {
             $q->where('fotografer_id', $user->id);
         })->where('status', 'paid')->latest()->get();
-        
-        $withdrawals = \App\Models\Withdrawal::where('fotografer_id', $user->id)
+
+        $withdrawals = Withdrawal::where('fotografer_id', $user->id)
             ->latest()
             ->get();
-            
-        $totalEarnings = $transactions->sum(function($t) {
-            return $t->photo->net_harga + $t->tip_amount;
-        });
+
+        $totalEarnings = $transactions->sum(fn ($transaction) => $transaction->jumlah_fotografer);
 
         return view('fotografer.earnings', compact('transactions', 'withdrawals', 'totalEarnings', 'user'));
     }
@@ -96,33 +102,33 @@ class FotograferController extends Controller
     public function storage(Request $request)
     {
         $user = $request->user();
-        
-        $events = \App\Models\Event::where('fotografer_id', $user->id)
+
+        $events = Event::where('fotografer_id', $user->id)
             ->with('photos') // Load photos
             ->withCount('photos')
             ->get();
-            
+
         $folders = $events->map(function ($event) {
             return [
                 'id' => $event->id,
                 'name' => $event->nama_event,
                 'count' => $event->photos_count,
-                'size' => ($event->photos_count * 15) . ' MB', 
+                'size' => ($event->photos_count * 15).' MB',
                 'photos' => $event->photos->map(function ($photo) {
                     return [
                         'id' => $photo->id,
                         'name' => basename($photo->file_asli),
                         'size' => '15 MB',
-                        'url' => \Illuminate\Support\Facades\Storage::url($photo->file_watermark)
+                        'url' => Storage::url($photo->file_watermark),
                     ];
-                })
+                }),
             ];
         });
 
-        $package = $user->package ?? \App\Models\Package::where('nama_paket', 'Basic')->first();
+        $package = $user->package ?? Package::where('nama_paket', 'Basic')->first();
         $storageTerpakai = $user->storage_terpakai_mb;
         $kuota = $package ? $package->kuota_storage_mb : 5000;
-        
+
         return view('fotografer.storage', compact('events', 'folders', 'storageTerpakai', 'kuota', 'package'));
     }
 

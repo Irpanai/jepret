@@ -18,7 +18,7 @@
 
             <h1 class="text-2xl sm:text-3xl font-black text-black tracking-tight mb-2">Ledger Transaksi & Rekonsiliasi Finansial</h1>
             <p class="text-xs sm:text-sm text-gray-600 font-medium max-w-2xl leading-relaxed">
-                Buku besar audit seluruh transaksi penjualan foto CFD nasional. Pemantauan real-time split komisi otomatis (70% Fotografer / 30% Platform) dan status payment gateway.
+                Buku besar audit seluruh transaksi penjualan foto CFD nasional. Pemantauan real-time split komisi otomatis (90% Fotografer / 10% Platform) dan status payment gateway.
             </p>
         </div>
         
@@ -68,7 +68,7 @@
             <div class="flex justify-between items-start mb-4">
                 <span class="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest">HAK<br>FOTOGRAFER</span>
                 <div class="flex items-center gap-2">
-                    <span class="text-[9px] font-mono text-gray-400 font-bold bg-gray-50 px-1.5 rounded">70%</span>
+                    <span class="text-[9px] font-mono text-gray-400 font-bold bg-gray-50 px-1.5 rounded">90%</span>
                     <div class="w-6 h-6 rounded bg-green-50 flex items-center justify-center shrink-0">
                         <svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     </div>
@@ -87,7 +87,7 @@
             <div class="flex justify-between items-start mb-4">
                 <span class="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest">PENDAPATAN<br>PLATFORM</span>
                 <div class="flex items-center gap-2">
-                    <span class="text-[9px] font-mono text-gray-400 font-bold bg-gray-50 px-1.5 rounded">30%</span>
+                    <span class="text-[9px] font-mono text-gray-400 font-bold bg-gray-50 px-1.5 rounded">10%</span>
                     <div class="w-6 h-6 rounded bg-gray-100 flex items-center justify-center shrink-0">
                         <svg class="w-3.5 h-3.5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                     </div>
@@ -145,8 +145,8 @@
                         <th class="py-4 px-5 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">PEMBELI (GOOGLE SSO)</th>
                         <th class="py-4 px-5 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">FOTOGRAFER<br>& EVENT CFD</th>
                         <th class="py-4 px-5 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap text-right">HARGA<br>FOTO (GMV)</th>
-                        <th class="py-4 px-5 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap text-right">KREATOR<br>(70%)</th>
-                        <th class="py-4 px-5 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap text-right">PLATFORM<br>(30%)</th>
+                        <th class="py-4 px-5 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap text-right">KREATOR<br>(90%)</th>
+                        <th class="py-4 px-5 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap text-right">PLATFORM<br>(10%)</th>
                         <th class="py-4 px-5 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">GATEWAY & MDR</th>
                         <th class="py-4 px-5 text-[10px] font-mono font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap text-right">STATUS<br>REKONSILIASI</th>
                     </tr>

@@ -141,10 +141,22 @@
                         Sudah termasuk semua biaya admin & gateway pembayaran (QRIS, GoPay, OVO, ShopeePay, Transfer Bank).
                     </p>
 
-                    <a href="{{ route('marketplace.checkout', $photo->id) }}" class="block w-full bg-black text-white text-center rounded-xl py-3.5 px-4 font-bold text-sm hover:bg-gray-800 transition flex items-center justify-center gap-2 mb-4">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                        Beli Foto Sekarang
-                    </a>
+                    @auth
+                        @if(auth()->user()->role === 'pembeli')
+                            <form method="POST" action="{{ route('cart.store') }}" class="mb-4">
+                                @csrf
+                                <input type="hidden" name="photo_id" value="{{ $photo->id }}">
+                                <button class="w-full bg-black text-white text-center rounded-xl py-3.5 px-4 font-bold text-sm hover:bg-gray-800 transition flex items-center justify-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                                    Tambah ke Keranjang
+                                </button>
+                            </form>
+                        @else
+                            <a href="{{ route('dashboard') }}" class="block w-full bg-black text-white text-center rounded-xl py-3.5 px-4 font-bold text-sm hover:bg-gray-800 transition mb-4">Buka Dashboard</a>
+                        @endif
+                    @else
+                        <a href="{{ route('login') }}" class="block w-full bg-black text-white text-center rounded-xl py-3.5 px-4 font-bold text-sm hover:bg-gray-800 transition mb-4">Login untuk Membeli</a>
+                    @endauth
 
                     <div class="text-[10px] text-gray-400 text-center mb-5 pb-5 border-b border-gray-100">
                         Verifikasi kilat via Google • Tanpa password & tanpa antrean
@@ -162,7 +174,7 @@
                             <svg class="w-5 h-5 text-gray-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                             <div>
                                 <h4 class="text-xs font-bold text-gray-900">Akses Arsip Permanen:</h4>
-                                <p class="text-xs text-gray-500">Tautan tersimpan di dashboard Google Anda selamanya untuk diunduh kembali kapan saja.</p>
+                                <p class="text-xs text-gray-500">Tautan unduhan tersimpan di menu Pembelian Saya setelah pembayaran lunas.</p>
                             </div>
                         </div>
                         <div class="flex items-start gap-3">

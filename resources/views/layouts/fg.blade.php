@@ -40,6 +40,7 @@
                         $rolePrefix = Auth::user()->role === 'superadmin' ? 'superadmin.' : 'fotografer.';
                         $isDashboard = request()->routeIs($rolePrefix . 'dashboard');
                         $isPhotos = request()->routeIs($rolePrefix . 'photos.*') || request()->routeIs($rolePrefix . 'photos');
+                        $isCameras = request()->routeIs('fotografer.cameras.*');
                     @endphp
                     
                     <!-- Overview -->
@@ -47,6 +48,13 @@
                         <svg class="w-5 h-5 shrink-0 {{ $isDashboard ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                         <span x-show="sidebarOpen" class="whitespace-nowrap">Ringkasan</span>
                     </a>
+
+                    @if(Auth::user()->role === 'fotografer')
+                    <a href="{{ route('fotografer.cameras.index') }}" :class="sidebarOpen ? 'px-3 justify-start' : 'justify-center'" class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-semibold transition {{ $isCameras ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}" :title="!sidebarOpen ? 'Kamera' : ''">
+                        <svg class="w-5 h-5 shrink-0 {{ $isCameras ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16a3 3 0 100-6 3 3 0 000 6z"></path></svg>
+                        <span x-show="sidebarOpen" class="whitespace-nowrap">Kamera</span>
+                    </a>
+                    @endif
                     
                     <!-- Photos -->
                     <a href="{{ Auth::user()->role === 'superadmin' ? route('superadmin.photos') : route('fotografer.photos.index') }}" :class="sidebarOpen ? 'px-3 justify-start' : 'justify-center'" class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-semibold transition {{ $isPhotos ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}" :title="!sidebarOpen ? 'Foto' : ''">

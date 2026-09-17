@@ -2,16 +2,26 @@
 
 namespace App\Models;
 
+use Database\Factories\TransactionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transaction extends Model
 {
-    /** @use HasFactory<\Database\Factories\TransactionFactory> */
+    /** @use HasFactory<TransactionFactory> */
     use HasFactory;
 
     protected $guarded = ['id'];
+
+    protected function casts(): array
+    {
+        return [
+            'revenue_share_snapshot' => 'array',
+            'paid_at' => 'datetime',
+            'expires_at' => 'datetime',
+        ];
+    }
 
     public function photo(): BelongsTo
     {
@@ -23,13 +33,26 @@ class Transaction extends Model
         return $this->belongsTo(User::class, 'pembeli_id');
     }
 
-    public function getJumlahFotograferAttribute()
+    public function fotografer(): BelongsTo
     {
-        return $this->photo ? $this->photo->net_harga + $this->tip_amount : 0;
+        return $this->belongsTo(User::class, 'fotografer_id');
     }
 
-    public function getJumlahPlatformAttribute()
+    public function getJumlahFotograferAttribute(): int
     {
-        return $this->photo ? $this->harga_foto - $this->photo->net_harga : 0;
+        if ($this->photographer_amount > 0) {
+            return (int) $this->photographer_amount;
+        }
+
+        return $this->photo ? Photo::photographerAmount((int) $this->harga_foto, (int) $this->tip_amount) : 0;
+    }
+
+    public function getJumlahPlatformAttribute(): int
+    {
+        if ($this->platform_amount > 0) {
+            return (int) $this->platform_amount;
+        }
+
+        return $this->photo ? Photo::platformAmount((int) $this->harga_foto) : 0;
     }
 }

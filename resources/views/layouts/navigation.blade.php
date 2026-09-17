@@ -30,7 +30,7 @@
         </a>
 
         @if(auth()->user()->role === 'pembeli')
-        <a href="{{ route('pembeli.library') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full {{ request()->routeIs('pembeli.library') ? 'bg-accent/10 text-accent' : 'text-gray-300 hover:text-white hover:bg-gray-700/50' }}">
+        <a href="{{ route('purchases.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full {{ request()->routeIs('purchases.*') ? 'bg-accent/10 text-accent' : 'text-gray-300 hover:text-white hover:bg-gray-700/50' }}">
             <svg class="w-5 h-5 opacity-75" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             {{ __('My Library') }}
         </a>

@@ -60,21 +60,21 @@
                     <div>
                         <div class="flex justify-between items-end mb-2">
                             <label class="text-[11px] font-bold text-black">Split Komisi Default Transaksi</label>
-                            <span class="text-[9px] font-mono font-bold text-black">70% Kreator : 30% Platform</span>
+                            <span class="text-[9px] font-mono font-bold text-black">90% Kreator : 10% Platform</span>
                         </div>
                         <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex relative mb-4">
-                            <div class="h-full bg-black" style="width: 70%"></div>
-                            <div class="absolute inset-y-0 left-[70%] -ml-2 w-4 h-4 rounded-full bg-black border-2 border-white top-1/2 -translate-y-1/2 shadow cursor-pointer"></div>
+                            <div class="h-full bg-black" style="width: 90%"></div>
+                            <div class="absolute inset-y-0 left-[90%] -ml-2 w-4 h-4 rounded-full bg-black border-2 border-white top-1/2 -translate-y-1/2 shadow cursor-pointer"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <div class="text-[9px] font-mono text-gray-400 uppercase tracking-widest mb-1">PORSI FOTOGRAFER (KREATOR)</div>
-                                <div class="text-xl font-black text-green-600 mb-1">70%</div>
+                                <div class="text-xl font-black text-green-600 mb-1">90%</div>
                                 <div class="text-[9px] text-gray-500">Diterima bersih ke saldo dompet kreator</div>
                             </div>
                             <div>
                                 <div class="text-[9px] font-mono text-gray-400 uppercase tracking-widest mb-1">PLATFORM TAKE-RATE</div>
-                                <div class="text-xl font-black text-black mb-1">30%</div>
+                                <div class="text-xl font-black text-black mb-1">10%</div>
                                 <div class="text-[9px] text-gray-500">Alokasi CDN, storage, dan pemeliharaan</div>
                             </div>
                         </div>
@@ -84,7 +84,7 @@
                         <div class="flex items-center justify-between gap-4">
                             <div>
                                 <h4 class="text-[11px] font-bold text-black">MDR QRIS Policy Ditanggung Platform</h4>
-                                <p class="text-[10px] text-gray-500 mt-0.5 max-w-sm">Biaya QRIS 0.7% ditanggung dari porsi 30% marketplace agar kreator tidak mengalami potongan tambahan.</p>
+                                <p class="text-[10px] text-gray-500 mt-0.5 max-w-sm">Biaya QRIS 0.7% ditanggung dari porsi 10% marketplace agar kreator tidak mengalami potongan tambahan.</p>
                             </div>
                             <!-- Toggle On -->
                             <div class="w-10 h-6 bg-black rounded-full p-1 flex items-center justify-end shrink-0 cursor-pointer">

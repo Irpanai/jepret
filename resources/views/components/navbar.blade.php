@@ -1,3 +1,21 @@
+@php
+    $cartPhotoIds = auth()->check() && auth()->user()->role === 'pembeli'
+        ? array_values(session('cart', []))
+        : [];
+
+    $cartPhotos = collect();
+
+    if ($cartPhotoIds !== []) {
+        $cartPhotos = \App\Models\Photo::query()
+            ->with(['event', 'fotografer'])
+            ->whereIn('id', $cartPhotoIds)
+            ->get()
+            ->sortBy(fn ($photo) => array_search($photo->id, $cartPhotoIds, true));
+    }
+
+    $cartTotal = $cartPhotos->sum('harga');
+@endphp
+
 <nav class="border-b border-gray-100 bg-white sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
@@ -11,12 +29,14 @@
 
             <!-- Center Links -->
             <div class="hidden md:flex items-center space-x-6 ml-10">
-                @if(!auth()->check() || (auth()->check() && request()->routeIs('galeri')))
+                @if(!auth()->check() || auth()->user()->role === 'pembeli')
                     @if(!auth()->check())
                         <a href="{{ url('/#tentang') }}" class="text-base font-semibold text-gray-500 hover:text-black transition">Tentang</a>
+                    @else
+                        <a href="{{ url('/#tentang') }}" class="text-base font-semibold text-gray-500 hover:text-black transition">Tentang</a>
+                        <a href="{{ route('galeri') }}" class="text-base font-semibold {{ request()->routeIs('galeri') ? 'text-black' : 'text-gray-500 hover:text-black' }} transition">Galeri</a>
+                        <a href="{{ route('photographers.index') }}" class="text-base font-semibold {{ request()->routeIs('photographers.*') ? 'text-black' : 'text-gray-500 hover:text-black' }} transition">Photographers</a>
                     @endif
-                    <a href="{{ route('galeri') }}" class="text-base font-semibold {{ request()->routeIs('galeri') ? 'text-black' : 'text-gray-500 hover:text-black' }} transition">Galeri</a>
-                    <a href="{{ route('photographers.index') }}" class="text-base font-semibold {{ request()->routeIs('photographers.*') ? 'text-black' : 'text-gray-500 hover:text-black' }} transition">Photographers</a>
                     <a href="{{ url('/#pricing') }}" class="text-base font-semibold text-gray-500 hover:text-black transition">Pricing</a>
                 @endif
             </div>
@@ -25,12 +45,14 @@
             <div class="flex items-center space-x-4 ml-auto">
                 
                 @auth
-                    @if(auth()->user()->role === 'pembeli' && request()->routeIs('galeri'))
-                        <!-- Cart Icon (Hanya di /galeri untuk buyer login) -->
+                    @if(auth()->user()->role === 'pembeli')
+                        <!-- Cart Icon -->
                         <div class="flex items-center relative" x-data="{ cartOpen: false }">
                             <button @click="cartOpen = !cartOpen" @click.away="cartOpen = false" class="text-gray-500 hover:text-black transition relative p-2" title="Keranjang">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                                <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                                @if($cartPhotos->isNotEmpty())
+                                    <span class="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 bg-red-500 rounded-full ring-2 ring-white text-white text-[10px] font-black flex items-center justify-center">{{ $cartPhotos->count() }}</span>
+                                @endif
                             </button>
 
                             <!-- Cart Dropdown -->
@@ -40,31 +62,35 @@
                                  class="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
                                 
                                 <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                                    <span class="font-black text-sm text-gray-900">Keranjang (2)</span>
-                                    <span class="text-[10px] font-bold text-gray-500">Rp35.000</span>
+                                    <span class="font-black text-sm text-gray-900">Keranjang ({{ $cartPhotos->count() }})</span>
+                                    <span class="text-[10px] font-bold text-gray-500">Rp{{ number_format($cartTotal, 0, ',', '.') }}</span>
                                 </div>
 
                                 <div class="p-3 space-y-3 max-h-64 overflow-y-auto">
-                                    <!-- Dummy Cart Item 1 -->
-                                    <div class="flex gap-3">
-                                        <div class="flex-1 min-w-0">
-                                            <h4 class="text-xs font-bold text-gray-900 truncate">CFD Banjarbaru</h4>
-                                            <p class="text-[9px] text-gray-500 mb-1">Dwi Visual</p>
-                                            <div class="font-black text-xs text-gray-900">Rp20.000 &bull; <button class="text-red-500 hover:underline">Hapus</button></div>
+                                    @forelse($cartPhotos as $cartPhoto)
+                                        <div class="flex gap-3">
+                                            <div class="flex-1 min-w-0">
+                                                <h4 class="text-xs font-bold text-gray-900 truncate">{{ $cartPhoto->event->nama_event ?? $cartPhoto->title ?? 'Foto Jepret' }}</h4>
+                                                <p class="text-[9px] text-gray-500 mb-1">{{ $cartPhoto->fotografer->name ?? 'Photographer' }}</p>
+                                                <div class="font-black text-xs text-gray-900 flex items-center gap-1">
+                                                    Rp{{ number_format($cartPhoto->harga, 0, ',', '.') }}
+                                                    <form method="POST" action="{{ route('cart.destroy') }}" class="inline">
+                                                        @csrf
+                                                        <input type="hidden" name="photo_id" value="{{ $cartPhoto->id }}">
+                                                        <button type="submit" class="text-red-500 hover:underline font-bold">Hapus</button>
+                                                    </form>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <!-- Dummy Cart Item 2 -->
-                                    <div class="flex gap-3">
-                                        <div class="flex-1 min-w-0">
-                                            <h4 class="text-xs font-bold text-gray-900 truncate">Sunday Running</h4>
-                                            <p class="text-[9px] text-gray-500 mb-1">Arah Visual</p>
-                                            <div class="font-black text-xs text-gray-900">Rp15.000 &bull; <button class="text-red-500 hover:underline">Hapus</button></div>
+                                    @empty
+                                        <div class="py-6 text-center">
+                                            <p class="text-xs font-bold text-gray-500">Keranjang masih kosong.</p>
                                         </div>
-                                    </div>
+                                    @endforelse
                                 </div>
 
                                 <div class="p-3 border-t border-gray-100 bg-white">
-                                    <a href="{{ route('checkout.page') }}" class="block w-full bg-black text-white text-center text-sm font-bold py-3 rounded-lg hover:bg-gray-800 transition-colors shadow-sm">
+                                    <a href="{{ route('cart.index') }}" class="block w-full bg-black text-white text-center text-sm font-bold py-3 rounded-lg hover:bg-gray-800 transition-colors shadow-sm">
                                         Lanjut ke Checkout
                                     </a>
                                 </div>
@@ -85,7 +111,7 @@
                             </div>
                             
                             @if(Auth::user()->role === 'pembeli')
-                                <a href="{{ route('pembeli.library') ?? '#' }}" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-black">Pembelian Saya</a>
+                                <a href="{{ route('purchases.index') }}" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-black">Pembelian Saya</a>
                                 <a href="{{ route('register', ['role' => 'fotografer']) }}" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-black">Daftar Sebagai Photographer</a>
                             @else
                                 <a href="{{ route('dashboard') }}" class="block px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-black">Dashboard</a>

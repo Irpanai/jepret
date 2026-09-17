@@ -73,6 +73,6 @@ class GoogleAuthTest extends TestCase
             'id' => $user->id,
             'google_id' => 'google-67890',
         ]);
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('galeri', absolute: false));
     }
 }

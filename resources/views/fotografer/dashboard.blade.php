@@ -44,7 +44,7 @@
                     +14.2% bulan ini
                 </p>
             </div>
-            <p class="text-[9px] text-gray-400 font-medium mt-2">Net creator earnings (70%)</p>
+            <p class="text-[9px] text-gray-400 font-medium mt-2">Net creator earnings (90%)</p>
         </div>
 
         <!-- Card 2: Foto Terjual -->
@@ -265,8 +265,8 @@
                         <th class="px-6 py-4">JUDUL & EVENT</th>
                         <th class="px-6 py-4">PEMBELI</th>
                         <th class="px-6 py-4">HARGA</th>
-                        <th class="px-6 py-4">PENDAPATAN (70%)</th>
-                        <th class="px-6 py-4">PLATFORM (30%)</th>
+                        <th class="px-6 py-4">PENDAPATAN (90%)</th>
+                        <th class="px-6 py-4">PLATFORM (10%)</th>
                         <th class="px-6 py-4">STATUS</th>
                         <th class="px-6 py-4 text-right rounded-tr-lg">WAKTU</th>
                     </tr>

@@ -10,6 +10,7 @@ class EventController extends Controller
     public function index(Request $request)
     {
         $events = Event::where('fotografer_id', $request->user()->id)->latest()->get();
+
         return view('fotografer.events.index', compact('events'));
     }
 
@@ -23,14 +24,14 @@ class EventController extends Controller
         $request->validate([
             'nama_event' => 'required|string|max:255',
             'lokasi' => 'required|string|max:255',
-            'tanggal' => 'required|date',
+            'tanggal_event' => 'required|date',
         ]);
 
         $event = Event::create([
             'fotografer_id' => $request->user()->id,
             'nama_event' => $request->nama_event,
             'lokasi' => $request->lokasi,
-            'tanggal' => $request->tanggal,
+            'tanggal_event' => $request->tanggal_event,
         ]);
 
         return redirect()->route('fotografer.events.show', $event)->with('success', 'Event created successfully.');
@@ -43,6 +44,7 @@ class EventController extends Controller
         }
 
         $photos = $event->photos()->latest()->paginate(24);
+
         return view('fotografer.events.show', compact('event', 'photos'));
     }
 
@@ -51,6 +53,7 @@ class EventController extends Controller
         if ($event->fotografer_id !== auth()->id()) {
             abort(403);
         }
+
         return view('fotografer.events.edit', compact('event'));
     }
 
@@ -63,10 +66,11 @@ class EventController extends Controller
         $request->validate([
             'nama_event' => 'required|string|max:255',
             'lokasi' => 'required|string|max:255',
-            'tanggal' => 'required|date',
+            'tanggal_event' => 'required|date',
         ]);
 
-        $event->update($request->only('nama_event', 'lokasi', 'tanggal'));
+        $event->update($request->only('nama_event', 'lokasi', 'tanggal_event'));
+
         return redirect()->route('fotografer.events.index')->with('success', 'Event updated.');
     }
 
@@ -76,6 +80,7 @@ class EventController extends Controller
             abort(403);
         }
         $event->delete();
+
         return redirect()->route('fotografer.events.index')->with('success', 'Event deleted.');
     }
 }

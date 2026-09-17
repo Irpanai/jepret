@@ -43,7 +43,7 @@
                             <th class="px-6 py-4">FOTO & EVENT</th>
                             <th class="px-6 py-4">PEMBELI</th>
                             <th class="px-6 py-4">HARGA (100%)</th>
-                            <th class="px-6 py-4">PENDAPATAN (70%)</th>
+                            <th class="px-6 py-4">PENDAPATAN (90%)</th>
                             <th class="px-6 py-4">STATUS</th>
                             <th class="px-6 py-4 text-right">WAKTU</th>
                         </tr>
@@ -67,7 +67,7 @@
                             </td>
                             <td class="px-6 py-4 text-gray-500">{{ $trx->pembeli->email ?? 'Guest' }}</td>
                             <td class="px-6 py-4">Rp{{ number_format($trx->harga_foto, 0, ',', '.') }}</td>
-                            <td class="px-6 py-4 font-bold text-black">Rp{{ number_format($trx->photo->net_harga, 0, ',', '.') }}</td>
+                            <td class="px-6 py-4 font-bold text-black">Rp{{ number_format($trx->jumlah_fotografer, 0, ',', '.') }}</td>
                             <td class="px-6 py-4">
                                 @if($trx->status === 'paid')
                                     <span class="bg-green-50 text-green-700 text-[9px] font-bold px-2 py-1 rounded border border-green-200">LUNAS</span>

@@ -2,45 +2,96 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Photo;
 use App\Models\Event;
+use App\Models\Photo;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class MarketplaceController extends Controller
 {
-    public function galeri(Request $request)
+    public function galeri(Request $request): View
     {
-        // Default query
-        $query = Photo::with(['fotografer', 'event']);
+        $query = Photo::with(['fotografer', 'event'])
+            ->where('status', 'active');
 
-        // Implement simple filter/search if needed
-        if ($request->has('q')) {
-            $query->whereHas('event', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->q . '%');
+        if ($request->filled('q')) {
+            $search = $request->string('q')->toString();
+            $query->where(function ($photoQuery) use ($search): void {
+                $photoQuery
+                    ->where('title', 'like', "%{$search}%")
+                    ->orWhere('ai_tags', 'like', "%{$search}%")
+                    ->orWhereHas('event', function ($eventQuery) use ($search): void {
+                        $eventQuery
+                            ->where('nama_event', 'like', "%{$search}%")
+                            ->orWhere('lokasi', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('fotografer', function ($userQuery) use ($search): void {
+                        $userQuery
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('studio_name', 'like', "%{$search}%");
+                    });
             });
         }
 
-        $photos = $query->latest()->paginate(20);
+        if ($request->filled('photographer')) {
+            $query->where('fotografer_id', $request->integer('photographer'));
+        }
 
-        return view('galeri', compact('photos'));
+        if ($request->filled('event')) {
+            $query->where('event_id', $request->integer('event'));
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->string('category')->toString());
+        }
+
+        if ($request->filled('location')) {
+            $location = $request->string('location')->toString();
+            $query->whereHas('event', fn ($eventQuery) => $eventQuery->where('lokasi', 'like', "%{$location}%"));
+        }
+
+        if ($request->filled('date')) {
+            $query->whereHas('event', fn ($eventQuery) => $eventQuery->whereDate('tanggal_event', $request->date('date')));
+        }
+
+        if ($request->filled('daypart')) {
+            $query->where('daypart', $request->string('daypart')->toString());
+        }
+
+        $photos = $query
+            ->orderByDesc('published_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(25)
+            ->withQueryString();
+
+        $photographers = User::where('role', 'fotografer')->orderBy('name')->get(['id', 'name', 'studio_name']);
+        $events = Event::orderByDesc('tanggal_event')->get(['id', 'nama_event', 'lokasi', 'tanggal_event']);
+        $categories = Photo::query()->whereNotNull('category')->distinct()->orderBy('category')->pluck('category');
+
+        return view('galeri', compact('photos', 'photographers', 'events', 'categories'));
     }
 
-    public function show(Photo $photo)
+    public function show(Photo $photo): View
     {
         $photo->load(['fotografer', 'event']);
-        
+        $photo->increment('views_count');
+
         $relatedPhotos = Photo::where('event_id', $photo->event_id)
             ->where('fotografer_id', $photo->fotografer_id)
             ->where('id', '!=', $photo->id)
+            ->where('status', 'active')
             ->limit(4)
             ->get();
 
         return view('marketplace.show', compact('photo', 'relatedPhotos'));
     }
 
-    public function checkout(Photo $photo)
+    public function checkout(Photo $photo): View
     {
         $photo->load(['fotografer', 'event']);
+
         return view('marketplace.checkout', compact('photo'));
     }
 }

@@ -1,5 +1,9 @@
 @php
-    $layout = Auth::user()->role === 'fotografer' ? 'fg-layout' : 'pembeli-layout';
+    $layout = match (Auth::user()->role) {
+        'fotografer' => 'fg-layout',
+        'superadmin' => 'superadmin-layout',
+        default => 'marketplace-layout',
+    };
 @endphp
 
 <x-dynamic-component :component="$layout">

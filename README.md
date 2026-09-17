@@ -26,8 +26,8 @@
 
 JEPRET dirancang dengan fokus pada pengalaman pengguna (*User Experience*) yang premium dan kemudahan transaksi.
 
-- 🔐 **Multi-Role Authentication** - Akses khusus dan dashboard terpisah untuk Super Admin, Fotografer, dan Pembeli.
-- 💰 **Sistem Bagi Hasil Otomatis (Ledger)** - Rekonsiliasi finansial transparan secara *real-time* (70% Hak Kreator, 30% Pendapatan Platform).
+- 🔐 **Multi-Role Authentication** - Akses khusus untuk Super Admin dan Fotografer, sedangkan Pembeli masuk langsung ke galeri dan riwayat pembelian.
+- 💰 **Sistem Bagi Hasil Otomatis (Ledger)** - Rekonsiliasi finansial transparan secara *real-time* (90% Hak Kreator, 10% Pendapatan Platform).
 - 🖼️ **Master Asset Library** - Pembeli mendapatkan tautan unduh permanen ke foto resolusi tinggi (*Master File*) setelah pembayaran lunas.
 - 🛡️ **Proteksi Watermark** - Foto *preview* yang diunggah otomatis dilindungi sehingga mencegah pencurian hak cipta sebelum transaksi selesai.
 - 🔍 **Pencarian Cerdas AI (Mock)** - Pembeli dapat mencari foto mereka berdasarkan Nama Event, Nomor *Bib*, atau *Tag* Visual (misal: "sepeda", "baju merah").
@@ -140,13 +140,13 @@ Berikut adalah skenario pengujian terbaik untuk mencoba keseluruhan fitur aplika
 
 ### Tahap 2: Pengalaman Fotografer (Kreator)
 1. Buka jendela browser *Incognito* baru, lalu **Login** menggunakan akun `fotografer_pro@jepret.test` (kreator dari foto yang baru saja dibeli).
-2. Perhatikan **Saldo Aktif** Anda di Dashboard. Saldo tersebut otomatis bertambah senilai **70%** dari harga foto (+Tip jika ada pembeli VIP).
+2. Perhatikan **Saldo Aktif** Anda di Dashboard. Saldo tersebut otomatis bertambah senilai **90%** dari harga foto (+Tip jika ada pembeli VIP).
 3. Buka menu **Pesanan & Transaksi (Orders)** untuk melihat jejak rekam pembelian tadi.
 4. Pergi ke menu **Keuangan (Earnings)**, lalu klik tombol **Tarik Saldo**. Masukkan nominal, dan klik kirim. Status penarikan Anda sekarang adalah *Menunggu (Pending)*.
 
 ### Tahap 3: Pengalaman Super Admin
 1. Login menggunakan akun `superadmin@jepret.test`.
-2. Buka menu **Ledger Transaksi** untuk melihat ringkasan volume uang masuk secara global (GMV, Pendapatan Platform 30%, Hak Fotografer).
+2. Buka menu **Ledger Transaksi** untuk melihat ringkasan volume uang masuk secara global (GMV, Pendapatan Platform 10%, Hak Fotografer 90%).
 3. Buka menu **Penarikan Dana (Withdrawals)**.
 4. Cari permintaan penarikan dari Fotografer tadi, lalu klik **Setujui (Approve)**.
 5. (Selesai). Uang tersebut secara sistem sudah dianggap ditransfer, dan jika Anda kembali ke *dashboard* Fotografer, status penarikannya telah berubah menjadi **Berhasil (Success)**.

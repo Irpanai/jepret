@@ -2,50 +2,80 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Photo;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class CartController extends Controller
 {
-    public function index()
+    public function index(): View
     {
-        // Mocking cart for UI purposes.
-        $cart = session()->get('cart', []);
-        return response()->json($cart);
+        $cart = $this->cartItems();
+        $total = collect($cart)->sum('price');
+
+        return view('pembeli.cart', compact('cart', 'total'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'photo_id' => 'required|exists:photos,id'
+            'photo_id' => 'required|exists:photos,id',
         ]);
 
+        $photo = Photo::with(['fotografer', 'event'])
+            ->where('status', 'active')
+            ->findOrFail($request->photo_id);
+
         $cart = session()->get('cart', []);
-        
-        if(!isset($cart[$request->photo_id])) {
-            $photo = Photo::with('fotografer.user')->find($request->photo_id);
-            $cart[$request->photo_id] = [
-                'id' => $photo->id,
-                'price' => $photo->price,
-                'event' => $photo->event->name ?? 'Event',
-                'fotografer' => $photo->fotografer->user->name ?? 'Photographer',
-                'url' => $photo->url
-            ];
-            session()->put('cart', $cart);
+
+        if (! isset($cart[$photo->id])) {
+            $cart[$photo->id] = $photo->id;
         }
+
+        session()->put('cart', $cart);
 
         return redirect()->back()->with('success', 'Ditambahkan ke keranjang');
     }
 
-    public function destroy(Request $request)
+    public function destroy(Request $request): RedirectResponse
     {
-        if($request->id) {
-            $cart = session()->get('cart');
-            if(isset($cart[$request->id])) {
-                unset($cart[$request->id]);
-                session()->put('cart', $cart);
-            }
+        $request->validate([
+            'photo_id' => 'required|integer',
+        ]);
+
+        $cart = session()->get('cart', []);
+
+        if (isset($cart[$request->photo_id])) {
+            unset($cart[$request->photo_id]);
+            session()->put('cart', $cart);
         }
+
         return redirect()->back()->with('success', 'Dihapus dari keranjang');
+    }
+
+    /**
+     * @return array<int, array{id:int, price:int, event:string, fotografer:string, preview:string|null}>
+     */
+    private function cartItems(): array
+    {
+        $ids = array_values(session()->get('cart', []));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return Photo::with(['fotografer', 'event'])
+            ->whereIn('id', $ids)
+            ->where('status', 'active')
+            ->get()
+            ->map(fn (Photo $photo): array => [
+                'id' => $photo->id,
+                'price' => (int) $photo->harga,
+                'event' => $photo->event->nama_event ?? 'Event',
+                'fotografer' => $photo->fotografer->name ?? 'Photographer',
+                'preview' => $photo->file_watermark,
+            ])
+            ->all();
     }
 }

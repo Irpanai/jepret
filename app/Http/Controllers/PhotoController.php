@@ -2,121 +2,161 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Camera;
+use App\Models\Event;
+use App\Models\Package;
+use App\Models\Photo;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class PhotoController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        $events = \App\Models\Event::latest()->get();
-        $photos = \App\Models\Photo::where('fotografer_id', $request->user()->id)->latest()->get();
-        return view('fotografer.photos.index', compact('events', 'photos'));
+        $events = Event::where('fotografer_id', $request->user()->id)->latest()->get();
+        $cameras = Camera::where('fotografer_id', $request->user()->id)->orderBy('name')->get();
+        $photos = Photo::with(['event', 'camera'])
+            ->where('fotografer_id', $request->user()->id)
+            ->latest()
+            ->get();
+
+        return view('fotografer.photos.index', compact('events', 'cameras', 'photos'));
     }
 
-    public function create()
+    public function create(Request $request): View
     {
-        // Load events so photographer can choose which event to upload photos for
-        $events = \App\Models\Event::latest()->get();
-        return view('fotografer.photos.create', compact('events'));
+        $events = Event::where('fotografer_id', $request->user()->id)->latest()->get();
+        $cameras = Camera::where('fotografer_id', $request->user()->id)->orderBy('name')->get();
+
+        return view('fotografer.photos.create', compact('events', 'cameras'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'event_id' => 'nullable|exists:events,id',
             'new_folder' => 'nullable|string|max:255',
-            'photo' => 'required|image|max:10240', // Max 10MB
+            'camera_id' => 'nullable|exists:cameras,id',
+            'title' => 'nullable|string|max:255',
+            'taken_at' => 'nullable|date',
+            'daypart' => 'nullable|in:morning,afternoon,evening,night',
+            'category' => 'nullable|string|max:100',
+            'photo' => 'required|image|mimes:jpg,jpeg,png|max:10240',
             'harga' => 'required|integer|min:0',
         ]);
 
-        if (!$request->event_id && !$request->new_folder) {
-            return back()->withErrors(['event_id' => 'Silakan pilih event yang sudah ada atau buat folder (event) baru.'])->withInput();
+        if (! $request->filled('event_id') && ! $request->filled('new_folder')) {
+            return back()
+                ->withErrors(['event_id' => 'Silakan pilih event yang sudah ada atau buat folder/event baru.'])
+                ->withInput();
         }
 
         $user = $request->user();
-        $package = $user->package ?? \App\Models\Package::where('nama_paket', 'Basic')->first();
-        $fileSizeMB = $request->file('photo')->getSize() / 1024 / 1024;
 
-        if ($user->storage_terpakai_mb + $fileSizeMB > $package->kuota_storage_mb) {
-            return back()->withErrors(['photo' => 'Storage quota exceeded.']);
+        if ($request->filled('camera_id')) {
+            Camera::where('fotografer_id', $user->id)->findOrFail($request->integer('camera_id'));
         }
 
-        // Mock AI Vision
-        $mockTags = json_encode(['baju merah', 'sepeda', 'bib ' . rand(1000, 9999)]);
+        $package = $user->package ?? Package::where('nama_paket', 'Basic')->first();
+        $file = $request->file('photo');
+        $fileSizeMB = $file->getSize() / 1024 / 1024;
+        $quotaMb = $package?->kuota_storage_mb ?? 5000;
 
-        if ($request->new_folder) {
-            $event = \App\Models\Event::firstOrCreate(
+        if (($user->storage_terpakai_mb + $fileSizeMB) > $quotaMb) {
+            return back()->withErrors(['photo' => 'Kuota storage paket Anda tidak mencukupi.'])->withInput();
+        }
+
+        $event = $this->resolveEvent($request);
+        $eventName = Str::slug($event->nama_event);
+
+        $originalPath = $file->store('photos/original/'.$eventName, 'local');
+        $watermarkPath = $this->storeWatermarkedPreview($file->path(), $eventName);
+
+        Photo::create([
+            'event_id' => $event->id,
+            'fotografer_id' => $user->id,
+            'camera_id' => $validated['camera_id'] ?? null,
+            'title' => $validated['title'] ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+            'file_asli' => $originalPath,
+            'file_watermark' => $watermarkPath,
+            'harga' => $validated['harga'],
+            'ai_tags' => json_encode(['marketplace', (string) Str::of($event->nama_event)->lower()]),
+            'status' => 'active',
+            'published_at' => now(),
+            'taken_at' => $validated['taken_at'] ?? null,
+            'daypart' => $validated['daypart'] ?? null,
+            'category' => $validated['category'] ?? null,
+            'original_filename' => $file->getClientOriginalName(),
+            'file_size_mb' => round($fileSizeMB, 2),
+        ]);
+
+        $user->increment('storage_terpakai_mb', (int) ceil($fileSizeMB));
+
+        return back()->with('success', 'Foto berhasil diunggah dan diterbitkan ke marketplace.');
+    }
+
+    public function destroy(Photo $photo, Request $request): RedirectResponse
+    {
+        if ($photo->fotografer_id !== $request->user()->id) {
+            abort(403);
+        }
+
+        try {
+            $fileSizeMB = Storage::disk('local')->size($photo->file_asli) / 1024 / 1024;
+            $request->user()->decrement('storage_terpakai_mb', (int) ceil($fileSizeMB));
+        } catch (\Throwable) {
+            // File may already be missing; keep deletion idempotent.
+        }
+
+        Storage::disk('local')->delete($photo->file_asli);
+        Storage::disk('public')->delete($photo->file_watermark);
+
+        $photo->delete();
+
+        return back()->with('success', 'Foto berhasil dihapus.');
+    }
+
+    private function resolveEvent(Request $request): Event
+    {
+        if ($request->filled('new_folder')) {
+            return Event::firstOrCreate(
                 [
-                    'nama_event' => trim($request->new_folder),
-                    'fotografer_id' => $user->id,
+                    'nama_event' => trim($request->string('new_folder')->toString()),
+                    'fotografer_id' => $request->user()->id,
                 ],
                 [
                     'tanggal_event' => now(),
                     'lokasi' => 'Online',
                 ]
             );
-        } else {
-            $event = \App\Models\Event::findOrFail($request->event_id);
         }
 
-        $eventName = \Illuminate\Support\Str::slug($event->nama_event);
-
-        // Save Original
-        $pathAsli = $request->file('photo')->store('photos/original/' . $eventName, 'local');
-
-        // Apply Watermark
-        // (Using Intervention Image logic here)
-        $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
-        $image = $manager->decodePath($request->file('photo')->path());
-        
-        // Add text watermark
-        $image->text('Jepret Watermark', $image->width() / 2, $image->height() / 2, function($font) {
-            $font->size(48);
-            $font->color('rgba(255, 255, 255, 0.5)');
-            $font->align('center', 'center');
-        });
-
-        $watermarkPath = 'photos/watermark/' . $eventName . '/' . uniqid() . '.jpg';
-        // Ensure directory exists
-        \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory('photos/watermark/' . $eventName);
-        $image->save(storage_path('app/public/' . $watermarkPath));
-
-        \App\Models\Photo::create([
-            'event_id' => $event->id,
-            'fotografer_id' => $user->id,
-            'file_asli' => $pathAsli,
-            'file_watermark' => $watermarkPath,
-            'harga' => $request->harga,
-            'ai_tags' => $mockTags,
-        ]);
-
-        $user->increment('storage_terpakai_mb', ceil($fileSizeMB));
-
-        return back()->with('success', 'Photo uploaded.');
+        return Event::where('fotografer_id', $request->user()->id)->findOrFail($request->integer('event_id'));
     }
 
-    public function destroy(\App\Models\Photo $photo, Request $request)
+    private function storeWatermarkedPreview(string $sourcePath, string $eventName): string
     {
-        if ($photo->fotografer_id !== $request->user()->id) {
-            abort(403);
-        }
+        $manager = new ImageManager(new Driver);
+        $image = $manager->read($sourcePath);
 
-        // Refund storage quota (assuming file sizes are approximately known, 
-        // or just calculate from file_asli). For simplicity we won't decrement storage here,
-        // or we could check the file size using Storage::size()
+        $image->text('JEPRET', $image->width() / 2, $image->height() / 2, function ($font): void {
+            $font->size(48);
+            $font->color('rgba(255, 255, 255, 0.55)');
+            $font->align('center');
+            $font->valign('middle');
+        });
 
-        try {
-            $fileSizeMB = \Illuminate\Support\Facades\Storage::disk('local')->size($photo->file_asli) / 1024 / 1024;
-            $request->user()->decrement('storage_terpakai_mb', ceil($fileSizeMB));
-        } catch (\Exception $e) {
-            // file might not exist
-        }
+        $watermarkDirectory = 'photos/watermark/'.$eventName;
+        $watermarkPath = $watermarkDirectory.'/'.Str::uuid().'.jpg';
 
-        \Illuminate\Support\Facades\Storage::disk('local')->delete($photo->file_asli);
-        \Illuminate\Support\Facades\Storage::disk('public')->delete($photo->file_watermark);
+        Storage::disk('public')->makeDirectory($watermarkDirectory);
+        $image->save(storage_path('app/public/'.$watermarkPath), quality: 82);
 
-        $photo->delete();
-
-        return back()->with('success', 'Photo deleted.');
+        return $watermarkPath;
     }
 }

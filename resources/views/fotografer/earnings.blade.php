@@ -30,7 +30,7 @@
                     </div>
                     <h3 class="text-4xl font-black text-black mb-2">Rp{{ number_format($user->saldo, 0, ',', '.') }}</h3>
                     <p class="text-[10px] text-gray-500 font-medium leading-relaxed">
-                        Pendapatan bersih (70%) dari penjualan foto.
+                        Pendapatan bersih (90%) dari penjualan foto.
                     </p>
                 </div>
             </div>

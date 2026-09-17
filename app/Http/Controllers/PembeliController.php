@@ -2,122 +2,220 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Photo;
+use App\Models\Transaction;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 class PembeliController extends Controller
 {
-    public function dashboard()
+    public function purchases(Request $request): View
     {
-        return view('pembeli.dashboard');
+        $status = $request->string('status')->lower()->toString();
+        $allowedStatuses = ['paid', 'pending', 'failed', 'expired'];
+
+        $transactions = Transaction::where('pembeli_id', $request->user()->id)
+            ->with(['photo.fotografer', 'photo.event'])
+            ->when(in_array($status, $allowedStatuses, true), function ($query) use ($status): void {
+                $query->where('payment_status', $status);
+            })
+            ->orderByDesc('created_at')
+            ->get();
+
+        $orders = $transactions
+            ->groupBy(fn (Transaction $transaction): string => $transaction->order_number ?: 'LEGACY-'.$transaction->id)
+            ->map(fn (Collection $items, string $orderNumber): array => $this->orderSummary($orderNumber, $items))
+            ->values();
+
+        return view('purchases.index', compact('orders', 'status'));
     }
 
-
-    public function favorites()
+    public function checkoutPage(): View
     {
-        $favorites = \App\Models\Photo::inRandomOrder()->limit(4)->get();
-        $totalEstimasi = $favorites->sum('harga');
-        return view('pembeli.favorites', compact('favorites', 'totalEstimasi'));
-    }
-
-    public function transactions()
-    {
-        $user = request()->user();
-        $transactions = \App\Models\Transaction::where('pembeli_id', $user->id)
-                            ->latest()
-                            ->get();
-
-        return view('pembeli.transactions', compact('transactions'));
-    }
-
-    public function search(Request $request)
-    {
-        $query = $request->input('q');
-        
-        $photos = \App\Models\Photo::when($query, function ($q) use ($query) {
-            $q->where('ai_tags', 'LIKE', "%{$query}%");
-        })->get();
-
-        return view('pembeli.search', compact('photos', 'query'));
-    }
-
-    public function invoice(\App\Models\Transaction $transaction)
-    {
-        // Pastikan transaksi milik pembeli yang login
-        if ($transaction->pembeli_id !== request()->user()->id) abort(403);
-        return view('pembeli.invoice', compact('transaction'));
-    }
-
-    public function checkout(Request $request)
-    {
-        $request->validate([
-            'photo_id' => 'required|exists:photos,id',
-            'tip_amount' => 'nullable|integer|min:0',
-        ]);
-
-        $photo = \App\Models\Photo::findOrFail($request->photo_id);
-        $user = $request->user();
-        $tipAmount = $request->tip_amount ?? 0;
-        $totalBayar = $photo->harga + $tipAmount;
-
-        $transaction = \App\Models\Transaction::create([
-            'pembeli_id' => $user->id,
-            'photo_id' => $photo->id,
-            'harga_foto' => $photo->harga,
-            'tip_amount' => $tipAmount,
-            'total_bayar' => $totalBayar,
-            'status' => 'paid',
-        ]);
-
-        // Mock Midtrans Setup Here
-        // Karena ini mock dan status langsung PAID, kita tambahkan saldo ke Fotografer
-        $fotografer = $photo->fotografer;
-        if ($fotografer) {
-            $fotografer->increment('saldo', $photo->net_harga + $tipAmount);
-        }
-
-        // Return simulated redirect
-        return redirect()->route('pembeli.library')->with('success', 'Pembayaran sebesar Rp' . number_format($totalBayar, 0, ',', '.') . ' berhasil! Foto sekarang tersedia di Library Anda.');
-    }
-
-    public function library()
-    {
-        $user = request()->user();
-        $transactions = \App\Models\Transaction::where('pembeli_id', $user->id)
-                            ->where('status', 'paid')
-                            ->with('photo')
-                            ->get();
-
-        return view('pembeli.library', compact('transactions'));
-    }
-
-    public function checkoutPage()
-    {
-        // Mock cart data for UI if session is empty
-        $cart = session()->get('cart', [
-            1 => ['id' => 1, 'price' => 20000, 'event' => 'CFD Banjarbaru', 'fotografer' => 'Dwi Visual'],
-            2 => ['id' => 2, 'price' => 15000, 'event' => 'Sunday Running', 'fotografer' => 'Arah Visual'],
-        ]);
+        $ids = array_values(session()->get('cart', []));
+        $cart = Photo::with(['fotografer', 'event'])
+            ->whereIn('id', $ids)
+            ->where('status', 'active')
+            ->get()
+            ->map(fn (Photo $photo): array => [
+                'id' => $photo->id,
+                'price' => (int) $photo->harga,
+                'event' => $photo->event->nama_event ?? 'Event',
+                'fotografer' => $photo->fotografer->name ?? 'Photographer',
+                'preview' => $photo->file_watermark,
+            ])
+            ->all();
         $total = collect($cart)->sum('price');
+
         return view('checkout', compact('cart', 'total'));
     }
 
-    public function processCheckout(Request $request)
+    public function processCheckout(Request $request): RedirectResponse
     {
-        // Simulate order creation
-        $orderId = 'JEPRET-' . strtoupper(uniqid());
-        session()->forget('cart'); // clear cart
-        
-        return redirect()->route('payment.page', ['order_id' => $orderId]);
+        $user = $request->user();
+        $ids = array_values(session()->get('cart', []));
+
+        if ($ids === []) {
+            return redirect()->route('galeri')->withErrors(['cart' => 'Keranjang masih kosong.']);
+        }
+
+        $photos = Photo::with('fotografer')
+            ->whereIn('id', $ids)
+            ->where('status', 'active')
+            ->get();
+
+        if ($photos->isEmpty()) {
+            session()->forget('cart');
+
+            return redirect()->route('galeri')->withErrors(['cart' => 'Foto di keranjang tidak tersedia.']);
+        }
+
+        $orderId = 'JEPRET-'.now()->format('YmdHis').'-'.Str::upper(Str::random(5));
+
+        DB::transaction(function () use ($photos, $user, $orderId): void {
+            foreach ($photos as $photo) {
+                $price = (int) $photo->harga;
+                $photographerAmount = Photo::photographerAmount($price);
+                $platformAmount = Photo::platformAmount($price);
+
+                Transaction::create([
+                    'order_number' => $orderId,
+                    'pembeli_id' => $user->id,
+                    'photo_id' => $photo->id,
+                    'fotografer_id' => $photo->fotografer_id,
+                    'harga_foto' => $price,
+                    'tip_amount' => 0,
+                    'total_bayar' => $price,
+                    'photographer_amount' => $photographerAmount,
+                    'platform_amount' => $platformAmount,
+                    'revenue_share_snapshot' => [
+                        'photographer_percent' => Photo::PHOTOGRAPHER_SHARE_PERCENT,
+                        'platform_percent' => Photo::PLATFORM_SHARE_PERCENT,
+                        'photographer_name' => $photo->fotografer->name ?? null,
+                    ],
+                    'status' => 'pending',
+                    'payment_status' => 'pending',
+                    'payment_method' => 'qris',
+                    'expires_at' => now()->addHour(),
+                ]);
+            }
+        });
+
+        session()->forget('cart');
+
+        return redirect()->route('checkout.payment', ['order' => $orderId]);
     }
 
-    public function paymentPage($order_id)
+    public function paymentPage(Request $request, string $order): View
     {
-        return view('payment', compact('order_id'));
+        $transactions = $this->buyerOrderTransactions($request, $order);
+        $summary = $this->orderSummary($order, $transactions);
+
+        return view('payment', [
+            'order_id' => $order,
+            'transactions' => $transactions,
+            'total' => $summary['total'],
+            'paymentStatus' => $summary['status'],
+        ]);
     }
 
-    public function simulatePay($order_id)
+    public function simulatePay(Request $request, string $order): RedirectResponse
     {
-        // Simulate payment success and redirect to library/download page
-        return redirect()->route('pembeli.library')->with('success', 'Pembayaran berhasil. Foto siap diunduh.');
+        $transactions = Transaction::where('order_number', $order)
+            ->where('pembeli_id', $request->user()->id)
+            ->where('payment_status', 'pending')
+            ->with('fotografer')
+            ->get();
+
+        abort_if($transactions->isEmpty(), 404);
+
+        DB::transaction(function () use ($transactions): void {
+            foreach ($transactions as $transaction) {
+                $transaction->update([
+                    'status' => 'paid',
+                    'payment_status' => 'paid',
+                    'paid_at' => now(),
+                    'payment_reference' => 'LOCAL-'.Str::upper(Str::random(10)),
+                ]);
+
+                if ($transaction->fotografer) {
+                    $transaction->fotografer->increment('saldo', $transaction->jumlah_fotografer);
+                }
+            }
+        });
+
+        return redirect()->route('checkout.success', ['order' => $order]);
+    }
+
+    public function checkoutSuccess(Request $request, string $order): View
+    {
+        $transactions = $this->buyerOrderTransactions($request, $order);
+        abort_unless($this->orderSummary($order, $transactions)['status'] === 'paid', 404);
+
+        return view('checkout-success', [
+            'order' => $this->orderSummary($order, $transactions),
+            'transactions' => $transactions,
+        ]);
+    }
+
+    public function purchaseShow(Request $request, string $order): View
+    {
+        $transactions = $this->buyerOrderTransactions($request, $order);
+
+        return view('purchases.show', [
+            'order' => $this->orderSummary($order, $transactions),
+            'transactions' => $transactions,
+        ]);
+    }
+
+    /**
+     * @return Collection<int, Transaction>
+     */
+    private function buyerOrderTransactions(Request $request, string $order): Collection
+    {
+        $query = Transaction::query()
+            ->where('pembeli_id', $request->user()->id)
+            ->with(['photo.event', 'photo.fotografer']);
+
+        if (str_starts_with($order, 'LEGACY-')) {
+            $query->whereKey((int) str($order)->after('LEGACY-')->toString());
+        } else {
+            $query->where('order_number', $order);
+        }
+
+        $transactions = $query
+            ->orderBy('id')
+            ->get();
+
+        abort_if($transactions->isEmpty(), 404);
+
+        return $transactions;
+    }
+
+    /**
+     * @param  Collection<int, Transaction>  $items
+     * @return array<string, mixed>
+     */
+    private function orderSummary(string $orderNumber, Collection $items): array
+    {
+        $first = $items->sortByDesc('created_at')->first();
+        $statuses = $items->pluck('payment_status')->filter();
+        $status = $statuses->isNotEmpty() && $statuses->every(fn (string $status): bool => $status === 'paid')
+            ? 'paid'
+            : ($statuses->first() ?: $first?->status ?: 'pending');
+
+        return [
+            'order_number' => $orderNumber,
+            'status' => $status,
+            'created_at' => $first?->created_at,
+            'paid_at' => $items->pluck('paid_at')->filter()->sortDesc()->first(),
+            'total' => $items->sum('total_bayar'),
+            'count' => $items->count(),
+            'items' => $items,
+        ];
     }
 }
