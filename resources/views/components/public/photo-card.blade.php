@@ -5,6 +5,7 @@
     $hasImageDimensions = $imageWidth > 0 && $imageHeight > 0;
     $photoTitle = $photo->title ?: ($photo->event?->nama_event ?? 'Foto JepretCFD');
     $photographerName = $photo->fotografer?->studio_name ?: ($photo->fotografer?->name ?? 'Photographer');
+    $isInCart = auth()->check() && isset(session('cart', [])[$photo->id]);
 @endphp
 
 <article data-gallery-item data-photo-id="{{ $photo->id }}" {{ $attributes->merge(['class' => 'gallery-tile group min-w-0 break-inside-avoid']) }}>
@@ -41,8 +42,23 @@
             >
             <span class="truncate">{{ $photographerName }}</span>
         </div>
-        <time class="pl-7 text-[9px] font-medium text-public-muted sm:text-[10px]" datetime="{{ optional($photo->taken_at ?? $photo->published_at ?? $photo->created_at)->toDateString() }}">
-            {{ optional($photo->taken_at ?? $photo->published_at ?? $photo->created_at)->translatedFormat('d M Y') }}
-        </time>
+        <div class="flex items-center justify-between gap-3 pl-7">
+            <time class="text-[9px] font-medium text-public-muted sm:text-[10px]" datetime="{{ optional($photo->taken_at ?? $photo->published_at ?? $photo->created_at)->toDateString() }}">
+                {{ optional($photo->taken_at ?? $photo->published_at ?? $photo->created_at)->translatedFormat('d M Y') }}
+            </time>
+            <form method="POST" action="{{ route('cart.store') }}" data-cart-form data-authenticated="{{ auth()->check() ? 'true' : 'false' }}">
+                @csrf
+                <input type="hidden" name="photo_id" value="{{ $photo->id }}">
+                <button
+                    type="submit"
+                    class="group/cart grid h-8 w-8 place-items-center rounded-full border transition-colors {{ $isInCart ? 'border-public-ink bg-public-ink text-white' : 'border-public-line bg-white text-public-ink hover:border-public-ink hover:bg-public-ink hover:text-white' }}"
+                    aria-label="{{ $isInCart ? 'Foto sudah ada di keranjang' : 'Tambahkan '.$photoTitle.' ke keranjang' }}"
+                    title="{{ $isInCart ? 'Sudah di keranjang' : 'Tambah ke keranjang' }}"
+                >
+                    <svg data-cart-check class="h-4 w-4 {{ $isInCart ? '' : 'hidden' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+                    <svg data-cart-icon class="h-4 w-4 transition-transform duration-200 group-hover/cart:-rotate-3 group-hover/cart:scale-110 {{ $isInCart ? 'hidden' : '' }}" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5.5h3.2l2.5 14.2a2.4 2.4 0 0 0 2.4 2h11.8a2.4 2.4 0 0 0 2.3-1.8L28 10H8.1"/><circle cx="12.5" cy="26.2" r="1.7"/><circle cx="23.5" cy="26.2" r="1.7"/></svg>
+                </button>
+            </form>
+        </div>
     </div>
 </article>

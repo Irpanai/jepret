@@ -34,6 +34,7 @@ class UserFactory extends Factory
             'saldo' => 0,
             'storage_terpakai_mb' => 0,
             'is_verified' => true,
+            'is_active' => true,
         ];
     }
 
