@@ -380,6 +380,28 @@ Jangan menggunakan kredensial demo sebagai kredensial production.
 
 ---
 
+## Akun Demo / Kredensial
+
+Untuk kebutuhan development dan pengujian end-to-end, project menyediakan beberapa akun demo.
+
+Semua akun demo di bawah menggunakan password:
+
+```text
+password
+```
+
+| Role | Email | Deskripsi |
+|---|---|---|
+| 👑 **Super Admin** | `superadmin@jepret.test` | Akses Command Center, Photographer Management, Ledger, Withdrawal, Storage, Platform Settings, dan laporan. |
+| 📸 **Photographer Pro** | `fotografer_pro@jepret.test` | Akun Photographer dengan aktivitas, transaksi, portfolio, dan data operasional yang lebih lengkap. |
+| 📸 **Photographer Basic** | `fotografer_basic@jepret.test` | Akun Photographer untuk menguji package, quota storage, upload, dan flow dasar Photographer. |
+| 🛍️ **Buyer VIP** | `pembeli_vip@jepret.test` | Akun Buyer dengan riwayat pembelian dan data transaksi untuk kebutuhan QA. |
+| 🛍️ **Buyer Biasa** | `pembeli2@jepret.test` | Akun Buyer standar untuk menguji Gallery, Cart, Checkout, Payment, Purchases, dan Download. |
+
+> **Catatan:** Akun ini hanya untuk development/testing. Jangan gunakan password atau kredensial demo pada environment production.
+
+---
+
 ## Testing & QA
 
 Jalankan test:
@@ -428,6 +450,209 @@ Desktop:
 1440×900
 1920×1080
 ```
+
+---
+
+## 📖 Panduan Penggunaan (User Flow)
+
+Berikut adalah skenario pengujian end-to-end untuk mencoba alur utama JEPRET secara terpadu dari sisi **Buyer**, **Photographer**, hingga **Super Admin**.
+
+### Tahap 1: Pengalaman Pembeli (Buyer)
+
+1. Buka browser lalu **Login** menggunakan akun:
+
+   ```text
+   pembeli2@jepret.test
+   Password: password
+   ```
+
+2. Masuk ke **Gallery** dan cari foto berdasarkan event, photographer, lokasi, kategori, tanggal, atau filter lain yang tersedia.
+
+3. Klik salah satu foto untuk membuka halaman detail.
+
+4. Tambahkan foto ke **Cart**, lalu lanjutkan ke **Checkout**.
+
+5. Buat order pembayaran dan selesaikan flow pembayaran yang tersedia pada environment development.
+
+6. Setelah transaksi berstatus **Paid**, buka menu **Pembelian Saya**.
+
+7. Buka detail order untuk melihat seluruh foto yang telah dibeli.
+
+8. Klik **Download File Pembelian** untuk mengunduh versi foto yang sudah menjadi hak Buyer.
+
+   Sesuai flow watermark JEPRET:
+
+   ```text
+   Sebelum pembelian
+   → Marketplace Preview
+   → System Watermark
+
+   Setelah transaksi Paid
+   → Purchased Variant
+   → Photographer Watermark
+   ```
+
+9. Coba download ulang foto melalui **Pembelian Saya** untuk memastikan akses tetap tersedia hanya untuk Buyer pemilik transaksi.
+
+---
+
+### Tahap 2: Pengalaman Photographer
+
+1. Buka browser lain atau jendela **Incognito**, lalu Login menggunakan:
+
+   ```text
+   fotografer_pro@jepret.test
+   Password: password
+   ```
+
+2. Buka halaman **Ringkasan / Dashboard Photographer**.
+
+3. Periksa statistik utama seperti:
+
+   ```text
+   Pendapatan Bersih
+   Foto Terjual
+   Total Kunjungan
+   Rasio Konversi Beli
+   Saldo Siap Tarik
+   ```
+
+4. Transaksi Buyer yang sudah berstatus **Paid** harus muncul pada:
+
+   ```text
+   Ringkasan
+   → Penjualan Terkini
+
+   Pesanan & Transaksi
+   → Orders
+   ```
+
+5. Pastikan pendapatan Photographer bertambah berdasarkan pembagian tetap:
+
+   ```text
+   Photographer = 90%
+   Platform = 10%
+   ```
+
+6. Buka menu **Kamera** untuk melihat atau mengelola data kamera.
+
+7. Buka menu **Foto / Event** untuk menguji flow:
+
+   ```text
+   Event
+   → Upload Photo
+   → Metadata
+   → Price
+   → Watermark Processing
+   → Publish
+   ```
+
+8. Periksa **Penggunaan Storage** untuk memastikan pemakaian storage dan quota aktif terbaca dengan benar.
+
+9. Dari halaman **Ringkasan**, gunakan form **Withdrawal / Tarik Saldo**.
+
+10. Masukkan nominal penarikan serta tujuan Bank atau E-Wallet.
+
+11. Setelah dikirim, status withdrawal akan menjadi:
+
+   ```text
+   Pending
+   ```
+
+12. Permintaan tersebut harus langsung tersedia pada halaman Withdrawal milik Super Admin.
+
+---
+
+### Tahap 3: Pengalaman Super Admin
+
+1. Login menggunakan:
+
+   ```text
+   superadmin@jepret.test
+   Password: password
+   ```
+
+2. Buka **Command Center** untuk melihat ringkasan platform.
+
+3. Buka **Photographer Compliance / Photographer Management** untuk:
+
+   - melihat Photographer
+   - melakukan approval atau rejection
+   - memeriksa informasi terkait akun Photographer
+
+4. Buka **Transaction Ledger**.
+
+5. Pastikan transaksi Buyer sebelumnya muncul pada ledger yang sama dengan transaksi yang terlihat oleh Photographer.
+
+6. Periksa nilai finansial transaksi:
+
+   ```text
+   GMV
+   Photographer Share = 90%
+   Platform Share = 10%
+   ```
+
+7. Buka **Withdrawals**.
+
+8. Cari permintaan withdrawal dari `fotografer_pro@jepret.test`.
+
+9. Super Admin dapat memproses withdrawal sesuai status yang tersedia:
+
+   ```text
+   Pending
+   → Held
+   → Success
+
+   atau
+
+   Pending / Held
+   → Rejected
+   ```
+
+10. Untuk menyelesaikan skenario utama, ubah withdrawal menjadi **Success**.
+
+11. Kembali ke Dashboard Photographer dan pastikan status withdrawal sudah ikut berubah menjadi **Success**.
+
+---
+
+### Tahap 4: Verifikasi Integrasi End-to-End
+
+Setelah tiga role diuji, pastikan seluruh data saling terhubung:
+
+```text
+Buyer membeli Photo
+        ↓
+Transaction dibuat
+        ↓
+Transaction menjadi Paid
+        ↓
+Buyer mendapat akses file pembelian
+        ↓
+Photographer melihat penjualan
+        ↓
+Photographer menerima 90% revenue
+        ↓
+Super Admin melihat Transaction yang sama
+        ↓
+Photographer melakukan Withdrawal
+        ↓
+Super Admin memproses Withdrawal
+        ↓
+Status kembali tampil pada Photographer
+```
+
+Hal-hal penting yang perlu diverifikasi:
+
+- Buyer hanya dapat mengakses pembeliannya sendiri
+- Photographer hanya dapat mengelola resource miliknya sendiri
+- transaksi yang terlihat Buyer, Photographer, dan Super Admin berasal dari data yang sama
+- revenue tetap **90% Photographer / 10% Platform**
+- raw original tidak memiliki akses publik langsung
+- marketplace preview menggunakan **System Watermark**
+- purchased variant menggunakan **Photographer Watermark**
+- storage quota Photographer tetap diterapkan
+- withdrawal tidak dapat diproses dua kali
+- status transaksi dan withdrawal konsisten pada seluruh role
 
 ---
 
