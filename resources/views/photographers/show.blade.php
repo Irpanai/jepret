@@ -1,7 +1,7 @@
 @php
     $displayName = $photographer->studio_name ?: $photographer->name;
-    $heroPhoto = $featuredPhotos->first();
-    $heroImage = $heroPhoto ? route('media.preview', $heroPhoto) : asset('images/login-bg.jpg');
+    $heroImage = $featuredCamera?->photo_path ? route('media.camera', $featuredCamera) : asset('images/login-bg.jpg');
+    $whatsappNumber = preg_replace('/\D+/', '', $photographer->whatsapp ?? '');
     $structuredData = [
         '@context' => 'https://schema.org',
         '@type' => 'Person',
@@ -46,6 +46,23 @@
                     {{ $photographer->bio ?: 'Photographer JepretCFD dengan koleksi foto event aktif yang siap ditemukan dan dibeli oleh buyer.' }}
                 </p>
 
+                @if($whatsappNumber || $photographer->instagram_username)
+                    <div class="mt-6 flex flex-wrap gap-3" aria-label="Social links {{ $displayName }}">
+                        @if($whatsappNumber)
+                            <a href="https://wa.me/{{ $whatsappNumber }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center gap-2.5 border border-public-line bg-white px-4 text-sm font-bold text-public-ink transition-colors hover:border-public-ink hover:bg-public-ink hover:text-white">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a9.75 9.75 0 0 0-8.42 14.65L2.25 21.5l4.96-1.3A9.75 9.75 0 1 0 12 2Zm5.68 13.96c-.24.68-1.4 1.3-1.94 1.38-.5.08-1.12.11-1.81-.11-.42-.14-.96-.32-1.65-.62-2.9-1.25-4.79-4.18-4.94-4.37-.14-.2-1.18-1.57-1.18-3 0-1.42.74-2.12 1.01-2.41.26-.29.57-.36.76-.36h.55c.18 0 .41-.07.64.49.24.58.81 1.99.88 2.13.07.15.12.32.02.51-.09.2-.14.32-.28.49-.14.17-.3.38-.43.51-.14.15-.29.3-.12.59.16.29.73 1.2 1.57 1.94 1.08.96 1.99 1.26 2.27 1.4.28.15.45.13.62-.07.16-.19.71-.83.9-1.12.19-.29.38-.24.64-.14.26.09 1.66.78 1.94.93.29.14.48.21.55.33.07.12.07.68-.17 1.36Z"/></svg>
+                                <span>{{ $photographer->whatsapp }}</span>
+                            </a>
+                        @endif
+                        @if($photographer->instagram_username)
+                            <a href="https://www.instagram.com/{{ $photographer->instagram_username }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center gap-2.5 border border-public-line bg-white px-4 text-sm font-bold text-public-ink transition-colors hover:border-public-ink hover:bg-public-ink hover:text-white">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.7" r="1" fill="currentColor" stroke="none"/></svg>
+                                <span>{{ '@'.$photographer->instagram_username }}</span>
+                            </a>
+                        @endif
+                    </div>
+                @endif
+
                 <div class="mt-8 grid grid-cols-3 border-y border-public-line py-5 text-sm">
                     <div>
                         <p class="text-2xl font-extrabold">{{ number_format($photographer->active_photos_count ?? 0) }}</p>
@@ -63,10 +80,13 @@
             </div>
 
             <div class="relative aspect-[5/4] overflow-hidden border border-public-line bg-public-mist">
-                <img src="{{ $heroImage }}" alt="Karya dari {{ $displayName }}" class="h-full w-full object-cover">
+                <img src="{{ $heroImage }}" alt="Kamera milik {{ $displayName }}" class="h-full w-full object-cover">
                 <div class="absolute bottom-4 left-4 right-4 bg-white p-4">
-                    <p class="public-kicker">{{ $heroPhoto?->event?->nama_event ?? 'JepretCFD archive' }}</p>
-                    <p class="mt-2 text-xl font-extrabold">{{ $heroPhoto?->title ?: 'Karya pilihan' }}</p>
+                    <p class="public-kicker">Kamera Photographer</p>
+                    <p class="mt-2 text-xl font-extrabold">{{ $featuredCamera?->brand_model ?: 'Peralatan belum ditambahkan' }}</p>
+                    @if($featuredCamera?->lens)
+                        <p class="mt-1 text-sm font-semibold text-public-muted">{{ $featuredCamera->lens }}</p>
+                    @endif
                 </div>
             </div>
         </div>

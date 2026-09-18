@@ -27,6 +27,7 @@ class PhotographerController extends Controller
         $featuredPhotographers = User::query()
             ->where('role', 'fotografer')
             ->where('is_verified', true)
+            ->where('is_active', true)
             ->with('featuredPhoto.event')
             ->withCount([
                 'photos as active_photos_count' => fn ($query) => $query->where('status', 'active'),
@@ -40,6 +41,7 @@ class PhotographerController extends Controller
         $locations = User::query()
             ->where('role', 'fotografer')
             ->where('is_verified', true)
+            ->where('is_active', true)
             ->whereNotNull('location')
             ->distinct()
             ->orderBy('location')
@@ -48,6 +50,7 @@ class PhotographerController extends Controller
         $categories = User::query()
             ->where('role', 'fotografer')
             ->where('is_verified', true)
+            ->where('is_active', true)
             ->whereNotNull('category')
             ->distinct()
             ->orderBy('category')
@@ -61,6 +64,7 @@ class PhotographerController extends Controller
         $photographer = User::query()
             ->where('role', 'fotografer')
             ->where('is_verified', true)
+            ->where('is_active', true)
             ->where(function ($query) use ($photographer): void {
                 $query->where('slug', $photographer);
 
@@ -84,6 +88,11 @@ class PhotographerController extends Controller
             ->limit(5)
             ->get();
 
+        $featuredCamera = $photographer->cameras()
+            ->orderByRaw('CASE WHEN photo_path IS NULL THEN 1 ELSE 0 END')
+            ->latest()
+            ->first();
+
         $photos = Photo::query()
             ->whereBelongsTo($photographer, 'fotografer')
             ->where('status', 'active')
@@ -93,7 +102,7 @@ class PhotographerController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('photographers.show', compact('photographer', 'featuredPhotos', 'photos'));
+        return view('photographers.show', compact('photographer', 'featuredCamera', 'featuredPhotos', 'photos'));
     }
 
     private function photographerQuery(Request $request): Builder
@@ -101,6 +110,7 @@ class PhotographerController extends Controller
         return User::query()
             ->where('role', 'fotografer')
             ->where('is_verified', true)
+            ->where('is_active', true)
             ->when($request->filled('q'), function ($query) use ($request): void {
                 $search = $request->string('q')->toString();
 

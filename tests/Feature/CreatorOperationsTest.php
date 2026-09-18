@@ -182,6 +182,28 @@ class CreatorOperationsTest extends TestCase
         $this->get(route('media.profile', $photographer))->assertOk();
     }
 
+    public function test_photographer_social_links_are_saved_and_shown_on_public_profile(): void
+    {
+        $photographer = User::factory()->fotografer()->create(['is_verified' => true, 'verified_at' => now()]);
+
+        $this->actingAs($photographer)->patch(route('fotografer.portfolio.update'), [
+            'name' => $photographer->name,
+            'slug' => 'social-links-test',
+            'whatsapp' => '+62 812-3456-7890',
+            'instagram_username' => '@winantioo',
+        ])->assertSessionHasNoErrors();
+
+        $photographer->refresh();
+        $this->assertSame('+62 812-3456-7890', $photographer->whatsapp);
+        $this->assertSame('winantioo', $photographer->instagram_username);
+
+        $this->get(route('photographers.show', $photographer->slug))
+            ->assertOk()
+            ->assertSee('https://wa.me/6281234567890', false)
+            ->assertSee('https://www.instagram.com/winantioo', false)
+            ->assertSee('@winantioo');
+    }
+
     private function photo(User $photographer, array $attributes = []): Photo
     {
         $event = Event::factory()->create(['fotografer_id' => $photographer->id]);

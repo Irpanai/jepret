@@ -6,6 +6,56 @@ window.Alpine = Alpine;
 
 Alpine.start();
 
+document.addEventListener('submit', async (event) => {
+    const form = event.target.closest('[data-cart-form]');
+
+    if (!form || form.dataset.authenticated !== 'true') {
+        return;
+    }
+
+    event.preventDefault();
+
+    const button = form.querySelector('button[type="submit"]');
+
+    if (button?.disabled) {
+        return;
+    }
+
+    button.disabled = true;
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Cart request failed with ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const cartIcon = form.querySelector('[data-cart-icon]');
+        const checkIcon = form.querySelector('[data-cart-check]');
+
+        cartIcon?.classList.add('hidden');
+        checkIcon?.classList.remove('hidden');
+        button.classList.add('border-public-ink', 'bg-public-ink', 'text-white');
+        button.setAttribute('aria-label', 'Foto sudah ada di keranjang');
+        button.setAttribute('title', 'Sudah di keranjang');
+
+        window.dispatchEvent(new CustomEvent('cart:updated', { detail: { count: payload.cart_count } }));
+        window.dispatchEvent(new CustomEvent('cart:added', { detail: { message: payload.message } }));
+    } catch (error) {
+        window.dispatchEvent(new CustomEvent('cart:added', { detail: { message: 'Gagal menambahkan foto. Coba lagi.' } }));
+    } finally {
+        button.disabled = false;
+    }
+});
+
 const initializeHomepageMotion = () => {
     const animatedElements = document.querySelectorAll('[data-reveal], [data-hero-reveal]');
 

@@ -3,7 +3,7 @@
     $userRole = auth()->user()?->role;
 @endphp
 
-<nav class="sticky top-0 z-50 border-b border-public-line bg-white/95">
+<nav class="sticky top-0 z-50 border-b border-public-line bg-white/95" x-data="{ cartCount: {{ $cartCount }} }" @cart:updated.window="cartCount = $event.detail.count">
     <div class="public-container">
         <div class="flex min-h-16 items-center justify-between gap-5">
             <a href="{{ route('landing') }}" class="flex items-center gap-3 text-sm font-extrabold uppercase tracking-normal text-public-ink" aria-label="JepretCFD home">
@@ -20,12 +20,14 @@
 
             <div class="hidden items-center gap-3 md:flex">
                 @auth
-                    {{-- Cart icon for all logged-in users --}}
-                    <a href="{{ route('cart.index') }}" class="relative public-button public-button-secondary min-h-10 px-3 py-2" title="Keranjang">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
-                        @if($cartCount > 0)
-                            <span class="ml-1 grid h-5 min-w-5 place-items-center bg-public-ink px-1 text-[10px] text-white">{{ $cartCount }}</span>
-                        @endif
+                    <a href="{{ route('cart.index') }}" class="group relative grid h-10 w-12 place-items-center border border-public-line bg-white text-public-ink transition-colors hover:bg-public-ink hover:text-white" title="Keranjang" :aria-label="`Keranjang belanja${cartCount > 0 ? ' berisi '+cartCount+' item' : ''}`">
+                        <svg class="h-6 w-6 transition-transform duration-200 group-hover:-rotate-3 group-hover:scale-105" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M3.5 5.5h3.2l2.5 14.2a2.4 2.4 0 0 0 2.4 2h11.8a2.4 2.4 0 0 0 2.3-1.8L28 10H8.1"/>
+                            <path d="M11 14h14.8M12 18h12.8" opacity=".45"/>
+                            <circle cx="12.5" cy="26.2" r="1.7"/>
+                            <circle cx="23.5" cy="26.2" r="1.7"/>
+                        </svg>
+                        <span x-cloak x-show="cartCount > 0" x-text="cartCount" class="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-public-ink px-1 text-[10px] font-extrabold text-white ring-2 ring-white group-hover:bg-white group-hover:text-public-ink"></span>
                     </a>
 
                     {{-- Profile dropdown --}}
@@ -80,7 +82,10 @@
                 <a href="{{ route('pricing') }}" class="py-2 {{ request()->routeIs('pricing') ? 'text-public-ink' : '' }}">Pricing</a>
 
                 @auth
-                    <a href="{{ route('cart.index') }}" class="py-2">Keranjang @if($cartCount > 0) ({{ $cartCount }}) @endif</a>
+                    <a href="{{ route('cart.index') }}" class="flex items-center gap-3 py-2">
+                        <svg class="h-6 w-6" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5.5h3.2l2.5 14.2a2.4 2.4 0 0 0 2.4 2h11.8a2.4 2.4 0 0 0 2.3-1.8L28 10H8.1"/><path d="M11 14h14.8M12 18h12.8" opacity=".45"/><circle cx="12.5" cy="26.2" r="1.7"/><circle cx="23.5" cy="26.2" r="1.7"/></svg>
+                        <span>Keranjang <span x-cloak x-show="cartCount > 0">(<span x-text="cartCount"></span>)</span></span>
+                    </a>
                     <a href="{{ route('purchases.index') }}" class="py-2">Pembelian Saya</a>
                     @if($userRole === 'fotografer')
                         <a href="{{ route('fotografer.dashboard') }}" class="py-2">Halaman Saya</a>
