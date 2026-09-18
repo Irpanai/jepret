@@ -11,22 +11,29 @@ class PurchaseDownloadController extends Controller
 {
     public function __invoke(Request $request, string $order, Transaction $transaction): StreamedResponse
     {
-        abort_if($transaction->pembeli_id !== $request->user()->id, 403);
-
-        $belongsToOrder = str_starts_with($order, 'LEGACY-')
-            ? $transaction->order_number === null && $transaction->id === (int) str($order)->after('LEGACY-')->toString()
-            : $transaction->order_number === $order;
-
-        abort_unless($belongsToOrder, 403);
-        abort_if($transaction->payment_status !== 'paid' || $transaction->status !== 'paid', 403);
-
-        $transaction->loadMissing('photo');
-
-        abort_if(! $transaction->photo, 404);
-        abort_if(! Storage::disk('local')->exists($transaction->photo->file_asli), 404);
+        $this->authorizePurchase($request, $order, $transaction);
 
         $filename = $transaction->photo->original_filename ?: basename($transaction->photo->file_asli);
 
-        return Storage::disk('local')->download($transaction->photo->file_asli, $filename);
+        return Storage::disk('local')->download($transaction->photo->purchased_path, $filename);
+    }
+
+    public function preview(Request $request, string $order, Transaction $transaction): StreamedResponse
+    {
+        $this->authorizePurchase($request, $order, $transaction);
+
+        return Storage::disk('local')->response($transaction->photo->purchased_path);
+    }
+
+    private function authorizePurchase(Request $request, string $order, Transaction $transaction): void
+    {
+        abort_if($transaction->pembeli_id !== $request->user()->id, 403);
+        $belongsToOrder = str_starts_with($order, 'LEGACY-')
+            ? $transaction->order_number === null && $transaction->id === (int) str($order)->after('LEGACY-')->toString()
+            : $transaction->order_number === $order;
+        abort_unless($belongsToOrder, 403);
+        abort_if($transaction->payment_status !== 'paid' || $transaction->status !== 'paid', 403);
+        $transaction->loadMissing('photo');
+        abort_if(! $transaction->photo?->purchased_path || ! Storage::disk('local')->exists($transaction->photo->purchased_path), 404);
     }
 }

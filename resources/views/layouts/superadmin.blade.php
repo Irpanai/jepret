@@ -47,7 +47,6 @@
                     <a href="{{ route('superadmin.compliance') }}" :class="sidebarOpen ? 'px-3 justify-start' : 'justify-center'" class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-semibold transition {{ request()->routeIs('superadmin.compliance') ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}" :title="!sidebarOpen ? 'Antrean Kepatuhan' : ''">
                         <svg class="w-5 h-5 shrink-0 {{ request()->routeIs('superadmin.compliance') ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         <span x-show="sidebarOpen" class="whitespace-nowrap flex-1">Antrean Kepatuhan</span>
-                        <span x-show="sidebarOpen" class="bg-gray-200 text-black text-[10px] font-bold px-2 py-0.5 rounded-full {{ request()->routeIs('superadmin.compliance') ? 'bg-white text-black' : '' }}">3</span>
                     </a>
 
                     <!-- Ledger Transaksi -->
@@ -65,7 +64,7 @@
                     <!-- Storage & Infrastruktur -->
                     <a href="{{ route('superadmin.storage') }}" :class="sidebarOpen ? 'px-3 justify-start' : 'justify-center'" class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-semibold transition {{ request()->routeIs('superadmin.storage') ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}" :title="!sidebarOpen ? 'Infrastruktur Cloud' : ''">
                         <svg class="w-5 h-5 shrink-0 {{ request()->routeIs('superadmin.storage') ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
-                        <span x-show="sidebarOpen" class="whitespace-nowrap">Infrastruktur Cloud</span>
+                        <span x-show="sidebarOpen" class="whitespace-nowrap">Manajemen Storage</span>
                     </a>
                     
                     <div class="mt-4 pt-4 border-t border-gray-100">
@@ -121,13 +120,13 @@
 
                     <div class="flex items-center gap-2">
                         <div class="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest hidden sm:inline">GLOBAL CLUSTER OVERVIEW</span>
+                        <span class="text-xs font-semibold text-gray-500 hidden sm:inline">Operations Console</span>
                     </div>
                 </div>
             </header>
 
             <!-- Main Content Area -->
-            <main class="flex-1 overflow-y-auto bg-[#F9FAFB] w-full p-4 sm:px-6 lg:px-10 lg:py-8">
+            <main class="workspace flex-1 overflow-y-auto bg-[#F9FAFB] w-full p-4 sm:px-6 lg:px-10 lg:py-8">
                 <div class="w-full mx-auto">
                     {{ $slot }}
                 </div>

@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .workspace h1 { @apply text-3xl sm:text-4xl font-black tracking-tight text-black; }
+  .workspace h2 { @apply text-xl sm:text-2xl font-extrabold text-black; }
+  .workspace h3 { @apply text-base sm:text-lg font-bold text-black; }
+  .workspace label { @apply text-sm font-semibold text-gray-700; }
+  .workspace table { @apply text-sm; }
+  .workspace thead { @apply text-xs uppercase tracking-wide text-gray-500; }
+  .workspace button, .workspace .button { @apply text-sm font-bold; }
+  .workspace .helper { @apply text-xs sm:text-sm text-gray-500 leading-relaxed; }
+  .workspace .metric { @apply text-2xl sm:text-3xl font-black text-black; }
+}
+
 @layer base {
   :root {
     --public-ink: #050505;
@@ -114,19 +126,6 @@
     box-shadow: none;
   }
 
-  .protected-photo::after {
-    content: "JEPRET";
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    color: rgba(255, 255, 255, 0.52);
-    font-size: clamp(1.6rem, 4vw, 4.5rem);
-    font-weight: 900;
-    text-shadow: 0 1px 14px rgba(0, 0, 0, 0.8);
-    transform: rotate(-24deg);
-    pointer-events: none;
-  }
 }
 
 @layer utilities {

@@ -26,6 +26,7 @@ class PhotographerController extends Controller
 
         $featuredPhotographers = User::query()
             ->where('role', 'fotografer')
+            ->where('is_verified', true)
             ->with('featuredPhoto.event')
             ->withCount([
                 'photos as active_photos_count' => fn ($query) => $query->where('status', 'active'),
@@ -38,6 +39,7 @@ class PhotographerController extends Controller
 
         $locations = User::query()
             ->where('role', 'fotografer')
+            ->where('is_verified', true)
             ->whereNotNull('location')
             ->distinct()
             ->orderBy('location')
@@ -45,6 +47,7 @@ class PhotographerController extends Controller
 
         $categories = User::query()
             ->where('role', 'fotografer')
+            ->where('is_verified', true)
             ->whereNotNull('category')
             ->distinct()
             ->orderBy('category')
@@ -57,6 +60,7 @@ class PhotographerController extends Controller
     {
         $photographer = User::query()
             ->where('role', 'fotografer')
+            ->where('is_verified', true)
             ->where(function ($query) use ($photographer): void {
                 $query->where('slug', $photographer);
 
@@ -96,6 +100,7 @@ class PhotographerController extends Controller
     {
         return User::query()
             ->where('role', 'fotografer')
+            ->where('is_verified', true)
             ->when($request->filled('q'), function ($query) use ($request): void {
                 $search = $request->string('q')->toString();
 

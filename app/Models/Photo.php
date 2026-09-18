@@ -25,6 +25,7 @@ class Photo extends Model
             'published_at' => 'datetime',
             'taken_at' => 'datetime',
             'file_size_mb' => 'decimal:2',
+            'storage_bytes' => 'integer',
         ];
     }
 

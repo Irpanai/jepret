@@ -1,7 +1,7 @@
 @php
     $title = ($photo->title ?: ($photo->event?->nama_event ?? 'Foto JepretCFD')).' by '.($photo->fotografer?->studio_name ?: $photo->fotografer?->name ?? 'Photographer').' | JepretCFD';
     $description = 'Preview terlindungi untuk '.($photo->title ?: $photo->event?->nama_event ?? 'foto event').' dari JepretCFD. Beli untuk mengakses file original tanpa watermark.';
-    $previewUrl = $photo->file_watermark ? url(Storage::url($photo->file_watermark)) : asset('images/login-bg.jpg');
+    $previewUrl = route('media.preview', $photo);
     $photoDate = $photo->taken_at ?: ($photo->event?->tanggal_event ? \Illuminate\Support\Carbon::parse($photo->event->tanggal_event) : null);
     $structuredData = [
         '@context' => 'https://schema.org',
@@ -27,8 +27,8 @@
 
             <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] xl:grid-cols-[minmax(0,1fr)_480px]">
                 <div>
-                    <div class="protected-photo relative aspect-[4/3] overflow-hidden border border-public-line bg-public-mist">
-                        <img src="{{ $previewUrl }}" alt="{{ $photo->title ?: 'Preview foto JepretCFD' }}" class="h-full w-full object-cover blur-[1.5px]">
+                    <div class="relative overflow-hidden border border-gray-200 bg-gray-100">
+                        <img src="{{ $previewUrl }}" alt="{{ $photo->title ?: 'Preview foto JepretCFD' }}" class="mx-auto block h-auto max-h-[85vh] w-auto max-w-full object-contain">
                         <div class="absolute left-4 top-4 bg-white px-3 py-2 text-xs font-extrabold uppercase text-public-ink">
                             Preview terlindungi
                         </div>
@@ -55,7 +55,7 @@
                         </p>
 
                         <div class="mt-6 flex items-center gap-3 border-y border-public-line py-4">
-                            <img src="{{ $photo->fotografer?->avatar ?? 'https://ui-avatars.com/api/?name='.urlencode($photo->fotografer?->name ?? 'Photographer').'&background=050505&color=fff' }}" alt="" class="h-12 w-12 object-cover">
+                            <img src="{{ $photo->fotografer?->profilePhotoUrl() }}" alt="" class="h-12 w-12 object-cover">
                             <div class="min-w-0">
                                 <p class="text-xs font-extrabold uppercase text-public-muted">Photographer</p>
                                 <a href="{{ $photo->fotografer ? route('photographers.show', $photo->fotografer->slug ?: $photo->fotografer->id) : '#' }}" class="text-lg font-extrabold text-public-ink hover:underline">

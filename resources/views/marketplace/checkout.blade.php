@@ -2,9 +2,9 @@
     <section class="bg-white py-10 sm:py-16">
         <div class="public-container max-w-4xl">
             <div class="grid border border-public-line md:grid-cols-[minmax(0,1fr)_360px]">
-                <div class="protected-photo aspect-[4/3] overflow-hidden bg-public-bone md:aspect-auto">
+                <div class="aspect-[4/3] overflow-hidden bg-gray-100 md:aspect-auto">
                     @if($photo->file_watermark)
-                        <img src="{{ Storage::url($photo->file_watermark) }}" alt="Preview {{ $photo->title ?: 'foto JepretCFD' }}" class="h-full w-full object-cover blur-[1.5px]">
+                        <img src="{{ route('media.preview', $photo) }}" alt="Preview {{ $photo->title ?: 'foto JepretCFD' }}" class="h-full w-full object-cover">
                     @endif
                 </div>
                 <div class="p-6 sm:p-8">

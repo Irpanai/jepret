@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
 use App\Models\Withdrawal;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -18,11 +19,12 @@ class WithdrawalFactory extends Factory
     public function definition(): array
     {
         return [
-            'fotografer_id' => \App\Models\User::factory()->fotografer(),
+            'fotografer_id' => User::factory()->fotografer(),
             'jumlah_tarik' => fake()->numberBetween(100, 500) * 10000, // 1m - 5m
             'metode_pembayaran' => fake()->randomElement(['BCA', 'MANDIRI', 'BRI', 'BNI']),
             'nomor_tujuan' => fake()->numerify('##########'),
             'status' => fake()->randomElement(['pending', 'success', 'success']),
+            'review_status' => 'pending',
         ];
     }
 }

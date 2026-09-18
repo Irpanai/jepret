@@ -31,7 +31,7 @@
                         </a>
                         <div class="relative" x-data="{ open: false }">
                             <button type="button" @click="open = ! open" @click.outside="open = false" class="flex h-10 items-center gap-2 border border-public-line bg-white px-2 text-xs font-extrabold uppercase" aria-haspopup="menu" :aria-expanded="open.toString()">
-                                <img src="{{ Auth::user()->avatar ?? 'https://ui-avatars.com/api/?name='.urlencode(Auth::user()->name).'&background=050505&color=fff' }}" alt="" class="h-6 w-6 object-cover">
+                                <img src="{{ Auth::user()->profilePhotoUrl() }}" alt="" class="h-6 w-6 object-cover">
                                 Profile
                             </button>
                             <div x-cloak x-show="open" class="absolute right-0 mt-2 w-56 border border-public-line bg-white p-2 shadow-sm" role="menu">

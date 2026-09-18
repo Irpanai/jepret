@@ -9,7 +9,7 @@ class EventController extends Controller
 {
     public function index(Request $request)
     {
-        $events = Event::where('fotografer_id', $request->user()->id)->latest()->get();
+        $events = Event::where('fotografer_id', $request->user()->id)->withCount('photos')->latest()->get();
 
         return view('fotografer.events.index', compact('events'));
     }

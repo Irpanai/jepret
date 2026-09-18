@@ -10,20 +10,19 @@
 <article data-gallery-item data-photo-id="{{ $photo->id }}" {{ $attributes->merge(['class' => 'gallery-tile group min-w-0 break-inside-avoid']) }}>
     <a href="{{ route('marketplace.show', $photo) }}" class="gallery-photo relative block overflow-hidden rounded-[10px] bg-public-mist" aria-label="Lihat {{ $photoTitle }}">
         <img
-            src="{{ $photo->file_watermark ? Storage::url($photo->file_watermark) : asset('images/galeri.jpeg') }}"
+            src="{{ route('media.preview', $photo) }}"
             alt="{{ $photoTitle }}"
             loading="lazy"
             @if($hasImageDimensions)
                 width="{{ $imageWidth }}"
                 height="{{ $imageHeight }}"
             @endif
-            class="block h-auto w-full blur-[1px]"
+            class="block h-auto w-full object-contain"
         >
         <span class="gallery-protected absolute left-2 top-2 inline-flex items-center gap-1.5 rounded bg-black/75 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-white">
             <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
             Protected
         </span>
-        <span class="absolute bottom-2 right-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/55" aria-hidden="true">Jepret</span>
     </a>
 
     <div class="grid min-w-0 gap-1.5 px-1 pt-2.5">
@@ -35,7 +34,7 @@
         </div>
         <div class="flex min-w-0 items-center gap-2 text-[10px] font-medium text-public-muted sm:text-xs">
             <img
-                src="{{ $photo->fotografer?->avatar ?? 'https://ui-avatars.com/api/?name='.urlencode($photo->fotografer?->name ?? 'Photographer').'&background=050505&color=fff' }}"
+                src="{{ $photo->fotografer?->profilePhotoUrl() }}"
                 alt=""
                 loading="lazy"
                 class="h-5 w-5 shrink-0 rounded-full object-cover"

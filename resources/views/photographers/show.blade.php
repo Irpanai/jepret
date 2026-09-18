@@ -1,13 +1,13 @@
 @php
     $displayName = $photographer->studio_name ?: $photographer->name;
     $heroPhoto = $featuredPhotos->first();
-    $heroImage = $heroPhoto?->file_watermark ? url(Storage::url($heroPhoto->file_watermark)) : asset('images/login-bg.jpg');
+    $heroImage = $heroPhoto ? route('media.preview', $heroPhoto) : asset('images/login-bg.jpg');
     $structuredData = [
         '@context' => 'https://schema.org',
         '@type' => 'Person',
         'name' => $photographer->name,
         'url' => route('photographers.show', $photographer->slug ?: $photographer->id),
-        'image' => $photographer->avatar,
+        'image' => $photographer->profilePhotoUrl(),
         'workLocation' => $photographer->location,
     ];
 @endphp
@@ -28,7 +28,7 @@
                 </nav>
 
                 <div class="flex items-start gap-4">
-                    <img src="{{ $photographer->avatar ?? 'https://ui-avatars.com/api/?name='.urlencode($photographer->name).'&background=050505&color=fff' }}" alt="" class="h-16 w-16 object-cover">
+                    <img src="{{ $photographer->profilePhotoUrl() }}" alt="Foto profil {{ $photographer->name }}" class="h-20 w-20 shrink-0 rounded-full border border-public-line object-cover sm:h-24 sm:w-24">
                     <div>
                         <p class="public-kicker">{{ $photographer->category ?: 'Photographer' }}</p>
                         <h1 class="mt-3 text-5xl font-extrabold leading-none text-public-ink sm:text-7xl">{{ $displayName }}</h1>
@@ -81,8 +81,8 @@
 
             <div class="grid gap-4 md:grid-cols-3">
                 @forelse($featuredPhotos as $index => $photo)
-                    <a href="{{ route('marketplace.show', $photo) }}" class="protected-photo relative overflow-hidden border border-public-line bg-white {{ $index === 0 ? 'md:col-span-2 aspect-[16/10]' : 'aspect-[4/5]' }}">
-                        <img src="{{ $photo->file_watermark ? Storage::url($photo->file_watermark) : 'https://placehold.co/900x900/f7f5f1/050505?text=JEPRET' }}" alt="{{ $photo->title ?: 'Karya JepretCFD' }}" class="h-full w-full object-cover blur-[1.5px]">
+                    <a href="{{ route('marketplace.show', $photo) }}" class="relative overflow-hidden border border-public-line bg-white {{ $index === 0 ? 'md:col-span-2 aspect-[16/10]' : 'aspect-[4/5]' }}">
+                        <img src="{{ route('media.preview', $photo) }}" alt="{{ $photo->title ?: 'Karya JepretCFD' }}" class="h-full w-full object-cover">
                         <span class="absolute bottom-3 left-3 bg-white px-3 py-2 text-xs font-extrabold uppercase text-public-ink">{{ $photo->event?->nama_event ?? 'Event' }}</span>
                     </a>
                 @empty

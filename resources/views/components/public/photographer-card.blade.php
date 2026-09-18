@@ -8,7 +8,7 @@
 <article {{ $attributes->merge(['class' => 'grid h-full border border-public-line bg-white']) }}>
     <a href="{{ $profileUrl }}" class="relative block aspect-[5/4] overflow-hidden bg-public-mist">
         <img
-            src="{{ $photo?->file_watermark ? Storage::url($photo->file_watermark) : 'https://placehold.co/800x640/f7f5f1/050505?text=JEPRET' }}"
+            src="{{ $photo ? route('media.preview', $photo) : asset('images/galeri.jpeg') }}"
             alt="{{ $photo?->title ?: 'Karya dari '.($photographer->studio_name ?: $photographer->name) }}"
             loading="lazy"
             class="h-full w-full object-cover {{ $photo ? '' : 'opacity-70' }}"
@@ -30,10 +30,10 @@
                 @endif
             </div>
             <img
-                src="{{ $photographer->avatar ?? 'https://ui-avatars.com/api/?name='.urlencode($photographer->name).'&background=050505&color=fff' }}"
-                alt=""
+                src="{{ $photographer->profilePhotoUrl() }}"
+                alt="Foto profil {{ $photographer->name }}"
                 loading="lazy"
-                class="h-11 w-11 shrink-0 object-cover"
+                class="h-12 w-12 shrink-0 rounded-full border border-public-line object-cover"
             >
         </div>
 

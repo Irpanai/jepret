@@ -22,8 +22,8 @@
                     </div>
 
                     <div>
-                        <label for="tanggal" class="block text-sm font-medium text-gray-300">Date</label>
-                        <input type="date" name="tanggal" id="tanggal" value="{{ date('Y-m-d') }}" class="mt-1 block w-full bg-gray-900 border border-gray-600 rounded-lg text-white px-4 py-2 focus:ring-accent focus:border-accent [color-scheme:dark]" required>
+                        <label for="tanggal_event" class="block text-sm font-medium text-gray-300">Date</label>
+                        <input type="date" name="tanggal_event" id="tanggal_event" value="{{ date('Y-m-d') }}" class="mt-1 block w-full bg-gray-900 border border-gray-600 rounded-lg text-white px-4 py-2 focus:ring-accent focus:border-accent [color-scheme:dark]" required>
                     </div>
 
                     <div class="pt-4 flex justify-end gap-3 border-t border-gray-700 mt-6">

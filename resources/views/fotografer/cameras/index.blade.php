@@ -21,7 +21,7 @@
             <article class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
                 <div class="aspect-video bg-gray-100 overflow-hidden">
                     @if($camera->photo_path)
-                        <img src="{{ Storage::url($camera->photo_path) }}" alt="{{ $camera->name }}" class="w-full h-full object-cover">
+                        <img src="{{ route('media.camera', $camera) }}" alt="{{ $camera->name }}" class="w-full h-full object-cover">
                     @else
                         <div class="w-full h-full flex items-center justify-center text-gray-300">
                             <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 16a3 3 0 100-6 3 3 0 000 6z"></path></svg>

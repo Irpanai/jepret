@@ -14,8 +14,10 @@
                 @forelse($orders as $order)
                     @php($firstItem = $order['items']->first())
                     <article class="grid gap-5 border-b border-public-line p-5 last:border-b-0 md:grid-cols-[96px_minmax(0,1fr)_auto] md:items-center">
-                        <div class="protected-photo aspect-square overflow-hidden bg-public-bone">
-                            @if($firstItem?->photo?->file_watermark)<img src="{{ Storage::url($firstItem->photo->file_watermark) }}" alt="Preview {{ $firstItem->photo->title ?: 'foto JepretCFD' }}" class="h-full w-full object-cover">@endif
+                        <div class="aspect-square overflow-hidden bg-gray-100">
+                            @if($firstItem?->photo)
+                                <img src="{{ $order['status'] === 'paid' ? route('purchases.preview', ['order' => $order['order_number'], 'transaction' => $firstItem]) : route('media.preview', $firstItem->photo) }}" alt="Preview {{ $firstItem->photo->title ?: 'foto' }}" class="h-full w-full object-cover">
+                            @endif
                         </div>
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-3"><h2 class="break-all font-mono text-sm font-extrabold text-public-ink">{{ $order['order_number'] }}</h2><span class="border border-public-line bg-public-bone px-2 py-1 text-[10px] font-extrabold uppercase text-public-muted">{{ $order['status'] }}</span></div>

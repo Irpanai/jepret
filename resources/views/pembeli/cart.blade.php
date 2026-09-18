@@ -17,8 +17,8 @@
                 <section class="border border-public-line bg-white">
                     @forelse($cart as $item)
                         <div class="grid gap-4 border-b border-public-line p-4 last:border-b-0 sm:grid-cols-[96px_1fr_auto] sm:items-center">
-                            <div class="protected-photo relative aspect-[4/5] overflow-hidden bg-public-mist sm:aspect-[4/5]">
-                                <img src="{{ $item['preview'] ? Storage::url($item['preview']) : 'https://placehold.co/240x300/f7f5f1/050505?text=JEPRET' }}" alt="" class="h-full w-full object-cover blur-[1.5px]">
+                            <div class="relative aspect-[4/5] overflow-hidden bg-gray-100 sm:aspect-[4/5]">
+                                <img src="{{ route('media.preview', $item['id']) }}" alt="" class="h-full w-full object-cover">
                             </div>
                             <div>
                                 <h2 class="text-lg font-extrabold text-public-ink">{{ $item['event'] }}</h2>

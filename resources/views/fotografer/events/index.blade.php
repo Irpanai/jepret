@@ -41,14 +41,14 @@
                                             {{ $event->nama_event }}
                                         </th>
                                         <td class="px-6 py-4">
-                                            {{ \Carbon\Carbon::parse($event->tanggal)->format('d M Y') }}
+                                            {{ \Carbon\Carbon::parse($event->tanggal_event)->format('d M Y') }}
                                         </td>
                                         <td class="px-6 py-4">
                                             {{ $event->lokasi }}
                                         </td>
                                         <td class="px-6 py-4 text-center">
                                             <span class="inline-flex items-center justify-center px-3 py-1 text-xs font-bold leading-none text-accent bg-accent/10 rounded-full">
-                                                {{ $event->photos()->count() }}
+                                                {{ $event->photos_count }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-right space-x-3">

@@ -70,11 +70,6 @@
                         <span x-show="sidebarOpen" class="whitespace-nowrap">Pesanan & Transaksi</span>
                     </a>
                     
-                    <!-- Earnings & Payouts -->
-                    <a href="{{ route($rolePrefix . 'earnings') }}" :class="sidebarOpen ? 'px-3 justify-start' : 'justify-center'" class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-semibold transition {{ request()->routeIs($rolePrefix . 'earnings') ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}" :title="!sidebarOpen ? 'Pendapatan & Pencairan' : ''">
-                        <svg class="w-5 h-5 shrink-0 {{ request()->routeIs($rolePrefix . 'earnings') ? 'text-white' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <span x-show="sidebarOpen" class="whitespace-nowrap">Pendapatan & Pencairan</span>
-                    </a>
                     
                     <!-- Storage Usage -->
                     <a href="{{ route($rolePrefix . 'storage') }}" :class="sidebarOpen ? 'px-3 justify-start' : 'justify-center'" class="flex items-center gap-3 py-2.5 rounded-lg text-sm font-semibold transition {{ request()->routeIs($rolePrefix . 'storage') ? 'bg-black text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}" :title="!sidebarOpen ? 'Penggunaan Storage' : ''">
@@ -98,24 +93,8 @@
                 </nav>
             </div>
 
-            <!-- User Profile & Storage Bottom -->
+            <!-- User Profile Bottom -->
             <div class="p-4 border-t border-gray-100 shrink-0 bg-gray-50/50 overflow-hidden">
-                @if(Auth::user()->role === 'fotografer')
-                <div class="mb-4" x-show="sidebarOpen">
-                    <div class="flex justify-between items-end mb-1">
-                        <span class="text-[10px] font-bold text-gray-500">Penyimpanan</span>
-                        <span class="text-[10px] font-bold text-black">32.4 / 50 GB</span>
-                    </div>
-                    <div class="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
-                        <div class="h-full bg-black rounded-full" style="width: 64.8%;"></div>
-                    </div>
-                    <div class="flex justify-between items-center mt-1">
-                        <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">PAKET PRO</span>
-                        <a href="#" class="text-[9px] font-bold text-black hover:underline uppercase tracking-widest">Tingkatkan</a>
-                    </div>
-                </div>
-                @endif
-
                 <div class="flex items-center" :class="sidebarOpen ? 'justify-between' : 'justify-center'">
                     <div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-full bg-black flex items-center justify-center shrink-0 text-white font-bold text-xs uppercase" :title="!sidebarOpen ? '{{ Auth::user()->name ?? 'Dwi Visual' }}' : ''">
@@ -125,7 +104,7 @@
                             <p class="text-sm font-bold text-gray-900 truncate max-w-[120px]">{{ Auth::user()->name ?? 'Dwi Visual' }}</p>
                             <p class="text-[10px] font-medium text-gray-500 flex items-center gap-1">
                                 <svg class="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                Terverifikasi
+                                {{ Auth::user()->verificationState() === 'approved' ? 'Terverifikasi' : (Auth::user()->verificationState() === 'rejected' ? 'Ditolak' : 'Menunggu verifikasi') }}
                             </p>
                         </div>
                     </div>
@@ -158,7 +137,7 @@
 
                     <div class="flex items-center gap-2">
                         <div class="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest hidden sm:inline">CLUSTER-ID: 99.98% UP</span>
+                        <span class="text-xs font-semibold text-gray-500 hidden sm:inline">Creator Center</span>
                     </div>
                     
                     <div class="relative max-w-[320px] lg:max-w-md w-full ml-2 lg:ml-4 hidden md:block">
@@ -179,7 +158,7 @@
             </header>
 
             <!-- Main Content Area -->
-            <main class="flex-1 overflow-y-auto bg-[#F9FAFB] w-full p-4 sm:px-6 lg:px-10 lg:py-8">
+            <main class="workspace flex-1 overflow-y-auto bg-[#F9FAFB] w-full p-4 sm:px-6 lg:px-10 lg:py-8">
                 <div class="w-full mx-auto">
                     {{ $slot }}
                 </div>

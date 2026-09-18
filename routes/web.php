@@ -11,9 +11,11 @@ use App\Http\Controllers\PhotographerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PurchaseDownloadController;
 use App\Http\Controllers\SuperAdminController;
+use App\Models\Camera;
 use App\Models\Photo;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/', function () {
     if (auth()->check() && auth()->user()->role === 'pembeli') {
@@ -22,6 +24,7 @@ Route::get('/', function () {
 
     $galleryPhotos = Photo::query()
         ->where('status', 'active')
+        ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true))
         ->with(['event', 'fotografer'])
         ->orderByDesc('published_at')
         ->orderByDesc('id')
@@ -34,6 +37,25 @@ Route::get('/', function () {
 Route::get('/galeri', [MarketplaceController::class, 'galeri'])->name('galeri');
 
 Route::get('/p/{photo}', [MarketplaceController::class, 'show'])->name('marketplace.show');
+Route::get('/media/preview/{photo}', function (Photo $photo) {
+    $isPublic = $photo->status === 'active' && $photo->fotografer()->where('is_verified', true)->exists();
+    abort_unless($isPublic || auth()->id() === $photo->fotografer_id || auth()->user()?->role === 'superadmin', 404);
+    abort_unless(Storage::disk('local')->exists($photo->file_watermark), 404);
+
+    return Storage::disk('local')->response($photo->file_watermark);
+})->name('media.preview');
+Route::get('/media/profile/{user}', function (User $user) {
+    abort_unless($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path), 404);
+    abort_unless($user->is_verified || auth()->id() === $user->id || auth()->user()?->role === 'superadmin', 404);
+
+    return Storage::disk('public')->response($user->profile_photo_path);
+})->name('media.profile');
+Route::get('/media/camera/{camera}', function (Camera $camera) {
+    abort_unless($camera->photo_path && Storage::disk('public')->exists($camera->photo_path), 404);
+    abort_unless($camera->fotografer?->is_verified || auth()->id() === $camera->fotografer_id || auth()->user()?->role === 'superadmin', 404);
+
+    return Storage::disk('public')->response($camera->photo_path);
+})->name('media.camera');
 Route::middleware('auth')->group(function () {
     Route::get('/p/{photo}/checkout', [MarketplaceController::class, 'checkout'])->name('marketplace.checkout');
 });
@@ -42,8 +64,8 @@ Route::get('/photographers', [PhotographerController::class, 'index'])->name('ph
 Route::get('/photographers/{photographer}', [PhotographerController::class, 'show'])->name('photographers.show');
 
 Route::get('/sitemap.xml', function () {
-    $photos = Photo::query()->where('status', 'active')->select(['id', 'updated_at'])->get();
-    $photographers = User::query()->where('role', 'fotografer')->select(['id', 'slug', 'updated_at'])->get();
+    $photos = Photo::query()->where('status', 'active')->whereHas('fotografer', fn ($query) => $query->where('is_verified', true))->select(['id', 'updated_at'])->get();
+    $photographers = User::query()->where('role', 'fotografer')->where('is_verified', true)->select(['id', 'slug', 'updated_at'])->get();
 
     return response()
         ->view('sitemap', compact('photos', 'photographers'))
@@ -63,29 +85,37 @@ Route::get('/dashboard', function () {
 
 Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('dashboard');
-    Route::post('/withdrawals/{id}/approve', [SuperAdminController::class, 'approveWithdrawal'])->name('withdrawals.approve');
-    Route::post('/fotografer/{id}/verify', [SuperAdminController::class, 'verifyFotografer'])->name('fotografer.verify');
+    Route::get('/dashboard/report', [SuperAdminController::class, 'executiveReport'])->name('report');
+    Route::post('/withdrawals/{id}/review', [SuperAdminController::class, 'reviewWithdrawal'])->name('withdrawals.review');
+    Route::post('/withdrawals/batch', [SuperAdminController::class, 'batchWithdrawals'])->name('withdrawals.batch');
+    Route::post('/fotografer/{user}/review', [SuperAdminController::class, 'reviewPhotographer'])->name('fotografer.review');
 
     Route::get('/compliance', [SuperAdminController::class, 'compliance'])->name('compliance');
     Route::get('/orders', [SuperAdminController::class, 'ledger'])->name('orders');
+    Route::get('/orders/export', [SuperAdminController::class, 'exportLedger'])->name('orders.export');
     Route::get('/earnings', [SuperAdminController::class, 'withdrawal'])->name('earnings');
     Route::get('/storage', [SuperAdminController::class, 'storage'])->name('storage');
+    Route::patch('/storage/{user}', [SuperAdminController::class, 'updateQuota'])->name('storage.update');
     Route::get('/settings', [SuperAdminController::class, 'settings'])->name('settings');
+    Route::patch('/settings', [SuperAdminController::class, 'updateSettings'])->name('settings.update');
 });
 
 Route::middleware(['auth', 'role:fotografer'])->prefix('fotografer')->name('fotografer.')->group(function () {
     Route::get('/dashboard', [FotograferController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard/data', [FotograferController::class, 'dashboardData'])->name('dashboard.data');
     Route::post('/radar/toggle', [FotograferController::class, 'toggleRadar'])->name('radar.toggle');
     Route::resource('cameras', CameraController::class)->except(['show']);
-    Route::resource('events', EventController::class);
-    Route::resource('photos', PhotoController::class);
+    Route::resource('events', EventController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
+    Route::resource('photos', PhotoController::class)->only(['index', 'create', 'store', 'update', 'destroy']);
+    Route::patch('/watermark', [PhotoController::class, 'watermark'])->name('watermark.update');
     Route::post('/withdrawals', [FotograferController::class, 'withdraw'])->name('withdrawals.store');
 
     // Stubbed routes for missing menus
     Route::get('/orders', [FotograferController::class, 'orders'])->name('orders');
-    Route::get('/earnings', [FotograferController::class, 'earnings'])->name('earnings');
+    Route::get('/orders/export', [FotograferController::class, 'exportOrders'])->name('orders.export');
     Route::get('/storage', [FotograferController::class, 'storage'])->name('storage');
     Route::get('/portfolio', [FotograferController::class, 'portfolio'])->name('portfolio');
+    Route::patch('/portfolio', [FotograferController::class, 'updatePortfolio'])->name('portfolio.update');
 });
 
 Route::middleware(['auth', 'role:pembeli'])->group(function () {
@@ -99,6 +129,7 @@ Route::middleware(['auth', 'role:pembeli'])->group(function () {
     Route::get('/checkout/success/{order}', [PembeliController::class, 'checkoutSuccess'])->name('checkout.success');
     Route::get('/purchases', [PembeliController::class, 'purchases'])->name('purchases.index');
     Route::get('/purchases/{order}/download/{transaction}', PurchaseDownloadController::class)->name('purchases.download');
+    Route::get('/purchases/{order}/preview/{transaction}', [PurchaseDownloadController::class, 'preview'])->name('purchases.preview');
     Route::get('/purchases/{order}', [PembeliController::class, 'purchaseShow'])->name('purchases.show');
 });
 

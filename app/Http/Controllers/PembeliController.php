@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Photo;
 use App\Models\Transaction;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -40,6 +41,7 @@ class PembeliController extends Controller
         $cart = Photo::with(['fotografer', 'event'])
             ->whereIn('id', $ids)
             ->where('status', 'active')
+            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true))
             ->get()
             ->map(fn (Photo $photo): array => [
                 'id' => $photo->id,
@@ -66,6 +68,7 @@ class PembeliController extends Controller
         $photos = Photo::with('fotografer')
             ->whereIn('id', $ids)
             ->where('status', 'active')
+            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true))
             ->get();
 
         if ($photos->isEmpty()) {
@@ -125,16 +128,11 @@ class PembeliController extends Controller
 
     public function simulatePay(Request $request, string $order): RedirectResponse
     {
-        $transactions = Transaction::where('order_number', $order)
-            ->where('pembeli_id', $request->user()->id)
-            ->where('payment_status', 'pending')
-            ->with('fotografer')
-            ->get();
-
-        abort_if($transactions->isEmpty(), 404);
-
-        DB::transaction(function () use ($transactions): void {
-            foreach ($transactions as $transaction) {
+        DB::transaction(function () use ($request, $order): void {
+            $transactions = Transaction::where('order_number', $order)
+                ->where('pembeli_id', $request->user()->id)->lockForUpdate()->get();
+            abort_if($transactions->isEmpty(), 404);
+            foreach ($transactions->where('payment_status', 'pending') as $transaction) {
                 $transaction->update([
                     'status' => 'paid',
                     'payment_status' => 'paid',
@@ -142,9 +140,7 @@ class PembeliController extends Controller
                     'payment_reference' => 'LOCAL-'.Str::upper(Str::random(10)),
                 ]);
 
-                if ($transaction->fotografer) {
-                    $transaction->fotografer->increment('saldo', $transaction->jumlah_fotografer);
-                }
+                User::whereKey($transaction->fotografer_id)->lockForUpdate()->increment('saldo', $transaction->jumlah_fotografer);
             }
         });
 

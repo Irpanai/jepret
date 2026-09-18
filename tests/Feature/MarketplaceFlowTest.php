@@ -30,7 +30,7 @@ class MarketplaceFlowTest extends TestCase
     public function test_checkout_creates_pending_transactions_with_90_10_snapshot(): void
     {
         $buyer = User::factory()->pembeli()->create();
-        $photographer = User::factory()->fotografer()->create(['saldo' => 0]);
+        $photographer = User::factory()->fotografer()->create(['saldo' => 0, 'is_verified' => true, 'verified_at' => now()]);
         $photo = $this->createMarketplacePhoto($photographer, ['harga' => 25000]);
 
         $response = $this->actingAs($buyer)
@@ -47,7 +47,7 @@ class MarketplaceFlowTest extends TestCase
         $this->assertSame(10, $transaction->revenue_share_snapshot['platform_percent']);
     }
 
-    public function test_original_download_requires_paid_buyer_transaction(): void
+    public function test_purchased_variant_download_requires_paid_buyer_transaction(): void
     {
         Storage::fake('local');
 
@@ -55,10 +55,12 @@ class MarketplaceFlowTest extends TestCase
         $otherBuyer = User::factory()->pembeli()->create();
         $photo = $this->createMarketplacePhoto(attributes: [
             'file_asli' => 'photos/original/private-image.jpg',
+            'purchased_path' => 'photos/purchased/private-image.jpg',
             'original_filename' => 'private-image.jpg',
         ]);
 
         Storage::disk('local')->put($photo->file_asli, 'original-bytes');
+        Storage::disk('local')->put($photo->purchased_path, 'photographer-watermarked-bytes');
 
         $transaction = Transaction::factory()->create([
             'pembeli_id' => $buyer->id,
@@ -87,6 +89,11 @@ class MarketplaceFlowTest extends TestCase
         $this->actingAs($buyer)
             ->get(route('purchases.download', ['order' => $transaction->order_number, 'transaction' => $transaction]))
             ->assertDownload('private-image.jpg');
+
+        $preview = $this->actingAs($buyer)
+            ->get(route('purchases.preview', ['order' => $transaction->order_number, 'transaction' => $transaction]));
+        $preview->assertOk();
+        $this->assertSame('photographer-watermarked-bytes', $preview->streamedContent());
     }
 
     public function test_paid_order_redirects_to_success_and_is_visible_in_purchases(): void
@@ -148,17 +155,19 @@ class MarketplaceFlowTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_unpaid_failed_and_expired_orders_cannot_download_original(): void
+    public function test_unpaid_failed_and_expired_orders_cannot_download_purchased_variant(): void
     {
         Storage::fake('local');
 
         $buyer = User::factory()->pembeli()->create();
         $photo = $this->createMarketplacePhoto(attributes: [
             'file_asli' => 'photos/original/restricted-image.jpg',
+            'purchased_path' => 'photos/purchased/restricted-image.jpg',
             'original_filename' => 'restricted-image.jpg',
         ]);
 
         Storage::disk('local')->put($photo->file_asli, 'original-bytes');
+        Storage::disk('local')->put($photo->purchased_path, 'photographer-watermarked-bytes');
 
         foreach (['pending', 'failed', 'expired'] as $status) {
             $transaction = Transaction::factory()->create([
@@ -182,7 +191,7 @@ class MarketplaceFlowTest extends TestCase
      */
     private function createMarketplacePhoto(?User $photographer = null, array $attributes = []): Photo
     {
-        $photographer ??= User::factory()->fotografer()->create();
+        $photographer ??= User::factory()->fotografer()->create(['is_verified' => true, 'verified_at' => now()]);
         $event = Event::factory()->create(['fotografer_id' => $photographer->id]);
 
         return Photo::factory()->create(array_merge([

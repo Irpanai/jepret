@@ -13,30 +13,10 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             
-            <!-- Upload Section -->
             <div class="bg-gray-800 shadow-xl sm:rounded-2xl border border-gray-700 p-6">
-                <h3 class="text-lg font-bold text-white mb-4">Upload New Photos</h3>
-                <form action="{{ route('fotografer.photos.store') }}" method="POST" enctype="multipart/form-data" class="flex flex-col md:flex-row gap-4 items-end">
-                    @csrf
-                    <input type="hidden" name="event_id" value="{{ $event->id }}">
-                    
-                    <div class="flex-1 w-full">
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Select Photo</label>
-                        <input type="file" name="photo" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-white hover:file:bg-gray-600 bg-gray-900 border border-gray-600 rounded-lg cursor-pointer focus:outline-none" required>
-                    </div>
-
-                    <div class="w-full md:w-48">
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Price (Rp)</label>
-                        <input type="number" name="harga" min="0" value="15000" class="block w-full bg-gray-900 border border-gray-600 rounded-lg text-white px-4 py-2 focus:ring-accent focus:border-accent" required>
-                    </div>
-
-                    <button type="submit" class="w-full md:w-auto bg-accent hover:bg-accent-hover text-white px-6 py-2 rounded-lg font-semibold transition h-[42px]">
-                        Upload
-                    </button>
-                </form>
-                @error('photo')
-                    <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
-                @enderror
+                <h3 class="text-xl font-bold text-white">Upload ke event ini</h3>
+                <p class="mt-2 text-base text-gray-300">Gunakan uploader batch agar watermark pribadi, kuota, dan metadata diproses dengan benar.</p>
+                <a href="{{ route('fotografer.photos.create', ['event_id' => $event->id]) }}" class="mt-4 inline-flex rounded-lg bg-white px-5 py-3 text-sm font-bold text-gray-900">Buka uploader batch</a>
             </div>
 
             <!-- Photos Grid -->
@@ -54,7 +34,7 @@
                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         @foreach($photos as $photo)
                             <div class="relative group bg-gray-900 rounded-xl overflow-hidden border border-gray-700 aspect-square">
-                                <img src="{{ asset('storage/' . $photo->file_watermark) }}" alt="Photo" class="w-full h-full object-cover transition duration-300 group-hover:scale-105">
+                                <img src="{{ route('media.preview', $photo) }}" alt="Photo" class="w-full h-full object-cover transition duration-300 group-hover:scale-105">
                                 
                                 <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
                                     <p class="text-white font-bold text-sm">Rp {{ number_format($photo->harga, 0, ',', '.') }}</p>
