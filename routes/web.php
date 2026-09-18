@@ -14,6 +14,8 @@ use App\Http\Controllers\SuperAdminController;
 use App\Models\Camera;
 use App\Models\Photo;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -118,7 +120,7 @@ Route::middleware(['auth', 'role:fotografer'])->prefix('fotografer')->name('foto
     Route::patch('/portfolio', [FotograferController::class, 'updatePortfolio'])->name('portfolio.update');
 });
 
-Route::middleware(['auth', 'role:pembeli'])->group(function () {
+Route::middleware('auth')->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'store'])->name('cart.store');
     Route::post('/cart/remove', [CartController::class, 'destroy'])->name('cart.destroy');
@@ -138,5 +140,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-
 require __DIR__.'/auth.php';
+
+Route::post('/logout-register', function (Request $request) {
+    Auth::guard('web')->logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+
+    return redirect()->route('register', ['role' => 'fotografer']);
+})->name('logout.register');

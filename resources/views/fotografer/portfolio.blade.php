@@ -7,7 +7,51 @@
         <form class="space-y-4 rounded-2xl border bg-white p-6" method="POST" enctype="multipart/form-data" action="{{ route('fotografer.portfolio.update') }}">
             @csrf @method('PATCH')
             <h2>Edit profil</h2>
-            <div class="flex items-center gap-4 rounded-xl bg-gray-50 p-4"><img src="{{ $user->profilePhotoUrl() }}" alt="Foto profil {{ $user->name }}" class="h-20 w-20 shrink-0 rounded-full object-cover"><div class="min-w-0 flex-1"><label for="profile_photo">Foto profil</label><input id="profile_photo" class="mt-2 block w-full text-sm" type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp"><p class="helper mt-2">JPG, PNG, atau WEBP. Maksimum 5 MB.</p></div></div>
+            <div x-data="{
+                    previewUrl: '{{ $user->profilePhotoUrl() }}',
+                    hasFile: false,
+                    zoom: 100,
+                    x: 50,
+                    y: 50,
+                    fileSelected(e) {
+                        if (e.target.files.length > 0) {
+                            this.previewUrl = URL.createObjectURL(e.target.files[0]);
+                            this.hasFile = true;
+                            this.zoom = 100;
+                            this.x = 50;
+                            this.y = 50;
+                        }
+                    }
+                }">
+                <div class="flex items-center gap-4 rounded-xl bg-gray-50 p-4">
+                    <div class="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-gray-200">
+                        <img :src="previewUrl" alt="Foto profil" 
+                             class="absolute object-cover" 
+                             :style="`width: ${zoom}%; height: ${zoom}%; left: -${(zoom - 100) * x / 100}%; top: -${(zoom - 100) * y / 100}%; max-width: none;`">
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <label for="profile_photo">Foto profil</label>
+                        <input id="profile_photo" class="mt-2 block w-full text-sm" type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" @change="fileSelected">
+                        <p class="helper mt-2">JPG, PNG, atau WEBP. Maksimum 5 MB.</p>
+                    </div>
+                </div>
+                <div x-show="hasFile" class="mt-4 space-y-4 rounded-xl bg-gray-50 p-4" style="display: none;">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500">Zoom (<span x-text="zoom"></span>%)</label>
+                        <input type="range" name="profile_photo_zoom" x-model="zoom" min="100" max="200" class="mt-2 w-full">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500">Geser Horizontal (<span x-text="x"></span>%)</label>
+                            <input type="range" name="profile_photo_x" x-model="x" min="0" max="100" class="mt-2 w-full">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500">Geser Vertikal (<span x-text="y"></span>%)</label>
+                            <input type="range" name="profile_photo_y" x-model="y" min="0" max="100" class="mt-2 w-full">
+                        </div>
+                    </div>
+                </div>
+            </div>
             @foreach(['name'=>'Nama','studio_name'=>'Studio','slug'=>'Slug publik','whatsapp'=>'WhatsApp','location'=>'Lokasi','category'=>'Kategori'] as $field=>$label)
                 <div><label for="{{ $field }}">{{ $label }}</label><input id="{{ $field }}" class="mt-1 w-full rounded-lg border-gray-300 text-sm" name="{{ $field }}" value="{{ old($field,$user->$field) }}"></div>
             @endforeach
