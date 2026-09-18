@@ -77,7 +77,7 @@
                                     <form method="POST" action="{{ route('cart.store') }}">
                                         @csrf
                                         <input type="hidden" name="photo_id" value="{{ $photo->id }}">
-                                        <button class="public-button w-full">Tambah ke Cart</button>
+                                        <button class="public-button w-full">Tambah ke Keranjang</button>
                                     </form>
                                 @else
                                     <a href="{{ route('dashboard') }}" class="public-button w-full">Buka Dashboard</a>

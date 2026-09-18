@@ -5,13 +5,33 @@
 
 <x-marketplace-layout title="Galeri Foto Event | JepretCFD" description="Jelajahi foto event JepretCFD berdasarkan event, photographer, kategori, lokasi, tanggal, dan waktu. Preview terlindungi, original terbuka setelah pembelian." :canonical="route('galeri')" :og-image="asset('images/galeri.jpeg')" :structured-data="$structuredData">
     <div class="gallery-page" data-gallery-page>
+        <div
+            x-data="{ visible: false, message: '', timer: null }"
+            @cart:added.window="message = $event.detail.message; visible = true; clearTimeout(timer); timer = setTimeout(() => visible = false, 2400)"
+            x-cloak
+            x-show="visible"
+            x-transition
+            class="fixed bottom-5 right-5 z-[70] flex items-center gap-3 bg-public-ink px-5 py-4 text-sm font-bold text-white shadow-xl"
+            role="status"
+        >
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+            <span x-text="message"></span>
+        </div>
+        @if(session('success'))
+            <div class="border-b border-public-line bg-public-ink py-3 text-white">
+                <div class="public-container flex items-center justify-between gap-4 text-xs font-bold">
+                    <p>{{ session('success') }}</p>
+                    <a href="{{ route('cart.index') }}" class="shrink-0 uppercase underline underline-offset-4">Lihat keranjang</a>
+                </div>
+            </div>
+        @endif
         <section class="gallery-hero relative overflow-hidden bg-neutral-200 text-public-ink" data-gallery-hero>
             <div class="gallery-hero-media absolute inset-0 bg-cover bg-center" style="background-image: url('{{ asset('images/galeri.jpeg') }}')" aria-hidden="true"></div>
             <div class="absolute inset-0 bg-gradient-to-r from-white/85 via-white/45 to-white/15" aria-hidden="true"></div>
             <div class="public-container relative flex min-h-[190px] items-center justify-between gap-8 py-7 sm:min-h-[225px] sm:py-8">
                 <div class="max-w-xl">
                     <p class="gallery-hero-copy text-[10px] font-bold uppercase tracking-[0.22em] sm:text-xs">Momen, Orang, Kota</p>
-                    <h1 class="gallery-title-mask mt-2"><span class="gallery-title public-serif block text-[3.25rem] leading-[0.88] sm:text-[4.75rem]">Galeri</span></h1>
+                    <h1 class="gallery-title-mask mt-2"><span class="gallery-title public-heading block">Galeri.</span></h1>
                     <div class="gallery-hero-copy mt-3 max-w-md text-xs font-medium leading-5 sm:text-sm">
                         <p>Temukan cerita di balik setiap jepretan.</p>
                         <p>Foto dari berbagai event, lokasi, dan photographer di komunitas JepretCFD.</p>

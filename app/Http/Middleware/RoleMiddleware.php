@@ -18,11 +18,15 @@ class RoleMiddleware
         if (! $request->user()) {
             abort(401, 'Silakan login terlebih dahulu.');
         }
-        
+
         if ($request->user()->role !== $role) {
             $userRole = $request->user()->role;
             $userEmail = $request->user()->email;
             abort(403, "Akses Ditolak (403). Akun Anda ($userEmail) terdaftar sebagai '$userRole', namun halaman ini membutuhkan akses '$role'.");
+        }
+
+        if ($role === 'fotografer' && ! $request->user()->is_active) {
+            abort(403, 'Akun photographer sedang dinonaktifkan oleh Super Admin.');
         }
 
         return $next($request);

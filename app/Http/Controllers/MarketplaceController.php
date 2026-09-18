@@ -14,7 +14,7 @@ class MarketplaceController extends Controller
     {
         $query = Photo::with(['fotografer', 'event'])
             ->where('status', 'active')
-            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true));
+            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true));
 
         if ($request->filled('q')) {
             $search = $request->string('q')->toString();
@@ -72,17 +72,17 @@ class MarketplaceController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $photographers = User::where('role', 'fotografer')->where('is_verified', true)->orderBy('name')->get(['id', 'name', 'studio_name']);
-        $events = Event::whereHas('photos.fotografer', fn ($query) => $query->where('is_verified', true))->orderByDesc('tanggal_event')->get(['id', 'nama_event', 'lokasi', 'tanggal_event']);
-        $locations = Event::query()->whereHas('photos.fotografer', fn ($query) => $query->where('is_verified', true))->whereNotNull('lokasi')->distinct()->orderBy('lokasi')->pluck('lokasi');
-        $categories = Photo::query()->whereHas('fotografer', fn ($query) => $query->where('is_verified', true))->whereNotNull('category')->distinct()->orderBy('category')->pluck('category');
+        $photographers = User::where('role', 'fotografer')->where('is_verified', true)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'studio_name']);
+        $events = Event::whereHas('photos.fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))->orderByDesc('tanggal_event')->get(['id', 'nama_event', 'lokasi', 'tanggal_event']);
+        $locations = Event::query()->whereHas('photos.fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))->whereNotNull('lokasi')->distinct()->orderBy('lokasi')->pluck('lokasi');
+        $categories = Photo::query()->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))->whereNotNull('category')->distinct()->orderBy('category')->pluck('category');
 
         return view('galeri', compact('photos', 'photographers', 'events', 'locations', 'categories'));
     }
 
     public function show(Photo $photo): View
     {
-        abort_unless($photo->status === 'active' && $photo->fotografer()->where('is_verified', true)->exists(), 404);
+        abort_unless($photo->status === 'active' && $photo->fotografer()->where('is_verified', true)->where('is_active', true)->exists(), 404);
         $photo->load(['fotografer', 'event']);
         $photo->increment('views_count');
 
@@ -90,7 +90,7 @@ class MarketplaceController extends Controller
             ->where('fotografer_id', $photo->fotografer_id)
             ->where('id', '!=', $photo->id)
             ->where('status', 'active')
-            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true))
+            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))
             ->with(['event', 'fotografer'])
             ->limit(4)
             ->get();
@@ -101,7 +101,7 @@ class MarketplaceController extends Controller
     public function checkout(Photo $photo): View
     {
         $photo->load(['fotografer', 'event']);
-        abort_unless($photo->status === 'active' && $photo->fotografer?->is_verified, 404);
+        abort_unless($photo->status === 'active' && $photo->fotografer?->is_verified && $photo->fotografer?->is_active, 404);
 
         return view('marketplace.checkout', compact('photo'));
     }

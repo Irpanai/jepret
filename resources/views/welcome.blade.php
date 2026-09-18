@@ -141,7 +141,7 @@
                     [
                         'name' => 'Starter',
                         'price' => 'Rp29.000',
-                        'period' => '7 hari',
+                        'period' => 'Bulan',
                         'storage' => '5 GB',
                         'description' => 'Untuk photographer yang mulai aktif menjual.',
                         'features' => ['5 GB Cloud Storage', 'Semua fitur utama JepretCFD', 'Protected preview + watermark', 'Dashboard photographer', 'Transaksi realtime'],
@@ -150,7 +150,7 @@
                     [
                         'name' => 'Creator',
                         'price' => 'Rp59.000',
-                        'period' => 'bulan',
+                        'period' => 'Bulan',
                         'storage' => '20 GB',
                         'description' => 'Untuk photographer dengan aktivitas dan koleksi lebih besar.',
                         'features' => ['20 GB Cloud Storage', 'Semua fitur Starter', 'Dashboard & monitoring penjualan', 'Statistik transaksi & pendapatan', 'Pengelolaan storage'],

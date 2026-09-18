@@ -11,6 +11,7 @@ use App\Http\Controllers\PhotographerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PurchaseDownloadController;
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\SuperAdminPhotographerController;
 use App\Models\Camera;
 use App\Models\Photo;
 use App\Models\User;
@@ -26,7 +27,7 @@ Route::get('/', function () {
 
     $galleryPhotos = Photo::query()
         ->where('status', 'active')
-        ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true))
+        ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))
         ->with(['event', 'fotografer'])
         ->orderByDesc('published_at')
         ->orderByDesc('id')
@@ -36,11 +37,14 @@ Route::get('/', function () {
     return view('welcome', compact('galleryPhotos'));
 })->name('landing');
 
+Route::view('/terms-of-service', 'legal.terms')->name('terms');
+Route::view('/privacy-policy', 'legal.privacy')->name('privacy');
+
 Route::get('/galeri', [MarketplaceController::class, 'galeri'])->name('galeri');
 
 Route::get('/p/{photo}', [MarketplaceController::class, 'show'])->name('marketplace.show');
 Route::get('/media/preview/{photo}', function (Photo $photo) {
-    $isPublic = $photo->status === 'active' && $photo->fotografer()->where('is_verified', true)->exists();
+    $isPublic = $photo->status === 'active' && $photo->fotografer()->where('is_verified', true)->where('is_active', true)->exists();
     abort_unless($isPublic || auth()->id() === $photo->fotografer_id || auth()->user()?->role === 'superadmin', 404);
     abort_unless(Storage::disk('local')->exists($photo->file_watermark), 404);
 
@@ -48,13 +52,13 @@ Route::get('/media/preview/{photo}', function (Photo $photo) {
 })->name('media.preview');
 Route::get('/media/profile/{user}', function (User $user) {
     abort_unless($user->profile_photo_path && Storage::disk('public')->exists($user->profile_photo_path), 404);
-    abort_unless($user->is_verified || auth()->id() === $user->id || auth()->user()?->role === 'superadmin', 404);
+    abort_unless(($user->is_verified && $user->is_active) || auth()->id() === $user->id || auth()->user()?->role === 'superadmin', 404);
 
     return Storage::disk('public')->response($user->profile_photo_path);
 })->name('media.profile');
 Route::get('/media/camera/{camera}', function (Camera $camera) {
     abort_unless($camera->photo_path && Storage::disk('public')->exists($camera->photo_path), 404);
-    abort_unless($camera->fotografer?->is_verified || auth()->id() === $camera->fotografer_id || auth()->user()?->role === 'superadmin', 404);
+    abort_unless(($camera->fotografer?->is_verified && $camera->fotografer?->is_active) || auth()->id() === $camera->fotografer_id || auth()->user()?->role === 'superadmin', 404);
 
     return Storage::disk('public')->response($camera->photo_path);
 })->name('media.camera');
@@ -66,8 +70,8 @@ Route::get('/photographers', [PhotographerController::class, 'index'])->name('ph
 Route::get('/photographers/{photographer}', [PhotographerController::class, 'show'])->name('photographers.show');
 
 Route::get('/sitemap.xml', function () {
-    $photos = Photo::query()->where('status', 'active')->whereHas('fotografer', fn ($query) => $query->where('is_verified', true))->select(['id', 'updated_at'])->get();
-    $photographers = User::query()->where('role', 'fotografer')->where('is_verified', true)->select(['id', 'slug', 'updated_at'])->get();
+    $photos = Photo::query()->where('status', 'active')->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))->select(['id', 'updated_at'])->get();
+    $photographers = User::query()->where('role', 'fotografer')->where('is_verified', true)->where('is_active', true)->select(['id', 'slug', 'updated_at'])->get();
 
     return response()
         ->view('sitemap', compact('photos', 'photographers'))
@@ -91,6 +95,8 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
     Route::post('/withdrawals/{id}/review', [SuperAdminController::class, 'reviewWithdrawal'])->name('withdrawals.review');
     Route::post('/withdrawals/batch', [SuperAdminController::class, 'batchWithdrawals'])->name('withdrawals.batch');
     Route::post('/fotografer/{user}/review', [SuperAdminController::class, 'reviewPhotographer'])->name('fotografer.review');
+    Route::patch('/photographers/{photographer}/status', [SuperAdminPhotographerController::class, 'status'])->name('photographers.status');
+    Route::resource('photographers', SuperAdminPhotographerController::class);
 
     Route::get('/compliance', [SuperAdminController::class, 'compliance'])->name('compliance');
     Route::get('/orders', [SuperAdminController::class, 'ledger'])->name('orders');
@@ -122,10 +128,10 @@ Route::middleware(['auth', 'role:fotografer'])->prefix('fotografer')->name('foto
 
 Route::middleware('auth')->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-    Route::post('/cart/add', [CartController::class, 'store'])->name('cart.store');
-    Route::post('/cart/remove', [CartController::class, 'destroy'])->name('cart.destroy');
+    Route::post('/cart/add', [CartController::class, 'store'])->name('cart.store')->block();
+    Route::post('/cart/remove', [CartController::class, 'destroy'])->name('cart.destroy')->block();
     Route::get('/checkout', [PembeliController::class, 'checkoutPage'])->name('checkout.page');
-    Route::post('/checkout', [PembeliController::class, 'processCheckout'])->name('checkout.process');
+    Route::post('/checkout', [PembeliController::class, 'processCheckout'])->name('checkout.process')->block();
     Route::get('/checkout/payment/{order}', [PembeliController::class, 'paymentPage'])->name('checkout.payment');
     Route::post('/checkout/payment/{order}/pay', [PembeliController::class, 'simulatePay'])->name('checkout.payment.simulate');
     Route::get('/checkout/success/{order}', [PembeliController::class, 'checkoutSuccess'])->name('checkout.success');

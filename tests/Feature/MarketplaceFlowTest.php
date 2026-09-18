@@ -27,6 +27,33 @@ class MarketplaceFlowTest extends TestCase
         $this->assertSame([$photo->id => $photo->id], session('cart'));
     }
 
+    public function test_guest_is_redirected_to_login_when_adding_photo_to_cart(): void
+    {
+        $photo = $this->createMarketplacePhoto();
+
+        $this->post(route('cart.store'), ['photo_id' => $photo->id])
+            ->assertRedirect(route('login'));
+
+        $this->assertNull(session('cart'));
+    }
+
+    public function test_authenticated_cart_request_can_return_realtime_count(): void
+    {
+        $buyer = User::factory()->pembeli()->create();
+        $photo = $this->createMarketplacePhoto();
+
+        $this->actingAs($buyer)
+            ->postJson(route('cart.store'), ['photo_id' => $photo->id])
+            ->assertOk()
+            ->assertJson([
+                'message' => 'Ditambahkan ke keranjang',
+                'cart_count' => 1,
+                'photo_id' => $photo->id,
+            ]);
+
+        $this->assertSame([$photo->id => $photo->id], session('cart'));
+    }
+
     public function test_checkout_creates_pending_transactions_with_90_10_snapshot(): void
     {
         $buyer = User::factory()->pembeli()->create();
@@ -45,6 +72,50 @@ class MarketplaceFlowTest extends TestCase
         $this->assertSame(2500, $transaction->platform_amount);
         $this->assertSame(90, $transaction->revenue_share_snapshot['photographer_percent']);
         $this->assertSame(10, $transaction->revenue_share_snapshot['platform_percent']);
+    }
+
+    public function test_multi_item_checkout_keeps_cart_until_every_item_is_paid(): void
+    {
+        $buyer = User::factory()->pembeli()->create();
+        $firstPhoto = $this->createMarketplacePhoto(attributes: ['harga' => 20000]);
+        $secondPhoto = $this->createMarketplacePhoto(attributes: ['harga' => 35000]);
+        $cart = [$firstPhoto->id => $firstPhoto->id, $secondPhoto->id => $secondPhoto->id];
+
+        $response = $this->actingAs($buyer)
+            ->withSession(['cart' => $cart])
+            ->post(route('checkout.process'));
+
+        $transactions = Transaction::orderBy('id')->get();
+        $this->assertCount(2, $transactions);
+        $this->assertSame(1, $transactions->pluck('order_number')->unique()->count());
+        $this->assertSame([$firstPhoto->id, $secondPhoto->id], $transactions->pluck('photo_id')->sort()->values()->all());
+        $this->assertSame($cart, session('cart'));
+        $response->assertRedirect(route('checkout.payment', ['order' => $transactions->first()->order_number], absolute: false));
+
+        $this->actingAs($buyer)
+            ->withSession(['cart' => $cart])
+            ->post(route('checkout.payment.simulate', ['order' => $transactions->first()->order_number]))
+            ->assertRedirect(route('checkout.success', ['order' => $transactions->first()->order_number]));
+
+        $this->assertNull(session('cart'));
+        $this->assertSame(2, Transaction::where('payment_status', 'paid')->count());
+    }
+
+    public function test_checkout_does_not_clear_cart_or_create_partial_order_when_an_item_is_unavailable(): void
+    {
+        $buyer = User::factory()->pembeli()->create();
+        $availablePhoto = $this->createMarketplacePhoto();
+        $unavailablePhoto = $this->createMarketplacePhoto(attributes: ['status' => 'inactive']);
+        $cart = [$availablePhoto->id => $availablePhoto->id, $unavailablePhoto->id => $unavailablePhoto->id];
+
+        $this->actingAs($buyer)
+            ->withSession(['cart' => $cart])
+            ->post(route('checkout.process'))
+            ->assertRedirect(route('cart.index'))
+            ->assertSessionHasErrors('cart');
+
+        $this->assertSame($cart, session('cart'));
+        $this->assertDatabaseCount('transactions', 0);
     }
 
     public function test_purchased_variant_download_requires_paid_buyer_transaction(): void

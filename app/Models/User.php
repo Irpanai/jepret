@@ -31,6 +31,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_verified' => 'boolean',
+            'is_active' => 'boolean',
             'photographer_watermark_locked' => 'boolean',
             'verified_at' => 'datetime',
             'rejected_at' => 'datetime',

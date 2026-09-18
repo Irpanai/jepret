@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Photo;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,7 +18,7 @@ class CartController extends Controller
         return view('pembeli.cart', compact('cart', 'total'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $request->validate([
             'photo_id' => 'required|exists:photos,id',
@@ -25,7 +26,7 @@ class CartController extends Controller
 
         $photo = Photo::with(['fotografer', 'event'])
             ->where('status', 'active')
-            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true))
+            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))
             ->findOrFail($request->photo_id);
 
         $cart = session()->get('cart', []);
@@ -35,6 +36,15 @@ class CartController extends Controller
         }
 
         session()->put('cart', $cart);
+        session()->forget('pending_checkout_order');
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Ditambahkan ke keranjang',
+                'cart_count' => count($cart),
+                'photo_id' => $photo->id,
+            ]);
+        }
 
         return redirect()->back()->with('success', 'Ditambahkan ke keranjang');
     }
@@ -50,6 +60,7 @@ class CartController extends Controller
         if (isset($cart[$request->photo_id])) {
             unset($cart[$request->photo_id]);
             session()->put('cart', $cart);
+            session()->forget('pending_checkout_order');
         }
 
         return redirect()->back()->with('success', 'Dihapus dari keranjang');
@@ -69,7 +80,7 @@ class CartController extends Controller
         return Photo::with(['fotografer', 'event'])
             ->whereIn('id', $ids)
             ->where('status', 'active')
-            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true))
+            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))
             ->get()
             ->map(fn (Photo $photo): array => [
                 'id' => $photo->id,
