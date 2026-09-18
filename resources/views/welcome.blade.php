@@ -31,9 +31,13 @@
                         <p class="mt-6 max-w-lg text-base font-semibold leading-7 text-public-muted" data-hero-copy style="--reveal-index: 3">
                             Cari foto dari event dan photographer pilihanmu. Preview tetap terlindungi, sementara file original tersimpan privat sampai pembayaran selesai.
                         </p>
-                        <div class="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4" data-hero-copy style="--reveal-index: 4">
-                            <a href="{{ route('galeri') }}" class="text-sm font-extrabold uppercase text-public-ink hover:underline">Jelajahi Galeri →</a>
-                            <a href="{{ route('photographers.index') }}" class="text-sm font-extrabold uppercase text-public-muted hover:text-public-ink">Lihat Photographers</a>
+                        <div class="mt-8 flex flex-wrap items-center gap-4" data-hero-copy style="--reveal-index: 4">
+                            <a href="{{ route('galeri') }}" class="inline-flex min-h-12 items-center justify-center border border-public-ink bg-public-ink px-5 text-xs font-extrabold uppercase text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-neutral-800 hover:shadow-[0_0_24px_rgba(0,0,0,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-public-ink focus-visible:ring-offset-2">
+                                Jelajahi Galeri
+                            </a>
+                            <a href="{{ route('photographers.index') }}" class="inline-flex min-h-12 items-center justify-center border border-public-ink bg-white px-5 text-xs font-extrabold uppercase text-public-ink transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-public-ink hover:text-white hover:shadow-[0_0_24px_rgba(0,0,0,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-public-ink focus-visible:ring-offset-2">
+                                Lihat Photographers
+                            </a>
                         </div>
                     </div>
                 </div>
