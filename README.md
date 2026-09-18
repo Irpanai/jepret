@@ -1,78 +1,261 @@
 <div align="center">
-  <!-- <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000&auto=format&fit=crop" alt="Jepret Banner" width="100%" style="border-radius: 12px; max-height: 300px; object-fit: cover;"> -->
-  
-  <br />
-  <br />
 
-  <h1>📸 JEPRET</h1>
-  <p>
-    <strong>Marketplace Fotografi Event Cerdas & Terintegrasi</strong>
-  </p>
-  <p>
-    Platform revolusioner yang mempertemukan Fotografer Event (Car Free Day, Marathon, Konser) dengan para Peserta melalui ekosistem transaksi digital yang aman, transparan, dan terotomatisasi.
-  </p>
+# 📸 JEPRET
 
-  <p>
-    <a href="#fitur-unggulan">Fitur</a> •
-    <a href="#persyaratan-sistem">Instalasi</a> •
-    <a href="#akun-demo-kredensial">Akun Demo</a> •
-    <a href="#panduan-penggunaan-user-flow">Panduan Penggunaan</a>
-  </p>
+### Digital Photography Marketplace Platform
+
+**Temukan foto. Simpan momen.**
+
+JEPRET adalah platform marketplace fotografi digital yang menghubungkan **Photographer** dan **Buyer** dalam satu ekosistem terintegrasi untuk menemukan, mengelola, menjual, membeli, dan mengunduh karya fotografi secara aman.
+
+[Website](https://jepret.web.id) · [Gallery](https://jepret.web.id/galeri) · [Photographers](https://jepret.web.id/photographers)
+
 </div>
 
 ---
 
-## 🌟 Fitur Unggulan
+## Tentang JEPRET
 
-JEPRET dirancang dengan fokus pada pengalaman pengguna (*User Experience*) yang premium dan kemudahan transaksi.
+JEPRET dirancang untuk menyederhanakan proses jual-beli foto event secara digital.
 
-- 🔐 **Multi-Role Authentication** - Akses khusus untuk Super Admin dan Fotografer, sedangkan Pembeli masuk langsung ke galeri dan riwayat pembelian.
-- 💰 **Sistem Bagi Hasil Otomatis (Ledger)** - Rekonsiliasi finansial transparan secara *real-time* (90% Hak Kreator, 10% Pendapatan Platform).
-- 🖼️ **Master Asset Library** - Pembeli mendapatkan tautan unduh permanen ke foto resolusi tinggi (*Master File*) setelah pembayaran lunas.
-- 🛡️ **Proteksi Watermark** - Foto *preview* yang diunggah otomatis dilindungi sehingga mencegah pencurian hak cipta sebelum transaksi selesai.
-- 🔍 **Pencarian Cerdas AI (Mock)** - Pembeli dapat mencari foto mereka berdasarkan Nama Event, Nomor *Bib*, atau *Tag* Visual (misal: "sepeda", "baju merah").
-- 💳 **Withdrawal Management** - Fotografer dapat menarik saldo pendapatan mereka yang kemudian diverifikasi dan disetujui oleh Super Admin.
+Photographer dapat mengunggah dan mengelola karya, mengatur harga, memantau transaksi, mengelola storage, serta melakukan penarikan pendapatan. Buyer dapat menjelajahi galeri, menemukan foto dari berbagai event, melakukan pembelian, dan mengakses kembali foto yang telah dibeli.
 
----
+Alur utama:
 
-## 💻 Persyaratan Sistem & Tech Stack
-
-Proyek ini dibangun menggunakan arsitektur modern untuk memastikan performa yang cepat dan stabil.
-
-| Kategori | Teknologi yang Digunakan |
-| :--- | :--- |
-| **Backend Framework** | Laravel 11.x (PHP 8.2+) |
-| **Frontend Styling** | Tailwind CSS (Utility-First CSS) |
-| **Frontend Interactivity**| Alpine.js (Lightweight JavaScript) |
-| **Database** | MySQL / PostgreSQL |
-| **Package Manager** | Composer & NPM |
+```text
+Buyer
+→ Gallery
+→ Cart
+→ Checkout
+→ Transaction
+→ Photo
+→ Photographer
+→ Revenue Split
+→ Withdrawal
+→ Super Admin
+```
 
 ---
 
-## ⚙️ Panduan Instalasi & Konfigurasi Lokal
+## Fitur Utama
 
-Ikuti petunjuk langkah demi langkah di bawah ini untuk menjalankan aplikasi secara lokal di komputer Anda.
+### Buyer
 
-### 1. Persiapan Repositori
-Clone repositori ke dalam direktori lokal Anda:
+- Menjelajahi galeri fotografi publik
+- Filter dan pencarian berdasarkan event, photographer, lokasi, kategori, tanggal, dan metadata terkait
+- Detail foto dan photographer
+- Shopping cart
+- Checkout dan pembayaran
+- Riwayat pembelian
+- Akses ulang foto yang telah dibeli
+- Download file pembelian dengan otorisasi
+- Profile dan autentikasi pengguna
+
+### Photographer
+
+- Dashboard / Ringkasan
+- Statistik penjualan dan performa
+- Pengelolaan kamera
+- Pengelolaan event
+- Multi-upload foto
+- Pengaturan metadata dan harga
+- Pengelolaan status publikasi
+- Personal watermark
+- System watermark untuk preview marketplace
+- Pengelolaan storage
+- Orders & Transactions
+- Export CSV
+- Profile & Portfolio
+- Withdrawal / pencairan saldo
+- Notifikasi transaksi terbaru
+
+### Super Admin
+
+- Command Center
+- Photographer verification
+- Photographer management
+- Transaction ledger
+- Revenue monitoring
+- Withdrawal management
+- Storage monitoring dan quota override
+- Platform settings
+- Watermark settings
+- Audit log
+- Executive PDF report
+- CSV export
+- Monitoring relasi Buyer, Photographer, Transaction, dan Withdrawal
+
+---
+
+## Revenue Split
+
+JEPRET menggunakan pembagian pendapatan tetap:
+
+| Pihak | Persentase |
+|---|---:|
+| Photographer | **90%** |
+| Platform JEPRET | **10%** |
+
+Nilai pembagian disimpan pada snapshot transaksi agar transaksi lama tidak berubah saat harga foto diperbarui.
+
+---
+
+## Sistem Watermark
+
+JEPRET menggunakan tiga lapisan aset foto:
+
+```text
+1. Raw Original
+   → private
+   → tidak dapat diakses publik
+
+2. Marketplace Preview
+   → menggunakan System Watermark
+   → digunakan untuk preview sebelum pembelian
+
+3. Purchased Variant
+   → menggunakan Photographer Watermark
+   → hanya dapat diakses Buyer dengan transaksi paid
+```
+
+Tujuannya adalah menjaga karya Photographer tetap terlindungi tanpa mengganggu pengalaman Buyer.
+
+---
+
+## Storage & Package
+
+| Paket | Harga | Storage |
+|---|---:|---:|
+| Trial | Gratis / 7 hari | 500 MB |
+| Starter | Rp29.000 / bulan | 5 GB |
+| Creator | Rp59.000 / bulan | 20 GB |
+| Studio | Custom | Custom |
+
+Super Admin dapat memberikan override quota apabila diperlukan.
+
+---
+
+## Withdrawal Flow
+
+```text
+Photographer
+→ Request Withdrawal
+→ Pending
+→ Super Admin Review
+→ Held / Success / Rejected
+```
+
+Withdrawal terhubung langsung dengan saldo Photographer dan diproses dengan proteksi agar perubahan saldo tidak dieksekusi lebih dari satu kali.
+
+---
+
+## Tech Stack
+
+| Kategori | Teknologi |
+|---|---|
+| Backend | Laravel 13 |
+| Language | PHP 8.3+ |
+| Frontend | Blade |
+| Styling | Tailwind CSS |
+| Interactivity | Alpine.js |
+| Build Tool | Vite |
+| Database | MySQL / PostgreSQL |
+| Image Processing | Intervention Image |
+| Payment Integration | Midtrans |
+| PDF Reporting | Laravel DomPDF |
+| Package Manager | Composer & NPM |
+
+---
+
+## Role & Access
+
+### Public Visitor
+
+Dapat mengakses area publik seperti:
+
+```text
+/
+ /galeri
+ /photographers
+ /photographers/{slug}
+ /p/{photo}
+ /about
+ /pricing
+ /terms-of-service
+ /privacy-policy
+```
+
+### Buyer
+
+Buyer memiliki akses ke:
+
+```text
+Cart
+Checkout
+Payment
+Purchase History
+Purchased Photo Download
+Profile
+```
+
+### Photographer
+
+Photographer memiliki workspace untuk:
+
+```text
+Dashboard
+Cameras
+Events
+Photos
+Orders
+Storage
+Portfolio
+Withdrawal
+Account Settings
+```
+
+### Super Admin
+
+Super Admin mengelola:
+
+```text
+Platform Dashboard
+Photographers
+Compliance
+Ledger
+Withdrawals
+Storage
+Platform Settings
+Reports
+```
+
+---
+
+## Instalasi Lokal
+
+### 1. Clone Repository
+
 ```bash
-git clone https://github.com/username/jepret.git
+git clone https://github.com/Irpanai/jepret.git
 cd jepret
 ```
 
-### 2. Instalasi Dependensi
-Instal seluruh *library* PHP dan dependensi JavaScript yang dibutuhkan:
+### 2. Install Dependencies
+
 ```bash
 composer install
 npm install
 ```
 
-### 3. Konfigurasi Environment (Lingkungan)
-Salin *template environment* bawaan dan sesuaikan dengan kredensial *database* lokal Anda:
+### 3. Environment
+
 ```bash
 cp .env.example .env
+php artisan key:generate
 ```
-Buka file `.env` di teks editor, lalu cari dan ubah bagian berikut sesuai dengan koneksi MySQL/PostgreSQL Anda:
+
+Atur konfigurasi database di `.env`:
+
 ```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -82,77 +265,318 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-### 4. *Generate Key* & Migrasi Data
-Buat kunci keamanan aplikasi dan masukkan struktur *database* beserta data tiruan (*dummy*):
-```bash
-php artisan key:generate
-php artisan migrate:fresh --seed
-```
-> **Catatan:** Perintah `--seed` di atas sudah otomatis memuat paket langganan, event, puluhan foto, dan ratusan riwayat transaksi tiruan agar aplikasi langsung siap digunakan.
+Atur juga konfigurasi lain sesuai environment:
 
-### 5. *Symlink Storage* (⚠️ Sangat Penting)
-Agar seluruh foto yang diunggah oleh Fotografer dapat diakses secara publik melalui *browser*, Anda **wajib** menjalankan perintah ini:
+```text
+APP_URL
+MAIL_*
+FILESYSTEM_DISK
+SESSION_DRIVER
+QUEUE_CONNECTION
+MIDTRANS_*
+```
+
+---
+
+### 4. Database
+
+Untuk development baru:
+
+```bash
+php artisan migrate --seed
+```
+
+Untuk environment yang sudah memiliki data:
+
+```bash
+php artisan migrate
+```
+
+Jangan menggunakan `migrate:fresh` pada database production.
+
+---
+
+### 5. Storage Link
+
 ```bash
 php artisan storage:link
 ```
 
-### 6. Jalankan Server
-Buka dua (*2*) terminal terpisah, dan jalankan perintah berikut secara bersamaan:
+Storage public hanya digunakan untuk aset yang memang boleh diakses publik.
 
-**Terminal 1 (Backend PHP):**
+Raw original photo tetap berada pada storage private/protected sesuai implementasi aplikasi.
+
+---
+
+### 6. Jalankan Development Server
+
+Terminal 1:
+
 ```bash
 php artisan serve
 ```
 
-**Terminal 2 (Frontend Assets Compiler):**
+Terminal 2:
+
 ```bash
 npm run dev
 ```
 
-Aplikasi sekarang dapat diakses melalui browser di alamat: **[http://localhost:8000](http://localhost:8000)** 🎉
+Akses aplikasi di:
+
+```text
+http://localhost:8000
+```
 
 ---
 
-## 🔑 Akun Demo / Kredensial
+## Production Build
 
-Untuk mempermudah proses pengujian aplikasi (*testing*), kami telah menyediakan beberapa variasi akun. Seluruh sandi (*password*) untuk akun di bawah ini adalah: **`password`**
+Build frontend:
 
-| Role (Peran) | Email Akun | Deskripsi Singkat |
-| :--- | :--- | :--- |
-| 👑 **Super Admin** | `superadmin@jepret.test` | Akses ke Sistem Root, Ledger Finansial, dan *Approval* pencairan dana (*Withdrawal*). |
-| 📸 **Fotografer Pro** | `fotografer_pro@jepret.test` | Akun fotografer agensi (Paket Pro). Memiliki pendapatan tinggi dan banyak riwayat transaksi. |
-| 📸 **Fotografer Basic** | `fotografer_basic@jepret.test` | Akun pemula (Paket Basic). Cocok untuk melihat limitasi paket. |
-| 🛍️ **Pembeli VIP** | `pembeli_vip@jepret.test` | Kolektor foto yang sering memberikan *Tip* besar kepada fotografer. |
-| 🛍️ **Pembeli Biasa** | `pembeli2@jepret.test` | Pengguna standar yang melakukan transaksi pembelian biasa. |
+```bash
+npm run build
+```
+
+Optimasi Laravel:
+
+```bash
+php artisan optimize
+```
+
+Migrasi production:
+
+```bash
+php artisan migrate --force
+```
+
+Pastikan konfigurasi production:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+```
 
 ---
 
-## 📖 Panduan Penggunaan (User Flow)
+## Seeder & Development Data
 
-Berikut adalah skenario pengujian terbaik untuk mencoba keseluruhan fitur aplikasi secara terpadu *(End-to-End)*:
+Project menyediakan seed data untuk kebutuhan development dan QA, termasuk:
 
-### Tahap 1: Pengalaman Pembeli (Buyer)
-1. Buka browser dan **Login** menggunakan akun `pembeli2@jepret.test`.
-2. Di halaman beranda (*Marketplace*), cari foto berdasarkan event atau gaya tertentu.
-3. Klik foto yang diminati untuk masuk ke halaman detail, lalu klik tombol **Beli / Checkout**.
-4. *(Transaksi disimulasikan lunas)*. Anda akan diarahkan ke menu **Library Foto Saya**.
-5. Coba klik tombol **Download Master** untuk mengunduh versi foto tanpa *watermark*.
+- Buyer
+- Photographer
+- Super Admin
+- Packages
+- Events
+- Photos
+- Transactions
+- Withdrawals
+- Platform settings
+- Relational demo data
 
-### Tahap 2: Pengalaman Fotografer (Kreator)
-1. Buka jendela browser *Incognito* baru, lalu **Login** menggunakan akun `fotografer_pro@jepret.test` (kreator dari foto yang baru saja dibeli).
-2. Perhatikan **Saldo Aktif** Anda di Dashboard. Saldo tersebut otomatis bertambah senilai **90%** dari harga foto (+Tip jika ada pembeli VIP).
-3. Buka menu **Pesanan & Transaksi (Orders)** untuk melihat jejak rekam pembelian tadi.
-4. Pergi ke menu **Keuangan (Earnings)**, lalu klik tombol **Tarik Saldo**. Masukkan nominal, dan klik kirim. Status penarikan Anda sekarang adalah *Menunggu (Pending)*.
+Data seed hanya ditujukan untuk environment development/testing.
 
-### Tahap 3: Pengalaman Super Admin
-1. Login menggunakan akun `superadmin@jepret.test`.
-2. Buka menu **Ledger Transaksi** untuk melihat ringkasan volume uang masuk secara global (GMV, Pendapatan Platform 10%, Hak Fotografer 90%).
-3. Buka menu **Penarikan Dana (Withdrawals)**.
-4. Cari permintaan penarikan dari Fotografer tadi, lalu klik **Setujui (Approve)**.
-5. (Selesai). Uang tersebut secara sistem sudah dianggap ditransfer, dan jika Anda kembali ke *dashboard* Fotografer, status penarikannya telah berubah menjadi **Berhasil (Success)**.
+Jangan menggunakan kredensial demo sebagai kredensial production.
+
+---
+
+## Testing & QA
+
+Jalankan test:
+
+```bash
+php artisan test
+```
+
+Format code:
+
+```bash
+vendor/bin/pint
+```
+
+Build frontend:
+
+```bash
+npm run build
+```
+
+Audit route:
+
+```bash
+php artisan route:list --except-vendor
+```
+
+Periksa diff:
+
+```bash
+git diff --check
+```
+
+Viewport QA yang direkomendasikan:
+
+```text
+Mobile:
+375×812
+390×844
+430×932
+
+Tablet:
+768×1024
+
+Desktop:
+1366×768
+1440×900
+1920×1080
+```
+
+---
+
+## Security Principles
+
+- Raw original photo tidak memiliki public URL langsung
+- Buyer hanya dapat mengunduh foto yang dimiliki melalui transaksi paid
+- Photographer hanya dapat mengubah resource miliknya sendiri
+- Super Admin routes dilindungi role authorization
+- Mutation menggunakan HTTP method yang sesuai
+- Form dilindungi CSRF
+- Financial mutation menggunakan database transaction dan locking bila diperlukan
+- Revenue menggunakan transaction snapshot
+- Withdrawal diproses secara idempotent
+- File path dan download authorization diverifikasi server-side
+
+---
+
+## SEO & Performance
+
+Public pages mendukung optimasi dasar seperti:
+
+- Dynamic page title
+- Meta description
+- Canonical URL
+- Open Graph
+- Twitter Card
+- Sitemap
+- Structured Data
+- Lazy loading untuk image non-critical
+- Eager loading Eloquent untuk mencegah N+1 query
+- Pagination untuk dataset besar
+- Responsive image layout
+- Mobile-first responsive UI
+
+Private pages seperti Checkout, Purchases, Photographer Dashboard, dan Super Admin tidak ditujukan untuk indexing search engine.
+
+---
+
+## Project Structure
+
+```text
+app/
+├── Http/
+│   ├── Controllers/
+│   └── Middleware/
+├── Models/
+├── Services/
+└── ...
+
+database/
+├── migrations/
+├── factories/
+└── seeders/
+
+resources/
+├── views/
+│   ├── fotografer/
+│   ├── superadmin/
+│   ├── purchases/
+│   ├── components/
+│   └── ...
+├── css/
+└── js/
+
+routes/
+└── web.php
+
+tests/
+```
+
+---
+
+## Main User Flow
+
+### Buyer
+
+```text
+Landing
+→ Gallery
+→ Photo Detail
+→ Cart
+→ Checkout
+→ Payment
+→ Purchase Success
+→ Purchases
+→ Download
+```
+
+### Photographer
+
+```text
+Login
+→ Complete Profile
+→ Package
+→ Dashboard
+→ Camera
+→ Event
+→ Upload Photo
+→ Watermark Processing
+→ Metadata & Price
+→ Publish
+→ Marketplace
+→ Transaction
+→ Balance
+→ Withdrawal
+```
+
+### Super Admin
+
+```text
+Login
+→ Command Center
+→ Photographer Verification
+→ Transaction Ledger
+→ Withdrawal Review
+→ Storage Management
+→ Platform Settings
+→ Reports
+```
+
+---
+
+## Project Goals
+
+JEPRET dibangun untuk membuat proses fotografi event lebih sederhana bagi kedua pihak.
+
+**Photographer**
+
+```text
+Upload → Publish → Sell → Manage → Withdraw
+```
+
+**Buyer**
+
+```text
+Discover → Purchase → Download → Keep
+```
+
+Dengan pendekatan tersebut, JEPRET menjadi satu platform terintegrasi untuk mendukung distribusi, perlindungan, dan monetisasi karya fotografi digital.
 
 ---
 
 <div align="center">
-  Dibuat dengan ❤️ menggunakan Laravel.
+
+### JEPRET — Find Your Moment.
+
+**Digital Photography Marketplace Platform**
+
+Built with Laravel.
+
 </div>
