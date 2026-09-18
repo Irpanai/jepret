@@ -1,4 +1,4 @@
-# JEPRETCFD — Super Admin Full Refactor & Activation Prompt for Codex
+# JEPRET — Super Admin Full Refactor & Activation Prompt for Codex
 
 ## Project
 
@@ -709,7 +709,7 @@ Remove:
 - fake hash
 - fake AI match text
 
-Do not pretend JepretCFD is integrated with Dukcapil unless such integration actually exists.
+Do not pretend Jepret is integrated with Dukcapil unless such integration actually exists.
 
 ---
 
@@ -1078,7 +1078,7 @@ Requirements:
 
 Do not call a fake BI-FAST API.
 
-For now "approve" means the internal JepretCFD withdrawal reaches the current success state according to the app's existing payout model.
+For now "approve" means the internal Jepret withdrawal reaches the current success state according to the app's existing payout model.
 
 ---
 

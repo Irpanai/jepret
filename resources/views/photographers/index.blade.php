@@ -2,14 +2,14 @@
     $structuredData = [
         '@context' => 'https://schema.org',
         '@type' => 'CollectionPage',
-        'name' => 'Photographers JepretCFD',
+        'name' => 'Photographers Jepret',
         'url' => route('photographers.index'),
     ];
 @endphp
 
 <x-marketplace-layout
-    title="Photographers | JepretCFD"
-    description="Temukan photographer JepretCFD berdasarkan nama, studio, kategori, dan lokasi. Lihat profil dan foto event yang tersedia untuk dibeli."
+    title="Photographers | Jepret"
+    description="Temukan photographer Jepret berdasarkan nama, studio, kategori, dan lokasi. Lihat profil dan foto event yang tersedia untuk dibeli."
     :structured-data="$structuredData"
 >
     <section class="relative overflow-hidden border-b border-public-line bg-public-ink py-10 text-white sm:py-14">
@@ -21,7 +21,7 @@
                 <div>
                     <h1 class="public-heading text-white">Photographers.</h1>
                     <p class="mt-4 max-w-2xl text-sm font-semibold leading-6 text-white/85">
-                        Direktori photographer event yang aktif mempublikasikan karya di JepretCFD. Cari berdasarkan studio, kota, atau kategori.
+                        Direktori photographer event yang aktif mempublikasikan karya di Jepret. Cari berdasarkan studio, kota, atau kategori.
                     </p>
                 </div>
                 <p class="text-sm font-extrabold uppercase text-white/85">{{ number_format($photographers->total()) }} photographer</p>

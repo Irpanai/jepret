@@ -1,4 +1,4 @@
-<x-marketplace-layout title="Pembayaran Berhasil | JepretCFD" description="Pembayaran JepretCFD berhasil." :noindex="true">
+<x-marketplace-layout title="Pembayaran Berhasil | Jepret" description="Pembayaran Jepret berhasil." :noindex="true">
     <section class="bg-white py-10 sm:py-16">
         <div class="public-container max-w-5xl">
             <div class="border border-public-line">
@@ -22,7 +22,7 @@
                                 @endif
                             </div>
                             <div>
-                                <h2 class="text-base font-extrabold text-public-ink">{{ $transaction->photo?->title ?: ($transaction->photo?->event?->nama_event ?? 'Foto JepretCFD') }}</h2>
+                                <h2 class="text-base font-extrabold text-public-ink">{{ $transaction->photo?->title ?: ($transaction->photo?->event?->nama_event ?? 'Foto Jepret') }}</h2>
                                 <p class="mt-1 text-xs font-bold text-public-muted">{{ $transaction->photo?->fotografer?->name ?? 'Photographer' }}</p>
                             </div>
                             <a href="{{ route('purchases.download', ['order' => $order['order_number'], 'transaction' => $transaction]) }}" class="public-button">Download File Pembelian</a>

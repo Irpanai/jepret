@@ -13,8 +13,8 @@
 @endphp
 
 <x-marketplace-layout
-    title="{{ $displayName }} - Photographer | JepretCFD"
-    description="Profil {{ $displayName }} di JepretCFD. Lihat karya pilihan dan foto event yang tersedia untuk dibeli."
+    title="{{ $displayName }} - Photographer | Jepret"
+    description="Profil {{ $displayName }} di Jepret. Lihat karya pilihan dan foto event yang tersedia untuk dibeli."
     :og-image="$heroImage"
     :structured-data="$structuredData"
 >
@@ -43,7 +43,7 @@
                 </div>
 
                 <p class="mt-6 max-w-2xl text-base font-semibold leading-7 text-public-muted">
-                    {{ $photographer->bio ?: 'Photographer JepretCFD dengan koleksi foto event aktif yang siap ditemukan dan dibeli oleh buyer.' }}
+                    {{ $photographer->bio ?: 'Photographer Jepret dengan koleksi foto event aktif yang siap ditemukan dan dibeli oleh buyer.' }}
                 </p>
 
                 @if($whatsappNumber || $photographer->instagram_username)
@@ -102,7 +102,7 @@
             <div class="grid gap-4 md:grid-cols-3">
                 @forelse($featuredPhotos as $index => $photo)
                     <a href="{{ route('marketplace.show', $photo) }}" class="relative overflow-hidden border border-public-line bg-white {{ $index === 0 ? 'md:col-span-2 aspect-[16/10]' : 'aspect-[4/5]' }}">
-                        <img src="{{ route('media.preview', $photo) }}" alt="{{ $photo->title ?: 'Karya JepretCFD' }}" class="h-full w-full object-cover">
+                        <img src="{{ route('media.preview', $photo) }}" alt="{{ $photo->title ?: 'Karya Jepret' }}" class="h-full w-full object-cover">
                         <span class="absolute bottom-3 left-3 bg-white px-3 py-2 text-xs font-extrabold uppercase text-public-ink">{{ $photo->event?->nama_event ?? 'Event' }}</span>
                     </a>
                 @empty

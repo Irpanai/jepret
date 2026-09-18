@@ -5,7 +5,7 @@
             'price' => 'Gratis',
             'period' => '7 hari',
             'storage' => '500 MB',
-            'description' => 'Untuk mencoba JepretCFD selama 7 hari.',
+            'description' => 'Untuk mencoba Jepret selama 7 hari.',
             'features' => ['500 MB Cloud Storage', 'Upload & kelola foto', 'Protected preview', 'Marketplace access', 'Atur harga foto'],
             'cta' => 'Mulai Gratis',
         ],
@@ -15,7 +15,7 @@
             'period' => '7 hari',
             'storage' => '5 GB',
             'description' => 'Untuk photographer yang mulai aktif menjual.',
-            'features' => ['5 GB Cloud Storage', 'Semua fitur utama JepretCFD', 'Protected preview + watermark', 'Dashboard photographer', 'Transaksi realtime'],
+            'features' => ['5 GB Cloud Storage', 'Semua fitur utama Jepret', 'Protected preview + watermark', 'Dashboard photographer', 'Transaksi realtime'],
             'cta' => 'Pilih Starter',
         ],
         [
@@ -47,7 +47,7 @@
                 <h2 class="public-heading mt-4">Pilih ruang untuk setiap karya.</h2>
             </div>
             <p class="max-w-xl text-sm font-semibold leading-6 text-public-muted lg:justify-self-end">
-                Simpan, kelola, dan jual foto melalui JepretCFD. Pilih kapasitas yang sesuai dengan aktivitas fotografimu.
+                Simpan, kelola, dan jual foto melalui Jepret. Pilih kapasitas yang sesuai dengan aktivitas fotografimu.
             </p>
         </div>
 
@@ -82,7 +82,7 @@
                     </div>
 
                     <a
-                        href="{{ $plan['name'] === 'Studio' ? 'mailto:jepretccfdd@gmail.com?subject=Paket%20Studio%20JepretCFD' : route('register', ['role' => 'fotografer']) }}"
+                        href="{{ $plan['name'] === 'Studio' ? 'mailto:jepretccfdd@gmail.com?subject=Paket%20Studio%20Jepret' : route('register', ['role' => 'fotografer']) }}"
                         class="mt-8 inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}"
                     >
                         {{ $plan['cta'] }}

@@ -1,7 +1,7 @@
 <x-guest-layout>
     <div class="mx-auto grid w-full max-w-5xl border border-public-line bg-white lg:grid-cols-[1fr_440px]">
         <section class="hidden bg-public-ink p-10 text-white lg:flex lg:flex-col lg:justify-between">
-            <div><p class="text-xs font-extrabold uppercase text-white/55">JepretCFD account</p><h1 class="mt-4 text-5xl font-extrabold leading-[0.95]">Temukan momenmu. Simpan originalnya.</h1><p class="mt-5 max-w-md text-sm font-semibold leading-6 text-white/65">Masuk untuk melanjutkan checkout, melihat pembelian, dan mengunduh ulang foto yang sudah lunas.</p></div>
+            <div><p class="text-xs font-extrabold uppercase text-white/55">Jepret account</p><h1 class="mt-4 text-5xl font-extrabold leading-[0.95]">Temukan momenmu. Simpan originalnya.</h1><p class="mt-5 max-w-md text-sm font-semibold leading-6 text-white/65">Masuk untuk melanjutkan checkout, melihat pembelian, dan mengunduh ulang foto yang sudah lunas.</p></div>
             <a href="{{ route('galeri') }}" class="text-xs font-extrabold uppercase text-white">Lihat galeri →</a>
         </section>
         <section class="p-6 sm:p-10" x-data="{ showPassword: false }">

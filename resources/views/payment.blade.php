@@ -1,6 +1,6 @@
 <x-marketplace-layout
-    title="Payment | JepretCFD"
-    description="Halaman pembayaran JepretCFD."
+    title="Payment | Jepret"
+    description="Halaman pembayaran Jepret."
     :noindex="true"
 >
     <section class="bg-white py-10 sm:py-16">

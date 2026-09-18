@@ -6,9 +6,9 @@
 <nav class="sticky top-0 z-50 border-b border-public-line bg-white/95" x-data="{ cartCount: {{ $cartCount }} }" @cart:updated.window="cartCount = $event.detail.count">
     <div class="public-container">
         <div class="flex min-h-16 items-center justify-between gap-5">
-            <a href="{{ route('landing') }}" class="flex items-center gap-3 text-sm font-extrabold uppercase tracking-normal text-public-ink" aria-label="JepretCFD home">
+            <a href="{{ route('landing') }}" class="flex items-center gap-3 text-sm font-extrabold uppercase tracking-normal text-public-ink" aria-label="Jepret home">
                 <img src="{{ asset('images/jepret.png') }}" alt="" class="h-11 w-11 shrink-0 object-contain">
-                JepretCFD
+                Jepret
             </a>
 
             <div class="hidden items-center gap-7 text-xs font-extrabold uppercase text-public-muted md:flex">
@@ -87,10 +87,8 @@
                         <span>Keranjang <span x-cloak x-show="cartCount > 0">(<span x-text="cartCount"></span>)</span></span>
                     </a>
                     <a href="{{ route('purchases.index') }}" class="py-2">Pembelian Saya</a>
-                    @if($userRole === 'fotografer')
-                        <a href="{{ route('fotografer.dashboard') }}" class="py-2">Halaman Saya</a>
-                    @elseif($userRole === 'superadmin')
-                        <a href="{{ route('superadmin.dashboard') }}" class="py-2">Halaman Saya</a>
+                    @if(in_array($userRole, ['fotografer', 'superadmin'], true))
+                        <a href="{{ route('dashboard') }}" class="py-2 {{ request()->routeIs('fotografer.*') || request()->routeIs('superadmin.*') ? 'text-public-ink' : '' }}">Halaman Saya</a>
                     @endif
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf

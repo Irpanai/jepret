@@ -1,15 +1,15 @@
-<x-marketplace-layout title="Siapkan Checkout | JepretCFD" description="Tambahkan foto ke keranjang sebelum checkout." :noindex="true">
+<x-marketplace-layout title="Siapkan Checkout | Jepret" description="Tambahkan foto ke keranjang sebelum checkout." :noindex="true">
     <section class="bg-white py-10 sm:py-16">
         <div class="public-container max-w-4xl">
             <div class="grid border border-public-line md:grid-cols-[minmax(0,1fr)_360px]">
                 <div class="aspect-[4/3] overflow-hidden bg-gray-100 md:aspect-auto">
                     @if($photo->file_watermark)
-                        <img src="{{ route('media.preview', $photo) }}" alt="Preview {{ $photo->title ?: 'foto JepretCFD' }}" class="h-full w-full object-cover">
+                        <img src="{{ route('media.preview', $photo) }}" alt="Preview {{ $photo->title ?: 'foto Jepret' }}" class="h-full w-full object-cover">
                     @endif
                 </div>
                 <div class="p-6 sm:p-8">
                     <p class="public-kicker">Siapkan checkout</p>
-                    <h1 class="mt-3 text-3xl font-extrabold text-public-ink">{{ $photo->title ?: ($photo->event?->nama_event ?? 'Foto JepretCFD') }}</h1>
+                    <h1 class="mt-3 text-3xl font-extrabold text-public-ink">{{ $photo->title ?: ($photo->event?->nama_event ?? 'Foto Jepret') }}</h1>
                     <p class="mt-3 text-sm font-semibold text-public-muted">{{ $photo->fotografer?->name ?? 'Photographer' }}</p>
                     <p class="mt-8 text-3xl font-extrabold text-public-ink">Rp{{ number_format($photo->harga, 0, ',', '.') }}</p>
                     <form action="{{ route('cart.store') }}" method="POST" class="mt-6">

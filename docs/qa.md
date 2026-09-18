@@ -1,4 +1,4 @@
-# JEPRETCFD — Complete Final QA Prompt for Antigravity
+# JEPRET — Complete Final QA Prompt for Antigravity
 
 ## Project
 

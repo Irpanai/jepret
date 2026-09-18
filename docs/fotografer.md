@@ -1,4 +1,4 @@
-# JEPRETCFD — Photographer Creator Center Refactor & Activation Prompt for Codex
+# JEPRET — Photographer Creator Center Refactor & Activation Prompt for Codex
 
 ## Project
 

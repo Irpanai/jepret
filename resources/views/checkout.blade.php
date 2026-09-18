@@ -1,6 +1,6 @@
 <x-marketplace-layout
-    title="Checkout | JepretCFD"
-    description="Checkout foto JepretCFD."
+    title="Checkout | Jepret"
+    description="Checkout foto Jepret."
     :noindex="true"
 >
     <section class="bg-white py-10 sm:py-14">

@@ -2,7 +2,7 @@
     $structuredData = [
         '@context' => 'https://schema.org',
         '@type' => 'WebSite',
-        'name' => 'JepretCFD',
+        'name' => 'Jepret',
         'url' => route('landing'),
         'potentialAction' => [
             '@type' => 'SearchAction',
@@ -13,8 +13,8 @@
 @endphp
 
 <x-marketplace-layout
-    title="JepretCFD - Temukan Foto Event & Photographer"
-    description="Temukan foto event, simpan momen terbaik, dan beli file original dari photographer JepretCFD dengan preview terlindungi."
+    title="Jepret - Temukan Foto  & Photographer"
+    description="Temukan foto, simpan momen terbaik, dan beli file original dari photographer Jepret dengan preview terlindungi."
     :structured-data="$structuredData"
 >
     <section class="border-b border-public-line bg-white">
@@ -58,9 +58,9 @@
             </div>
 
             <a href="{{ route('register', ['role' => 'fotografer']) }}" class="relative min-h-[430px] overflow-hidden bg-public-mist lg:min-h-full" data-hero-media>
-                <img src="{{ asset('images/herophotographer.jpg') }}" alt="Photographer JepretCFD sedang mengabadikan momen" class="h-full w-full object-cover">
+                <img src="{{ asset('images/herophotographer.jpg') }}" alt="Photographer Jepret sedang mengabadikan momen" class="h-full w-full object-cover">
                 <div class="absolute inset-x-0 bottom-0 z-10 bg-public-ink p-5 text-white sm:p-6">
-                    <p class="text-[10px] font-extrabold uppercase text-white/55">Berkarya bersama JepretCFD</p>
+                    <p class="text-[10px] font-extrabold uppercase text-white/55">Berkarya bersama Jepret</p>
                     <div class="mt-2 flex items-end justify-between gap-4">
                         <div>
                             <p class="max-w-md text-xl font-extrabold leading-tight sm:text-2xl">Ubah setiap jepretan menjadi peluang.</p>
@@ -85,7 +85,7 @@
                 </div>
                 <div class="flex max-w-md flex-col items-start gap-4 sm:items-end">
                     <p class="text-sm font-semibold leading-6 text-public-muted sm:text-right">
-                        Jelajahi foto terbaru yang tersedia di galeri JepretCFD dan temukan momen terbaikmu.
+                        Jelajahi foto terbaru yang tersedia di galeri Jepret dan temukan momen terbaikmu.
                     </p>
                     <a href="{{ route('login') }}" class="public-button public-button-secondary">Lihat Semua</a>
                 </div>
@@ -113,7 +113,7 @@
                         'price' => 'Gratis',
                         'period' => '7 hari',
                         'storage' => '500 MB',
-                        'description' => 'Untuk mencoba JepretCFD selama 7 hari.',
+                        'description' => 'Untuk mencoba Jepret selama 7 hari.',
                         'features' => ['500 MB Cloud Storage', 'Upload & kelola foto', 'Protected preview', 'Marketplace access', 'Atur harga foto'],
                         'cta' => 'Mulai Gratis',
                     ],
@@ -123,7 +123,7 @@
                         'period' => '7 hari',
                         'storage' => '5 GB',
                         'description' => 'Untuk photographer yang mulai aktif menjual.',
-                        'features' => ['5 GB Cloud Storage', 'Semua fitur utama JepretCFD', 'Protected preview + watermark', 'Dashboard photographer', 'Transaksi realtime'],
+                        'features' => ['5 GB Cloud Storage', 'Semua fitur utama Jepret', 'Protected preview + watermark', 'Dashboard photographer', 'Transaksi realtime'],
                         'cta' => 'Pilih Starter',
                     ],
                     [
@@ -153,7 +153,7 @@
                     <h2 class="public-heading mt-4">Pilih ruang untuk setiap karya.</h2>
                 </div>
                 <p class="max-w-xl text-sm font-semibold leading-6 text-public-muted lg:justify-self-end">
-                    Simpan, kelola, dan jual foto melalui JepretCFD. Pilih kapasitas yang sesuai dengan aktivitas fotografimu.
+                    Simpan, kelola, dan jual foto melalui Jepret. Pilih kapasitas yang sesuai dengan aktivitas fotografimu.
                 </p>
             </div>
 
@@ -188,7 +188,7 @@
                         </div>
 
                         <a
-                            href="{{ $plan['name'] === 'Studio' ? 'mailto:jepretccfdd@gmail.com?subject=Paket%20Studio%20JepretCFD' : route('register', ['role' => 'fotografer']) }}"
+                            href="{{ $plan['name'] === 'Studio' ? 'mailto:jepretccfdd@gmail.com?subject=Paket%20Studio%20Jepret' : route('register', ['role' => 'fotografer']) }}"
                             class="mt-8 inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}"
                         >
                             {{ $plan['cta'] }}

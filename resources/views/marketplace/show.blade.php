@@ -1,16 +1,16 @@
 @php
-    $title = ($photo->title ?: ($photo->event?->nama_event ?? 'Foto JepretCFD')).' by '.($photo->fotografer?->studio_name ?: $photo->fotografer?->name ?? 'Photographer').' | JepretCFD';
-    $description = 'Preview terlindungi untuk '.($photo->title ?: $photo->event?->nama_event ?? 'foto event').' dari JepretCFD. Beli untuk mengakses file original tanpa watermark.';
+    $title = ($photo->title ?: ($photo->event?->nama_event ?? 'Foto Jepret')).' by '.($photo->fotografer?->studio_name ?: $photo->fotografer?->name ?? 'Photographer').' | Jepret';
+    $description = 'Preview terlindungi untuk '.($photo->title ?: $photo->event?->nama_event ?? 'foto event').' dari Jepret. Beli untuk mengakses file original tanpa watermark.';
     $previewUrl = route('media.preview', $photo);
     $photoDate = $photo->taken_at ?: ($photo->event?->tanggal_event ? \Illuminate\Support\Carbon::parse($photo->event->tanggal_event) : null);
     $structuredData = [
         '@context' => 'https://schema.org',
         '@type' => 'ImageObject',
-        'name' => $photo->title ?: ($photo->event?->nama_event ?? 'Foto JepretCFD'),
+        'name' => $photo->title ?: ($photo->event?->nama_event ?? 'Foto Jepret'),
         'contentUrl' => $previewUrl,
         'creator' => [
             '@type' => 'Person',
-            'name' => $photo->fotografer?->name ?? 'Photographer JepretCFD',
+            'name' => $photo->fotografer?->name ?? 'Photographer Jepret',
         ],
         'creditText' => $photo->fotografer?->studio_name ?: $photo->fotografer?->name,
     ];
@@ -28,7 +28,7 @@
             <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] xl:grid-cols-[minmax(0,1fr)_480px]">
                 <div>
                     <div class="relative overflow-hidden border border-gray-200 bg-gray-100">
-                        <img src="{{ $previewUrl }}" alt="{{ $photo->title ?: 'Preview foto JepretCFD' }}" class="mx-auto block h-auto max-h-[85vh] w-auto max-w-full object-contain">
+                        <img src="{{ $previewUrl }}" alt="{{ $photo->title ?: 'Preview foto Jepret' }}" class="mx-auto block h-auto max-h-[85vh] w-auto max-w-full object-contain">
                         <div class="absolute left-4 top-4 bg-white px-3 py-2 text-xs font-extrabold uppercase text-public-ink">
                             Preview terlindungi
                         </div>
@@ -43,9 +43,9 @@
 
                 <aside class="grid content-start gap-5">
                     <div class="border border-public-line bg-white p-5">
-                        <p class="public-kicker">{{ $photo->event?->lokasi ?? 'Event JepretCFD' }}</p>
+                        <p class="public-kicker">{{ $photo->event?->lokasi ?? 'Event Jepret' }}</p>
                         <h1 class="mt-4 text-4xl font-extrabold leading-none text-public-ink sm:text-5xl">
-                            {{ $photo->title ?: ($photo->event?->nama_event ?? 'Foto JepretCFD') }}
+                            {{ $photo->title ?: ($photo->event?->nama_event ?? 'Foto Jepret') }}
                         </h1>
                         <p class="mt-4 text-sm font-semibold leading-6 text-public-muted">
                             {{ $photo->event?->nama_event ?? 'Event belum dicatat' }}

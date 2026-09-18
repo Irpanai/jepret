@@ -1,4 +1,4 @@
-<x-marketplace-layout title="Pricing Fotografer JepretCFD" description="Simpan, kelola, dan jual foto melalui JepretCFD. Pilih kapasitas yang sesuai dengan aktivitas fotografimu.">
+<x-marketplace-layout title="Pricing Fotografer Jepret" description="Simpan, kelola, dan jual foto melalui Jepret. Pilih kapasitas yang sesuai dengan aktivitas fotografimu.">
     <div class="pt-16 pb-8 border-b border-public-line">
         <div class="public-container">
             <h1 class="text-4xl font-extrabold text-public-ink sm:text-6xl">Harga Berlangganan</h1>

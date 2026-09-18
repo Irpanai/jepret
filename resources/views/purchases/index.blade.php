@@ -1,4 +1,4 @@
-<x-marketplace-layout title="Pembelian Saya | JepretCFD" description="Riwayat pembelian foto JepretCFD." :noindex="true">
+<x-marketplace-layout title="Pembelian Saya | Jepret" description="Riwayat pembelian foto Jepret." :noindex="true">
     <section class="bg-white py-10 sm:py-14">
         <div class="public-container">
             <div class="grid gap-6 border-b border-public-line pb-8 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -21,7 +21,7 @@
                         </div>
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-3"><h2 class="break-all font-mono text-sm font-extrabold text-public-ink">{{ $order['order_number'] }}</h2><span class="border border-public-line bg-public-bone px-2 py-1 text-[10px] font-extrabold uppercase text-public-muted">{{ $order['status'] }}</span></div>
-                            <p class="mt-2 text-sm font-extrabold text-public-ink">{{ $firstItem?->photo?->title ?: ($firstItem?->photo?->event?->nama_event ?? 'Foto JepretCFD') }}</p>
+                            <p class="mt-2 text-sm font-extrabold text-public-ink">{{ $firstItem?->photo?->title ?: ($firstItem?->photo?->event?->nama_event ?? 'Foto Jepret') }}</p>
                             <p class="mt-1 text-xs font-bold text-public-muted">{{ $order['count'] }} foto · {{ optional($order['created_at'])->format('d M Y, H:i') }} · Rp{{ number_format($order['total'], 0, ',', '.') }}</p>
                         </div>
                         <a href="{{ route('purchases.show', ['order' => $order['order_number']]) }}" class="public-button public-button-secondary">Lihat Order</a>

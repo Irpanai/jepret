@@ -1,6 +1,6 @@
 <x-marketplace-layout
-    title="Keranjang | JepretCFD"
-    description="Keranjang foto JepretCFD."
+    title="Keranjang | Jepret"
+    description="Keranjang foto Jepret."
     :noindex="true"
 >
     <section class="bg-white py-10 sm:py-14">

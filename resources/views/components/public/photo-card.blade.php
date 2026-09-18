@@ -3,7 +3,7 @@
 @php
     [$imageWidth, $imageHeight] = array_pad(array_map('intval', preg_split('/[xX×]/', $photo->resolusi ?? '') ?: []), 2, 0);
     $hasImageDimensions = $imageWidth > 0 && $imageHeight > 0;
-    $photoTitle = $photo->title ?: ($photo->event?->nama_event ?? 'Foto JepretCFD');
+    $photoTitle = $photo->title ?: ($photo->event?->nama_event ?? 'Foto Jepret');
     $photographerName = $photo->fotografer?->studio_name ?: ($photo->fotografer?->name ?? 'Photographer');
     $isInCart = auth()->check() && isset(session('cart', [])[$photo->id]);
 @endphp

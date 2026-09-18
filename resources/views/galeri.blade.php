@@ -1,9 +1,9 @@
 @php
-    $structuredData = ['@context' => 'https://schema.org', '@type' => 'CollectionPage', 'name' => 'Galeri Foto Event JepretCFD', 'description' => 'Foto event, lokasi, dan photographer dari komunitas JepretCFD.', 'url' => route('galeri')];
+    $structuredData = ['@context' => 'https://schema.org', '@type' => 'CollectionPage', 'name' => 'Galeri Foto Event Jepret', 'description' => 'Foto event, lokasi, dan photographer dari komunitas Jepret.', 'url' => route('galeri')];
     $hasFilters = request()->hasAny(['q', 'event', 'photographer', 'category', 'location', 'daypart', 'date', 'sort']);
 @endphp
 
-<x-marketplace-layout title="Galeri Foto Event | JepretCFD" description="Jelajahi foto event JepretCFD berdasarkan event, photographer, kategori, lokasi, tanggal, dan waktu. Preview terlindungi, original terbuka setelah pembelian." :canonical="route('galeri')" :og-image="asset('images/galeri.jpeg')" :structured-data="$structuredData">
+<x-marketplace-layout title="Galeri Foto Event | Jepret" description="Jelajahi foto event Jepret berdasarkan event, photographer, kategori, lokasi, tanggal, dan waktu. Preview terlindungi, original terbuka setelah pembelian." :canonical="route('galeri')" :og-image="asset('images/galeri.jpeg')" :structured-data="$structuredData">
     <div class="gallery-page" data-gallery-page>
         <div
             x-data="{ visible: false, message: '', timer: null }"
@@ -34,7 +34,7 @@
                     <h1 class="gallery-title-mask mt-2"><span class="gallery-title public-heading block">Galeri.</span></h1>
                     <div class="gallery-hero-copy mt-3 max-w-md text-xs font-medium leading-5 sm:text-sm">
                         <p>Temukan cerita di balik setiap jepretan.</p>
-                        <p>Foto dari berbagai event, lokasi, dan photographer di komunitas JepretCFD.</p>
+                        <p>Foto dari berbagai event, lokasi, dan photographer di komunitas Jepret.</p>
                     </div>
                 </div>
                 <div class="gallery-hero-copy hidden items-stretch gap-4 pr-2 sm:flex" aria-hidden="true">
