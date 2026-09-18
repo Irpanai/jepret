@@ -70,6 +70,7 @@ class CartController extends Controller
             ->whereIn('id', $ids)
             ->where('status', 'active')
             ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true))
+            ->with(['event', 'fotografer'])
             ->get()
             ->map(fn (Photo $photo): array => [
                 'id' => $photo->id,

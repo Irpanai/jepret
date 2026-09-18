@@ -37,6 +37,8 @@ Route::get('/', function () {
 })->name('landing');
 
 Route::get('/galeri', [MarketplaceController::class, 'galeri'])->name('galeri');
+Route::view('/about', 'about')->name('about');
+Route::view('/pricing', 'pricing')->name('pricing');
 
 Route::get('/p/{photo}', [MarketplaceController::class, 'show'])->name('marketplace.show');
 Route::get('/media/preview/{photo}', function (Photo $photo) {

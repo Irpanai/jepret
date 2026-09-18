@@ -12,10 +12,10 @@
             </a>
 
             <div class="hidden items-center gap-7 text-xs font-extrabold uppercase text-public-muted md:flex">
-                <a href="{{ url('/#tentang') }}" class="hover:text-public-ink">Tentang</a>
+                <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'text-public-ink' : 'hover:text-public-ink' }}">Tentang</a>
                 <a href="{{ route('galeri') }}" class="{{ request()->routeIs('galeri') || request()->routeIs('marketplace.*') ? 'text-public-ink' : 'hover:text-public-ink' }}">Galeri</a>
                 <a href="{{ route('photographers.index') }}" class="{{ request()->routeIs('photographers.*') ? 'text-public-ink' : 'hover:text-public-ink' }}">Photographers</a>
-                <a href="{{ url('/#pricing') }}" class="hover:text-public-ink">Pricing</a>
+                <a href="{{ route('pricing') }}" class="{{ request()->routeIs('pricing') ? 'text-public-ink' : 'hover:text-public-ink' }}">Pricing</a>
             </div>
 
             <div class="hidden items-center gap-3 md:flex">
@@ -74,10 +74,10 @@
 
         <div x-cloak x-show="mobileMenuOpen" class="border-t border-public-line py-4 md:hidden">
             <div class="grid gap-2 text-sm font-extrabold uppercase">
-                <a href="{{ url('/#tentang') }}" class="py-2">Tentang</a>
-                <a href="{{ route('galeri') }}" class="py-2">Galeri</a>
-                <a href="{{ route('photographers.index') }}" class="py-2">Photographers</a>
-                <a href="{{ url('/#pricing') }}" class="py-2">Pricing</a>
+                <a href="{{ route('about') }}" class="py-2 {{ request()->routeIs('about') ? 'text-public-ink' : '' }}">Tentang</a>
+                <a href="{{ route('galeri') }}" class="py-2 {{ request()->routeIs('galeri') || request()->routeIs('marketplace.*') ? 'text-public-ink' : '' }}">Galeri</a>
+                <a href="{{ route('photographers.index') }}" class="py-2 {{ request()->routeIs('photographers.*') ? 'text-public-ink' : '' }}">Photographers</a>
+                <a href="{{ route('pricing') }}" class="py-2 {{ request()->routeIs('pricing') ? 'text-public-ink' : '' }}">Pricing</a>
 
                 @auth
                     <a href="{{ route('cart.index') }}" class="py-2">Keranjang @if($cartCount > 0) ({{ $cartCount }}) @endif</a>
