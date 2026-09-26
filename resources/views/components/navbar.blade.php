@@ -45,10 +45,7 @@
 
                             @if($userRole === 'pembeli')
                                 <a href="{{ route('purchases.index') }}" class="block px-3 py-2 text-sm font-bold hover:bg-public-bone" role="menuitem">Pembelian Saya</a>
-                                <form method="POST" action="{{ route('logout.register') }}">
-                                    @csrf
-                                    <button type="submit" class="w-full px-3 py-2 text-left text-sm font-bold hover:bg-public-bone" role="menuitem">Daftar Photographer</button>
-                                </form>
+                                <a href="{{ route('pricing') }}" class="block px-3 py-2 text-sm font-bold hover:bg-public-bone" role="menuitem">Daftar Photographer</a>
                             @elseif($userRole === 'fotografer')
                                 <a href="{{ route('fotografer.dashboard') }}" class="block px-3 py-2 text-sm font-bold hover:bg-public-bone" role="menuitem">Halaman Saya</a>
                                 <a href="{{ route('purchases.index') }}" class="block px-3 py-2 text-sm font-bold hover:bg-public-bone" role="menuitem">Pembelian Saya</a>

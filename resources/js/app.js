@@ -1,8 +1,11 @@
 
 
 import Alpine from 'alpinejs';
+import photoWatermarkEditor from './photo-watermark-editor';
 
 window.Alpine = Alpine;
+
+Alpine.data('photoWatermarkEditor', photoWatermarkEditor);
 
 Alpine.start();
 

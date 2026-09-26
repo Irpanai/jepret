@@ -137,6 +137,73 @@ class CreatorOperationsTest extends TestCase
         ]);
     }
 
+    public function test_photographer_watermark_editor_settings_are_saved_per_photo(): void
+    {
+        Storage::fake('local');
+        $photographer = User::factory()->fotografer()->create(['is_verified' => true, 'verified_at' => now()]);
+        $firstSettings = ['x' => 24.5, 'y' => 61.25, 'scale' => 18, 'opacity' => 72];
+        $secondSettings = ['x' => 78, 'y' => 22, 'scale' => 35, 'opacity' => 90];
+
+        $response = $this->actingAs($photographer)->post(route('fotografer.photos.store'), [
+            'new_folder' => 'Watermark Editor',
+            'harga' => 20000,
+            'photos' => [
+                UploadedFile::fake()->image('first-position.webp', 1200, 800),
+                UploadedFile::fake()->image('second-position.webp', 800, 1200),
+            ],
+            'watermark' => UploadedFile::fake()->image('personal-watermark.png', 200, 100),
+            'watermark_settings' => [$firstSettings, $secondSettings],
+            'photo_titles' => ['Finish Line Pilihan', ''],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $firstPhoto = Photo::where('original_filename', 'first-position.webp')->sole();
+        $secondPhoto = Photo::where('original_filename', 'second-position.webp')->sole();
+        $this->assertSame('Finish Line Pilihan', $firstPhoto->title);
+        $this->assertSame('second-position', $secondPhoto->title);
+        $this->assertEquals($firstSettings, $firstPhoto->watermark_settings);
+        $this->assertEquals($secondSettings, $secondPhoto->watermark_settings);
+        Storage::disk('local')->assertExists([$firstPhoto->purchased_path, $secondPhoto->purchased_path]);
+    }
+
+    public function test_photographer_watermark_editor_rejects_out_of_bounds_settings(): void
+    {
+        Storage::fake('local');
+        $photographer = User::factory()->fotografer()->create(['is_verified' => true, 'verified_at' => now()]);
+
+        $response = $this->actingAs($photographer)->post(route('fotografer.photos.store'), [
+            'new_folder' => 'Invalid Watermark',
+            'harga' => 20000,
+            'photos' => [UploadedFile::fake()->image('invalid.webp', 1200, 800)],
+            'watermark' => UploadedFile::fake()->image('personal-watermark.png', 200, 100),
+            'watermark_settings' => [['x' => 101, 'y' => 50, 'scale' => 90, 'opacity' => 0]],
+        ]);
+
+        $response->assertSessionHasErrors([
+            'watermark_settings.0.x',
+            'watermark_settings.0.scale',
+            'watermark_settings.0.opacity',
+        ]);
+        $this->assertDatabaseCount('photos', 0);
+    }
+
+    public function test_saved_watermark_preview_is_private_to_the_authenticated_photographer(): void
+    {
+        Storage::fake('local');
+        $ownerPath = UploadedFile::fake()->image('owner.png')->store('watermarks/photographers/1', 'local');
+        $otherPath = UploadedFile::fake()->image('other.png')->store('watermarks/photographers/2', 'local');
+        $owner = User::factory()->fotografer()->create(['custom_watermark_path' => $ownerPath]);
+        $other = User::factory()->fotografer()->create(['custom_watermark_path' => $otherPath]);
+
+        $this->actingAs($owner)->get(route('fotografer.watermark.preview'))
+            ->assertOk()
+            ->assertStreamedContent(file_get_contents(Storage::disk('local')->path($ownerPath)));
+
+        $this->actingAs($other)->get(route('fotografer.watermark.preview'))
+            ->assertOk()
+            ->assertStreamedContent(file_get_contents(Storage::disk('local')->path($otherPath)));
+    }
+
     public function test_unapproved_photographer_and_photos_are_hidden_from_public_routes(): void
     {
         $photographer = User::factory()->fotografer()->unverified()->create(['name' => 'Pending Creator', 'slug' => 'pending-creator']);

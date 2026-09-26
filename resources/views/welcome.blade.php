@@ -124,7 +124,7 @@
                     [
                         'name' => 'Starter',
                         'price' => 'Rp29.000',
-                        'period' => '7 hari',
+                        'period' => 'bulan',
                         'storage' => '5 GB',
                         'description' => 'Untuk photographer yang mulai aktif menjual.',
                         'features' => ['5 GB Cloud Storage', 'Semua fitur utama Jepret', 'Protected preview + watermark', 'Dashboard photographer', 'Transaksi realtime'],

@@ -45,10 +45,10 @@
             <script type="application/ld+json">{!! json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
         @endif
     </head>
-    <body class="public-shell min-h-screen antialiased" x-data="{ mobileMenuOpen: false }">
+    <body class="public-shell min-h-screen overflow-x-hidden antialiased" x-data="{ mobileMenuOpen: false }">
         <x-navbar />
 
-        <main>
+        <main class="min-w-0 overflow-x-hidden">
             {{ $slot }}
         </main>
 

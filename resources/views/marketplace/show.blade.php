@@ -25,10 +25,10 @@
                 <span>{{ $photo->event?->nama_event ?? 'Foto' }}</span>
             </nav>
 
-            <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px] xl:grid-cols-[minmax(0,1fr)_480px]">
-                <div>
+            <div class="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] xl:grid-cols-[minmax(0,1fr)_minmax(360px,480px)]">
+                <div class="min-w-0">
                     <div class="relative overflow-hidden border border-gray-200 bg-gray-100">
-                        <img src="{{ $previewUrl }}" alt="{{ $photo->title ?: 'Preview foto Jepret' }}" class="mx-auto block h-auto max-h-[85vh] w-auto max-w-full object-contain">
+                        <img src="{{ $previewUrl }}" alt="{{ $photo->title ?: 'Preview foto Jepret' }}" class="mx-auto block h-auto max-h-[calc(100svh-12rem)] w-auto max-w-full object-contain">
                         <div class="absolute left-4 top-4 bg-white px-3 py-2 text-xs font-extrabold uppercase text-public-ink">
                             Preview terlindungi
                         </div>
@@ -41,10 +41,10 @@
                     </div>
                 </div>
 
-                <aside class="grid content-start gap-5">
-                    <div class="border border-public-line bg-white p-5">
+                <aside class="grid min-w-0 content-start gap-5">
+                    <div class="min-w-0 overflow-hidden border border-public-line bg-white p-5">
                         <p class="public-kicker">{{ $photo->event?->lokasi ?? 'Event Jepret' }}</p>
-                        <h1 class="mt-4 text-4xl font-extrabold leading-none text-public-ink sm:text-5xl">
+                        <h1 class="mt-4 break-all text-3xl font-extrabold leading-tight text-public-ink sm:text-4xl">
                             {{ $photo->title ?: ($photo->event?->nama_event ?? 'Foto Jepret') }}
                         </h1>
                         <p class="mt-4 text-sm font-semibold leading-6 text-public-muted">
@@ -58,7 +58,7 @@
                             <img src="{{ $photo->fotografer?->profilePhotoUrl() }}" alt="" class="h-12 w-12 object-cover">
                             <div class="min-w-0">
                                 <p class="text-xs font-extrabold uppercase text-public-muted">Photographer</p>
-                                <a href="{{ $photo->fotografer ? route('photographers.show', $photo->fotografer->slug ?: $photo->fotografer->id) : '#' }}" class="text-lg font-extrabold text-public-ink hover:underline">
+                                <a href="{{ $photo->fotografer ? route('photographers.show', $photo->fotografer->slug ?: $photo->fotografer->id) : '#' }}" class="break-words text-lg font-extrabold text-public-ink hover:underline">
                                     {{ $photo->fotografer?->studio_name ?: ($photo->fotografer?->name ?? 'Photographer') }}
                                 </a>
                             </div>
@@ -73,14 +73,14 @@
 
                         <div class="mt-6">
                             @auth
-                                @if(auth()->user()->role === 'pembeli')
+                                @if(in_array(auth()->user()->role, ['pembeli', 'fotografer'], true))
                                     <form method="POST" action="{{ route('cart.store') }}">
                                         @csrf
                                         <input type="hidden" name="photo_id" value="{{ $photo->id }}">
                                         <button class="public-button w-full">Tambah ke Keranjang</button>
                                     </form>
                                 @else
-                                    <a href="{{ route('dashboard') }}" class="public-button w-full">Buka Dashboard</a>
+                                    <a href="{{ route('dashboard') }}" class="public-button w-full whitespace-normal text-center">Buka Dashboard</a>
                                 @endif
                             @else
                                 <a href="{{ route('login') }}" class="public-button w-full">Login untuk Membeli</a>
@@ -88,7 +88,7 @@
                         </div>
                     </div>
 
-                    <div class="border border-public-line bg-white p-5">
+                    <div class="min-w-0 overflow-hidden border border-public-line bg-white p-5">
                         <h2 class="text-sm font-extrabold uppercase text-public-ink">Metadata</h2>
                         <dl class="mt-4 grid gap-3 text-sm">
                             @foreach([
@@ -102,7 +102,7 @@
                             ] as $label => $value)
                                 <div class="flex justify-between gap-4 border-b border-public-line pb-2 last:border-b-0 last:pb-0">
                                     <dt class="font-bold text-public-muted">{{ $label }}</dt>
-                                    <dd class="max-w-[65%] text-right font-extrabold text-public-ink">{{ $value ?: 'Belum dicatat' }}</dd>
+                                    <dd class="max-w-[65%] break-words text-right font-extrabold text-public-ink">{{ $value ?: 'Belum dicatat' }}</dd>
                                 </div>
                             @endforeach
                         </dl>

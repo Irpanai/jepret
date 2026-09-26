@@ -27,6 +27,54 @@ class MarketplaceFlowTest extends TestCase
         $this->assertSame([$photo->id => $photo->id], session('cart'));
     }
 
+    public function test_buyer_photographer_registration_link_opens_pricing_without_logging_out(): void
+    {
+        $buyer = User::factory()->pembeli()->create();
+
+        $this->actingAs($buyer)
+            ->get(route('galeri'))
+            ->assertOk()
+            ->assertSee('href="'.route('pricing').'"', false)
+            ->assertSee('Daftar Photographer');
+
+        $this->assertAuthenticatedAs($buyer);
+    }
+
+    public function test_photographer_can_purchase_another_photographers_photo_with_the_existing_flow(): void
+    {
+        Storage::fake('local');
+        $buyer = User::factory()->fotografer()->create(['is_verified' => true, 'verified_at' => now()]);
+        $seller = User::factory()->fotografer()->create(['saldo' => 0, 'is_verified' => true, 'verified_at' => now()]);
+        $photo = $this->createMarketplacePhoto($seller, [
+            'purchased_path' => 'photos/purchased/photographer-purchase.jpg',
+            'original_filename' => 'photographer-purchase.jpg',
+        ]);
+        Storage::disk('local')->put($photo->purchased_path, 'purchased-photo');
+
+        $this->actingAs($buyer)
+            ->get(route('marketplace.show', $photo))
+            ->assertSee('Tambah ke Keranjang');
+
+        $this->actingAs($buyer)
+            ->post(route('cart.store'), ['photo_id' => $photo->id])
+            ->assertRedirect();
+
+        $this->actingAs($buyer)
+            ->post(route('checkout.process'))
+            ->assertRedirect();
+
+        $transaction = Transaction::where('pembeli_id', $buyer->id)->sole();
+        $this->assertSame($seller->id, $transaction->fotografer_id);
+
+        $this->actingAs($buyer)
+            ->post(route('checkout.payment.simulate', ['order' => $transaction->order_number]))
+            ->assertRedirect(route('checkout.success', ['order' => $transaction->order_number]));
+
+        $this->actingAs($buyer)
+            ->get(route('purchases.download', ['order' => $transaction->order_number, 'transaction' => $transaction]))
+            ->assertDownload('photographer-purchase.jpg');
+    }
+
     public function test_guest_is_redirected_to_login_when_adding_photo_to_cart(): void
     {
         $photo = $this->createMarketplacePhoto();

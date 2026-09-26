@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\File;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PhotoController extends Controller
 {
@@ -43,6 +44,13 @@ class PhotoController extends Controller
             'category' => ['nullable', 'string', 'max:100'], 'harga' => ['required', 'integer', 'min:0'],
             'photos' => ['required', 'array', 'min:1'], 'photos.*' => ['required', File::types(['jpg', 'jpeg', 'png', 'webp', 'mov'])],
             'watermark' => ['nullable', File::image()->types(['png', 'webp'])->max('5mb')], 'lock_watermark' => ['nullable', 'boolean'],
+            'watermark_settings' => ['nullable', 'array'],
+            'watermark_settings.*.x' => ['required', 'numeric', 'between:0,100'],
+            'watermark_settings.*.y' => ['required', 'numeric', 'between:0,100'],
+            'watermark_settings.*.scale' => ['required', 'numeric', 'between:5,80'],
+            'watermark_settings.*.opacity' => ['required', 'numeric', 'between:5,100'],
+            'photo_titles' => ['nullable', 'array'],
+            'photo_titles.*' => ['nullable', 'string', 'max:255'],
         ]);
         $user = $request->user()->load('package');
         $event = $this->resolveEvent($request);
@@ -65,13 +73,20 @@ class PhotoController extends Controller
             return back()->withErrors(['photos' => 'Storage tidak mencukupi.'])->withInput();
         }
         DB::transaction(function () use ($request, $validated, $user, $event, $watermarkPath, $processor): void {
-            foreach ($request->file('photos') as $file) {
-                $paths = $processor->process($file, Str::slug($event->nama_event), $watermarkPath);
+            foreach ($request->file('photos') as $index => $file) {
+                $watermarkSettings = $validated['watermark_settings'][$index] ?? [
+                    'x' => 50,
+                    'y' => 85,
+                    'scale' => 30,
+                    'opacity' => 100,
+                ];
+                $paths = $processor->process($file, Str::slug($event->nama_event), $watermarkPath, $watermarkSettings);
                 Photo::create([
                     'event_id' => $event->id, 'fotografer_id' => $user->id, 'camera_id' => $validated['camera_id'] ?? null,
-                    'title' => ($validated['title'] ?? null) ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                    'title' => trim((string) ($validated['photo_titles'][$index] ?? $validated['title'] ?? '')) ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
                     'file_asli' => $paths['original'], 'file_watermark' => $paths['preview'], 'purchased_path' => $paths['purchased'],
                     'personal_watermark_path' => $watermarkPath, 'media_type' => $paths['media_type'], 'storage_bytes' => $paths['bytes'],
+                    'watermark_settings' => $watermarkSettings,
                     'harga' => $validated['harga'], 'status' => 'active', 'published_at' => now(), 'taken_at' => $validated['taken_at'] ?? null,
                     'daypart' => $validated['daypart'] ?? null, 'category' => $validated['category'] ?? null,
                     'original_filename' => $file->getClientOriginalName(), 'file_size_mb' => round($paths['bytes'] / 1048576, 2),
@@ -113,6 +128,14 @@ class PhotoController extends Controller
         $user->forceFill(['custom_watermark_path' => $path, 'photographer_watermark_locked' => $request->boolean('locked')])->save();
 
         return back()->with('success', 'Pengaturan watermark diperbarui.');
+    }
+
+    public function watermarkPreview(Request $request): StreamedResponse
+    {
+        $path = $request->user()->custom_watermark_path;
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->response($path);
     }
 
     private function resolveEvent(Request $request): Event

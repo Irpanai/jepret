@@ -15,8 +15,6 @@ use App\Http\Controllers\SuperAdminPhotographerController;
 use App\Models\Camera;
 use App\Models\Photo;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -118,6 +116,7 @@ Route::middleware(['auth', 'role:fotografer'])->prefix('fotografer')->name('foto
     Route::resource('events', EventController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
     Route::resource('photos', PhotoController::class)->only(['index', 'create', 'store', 'update', 'destroy']);
     Route::patch('/watermark', [PhotoController::class, 'watermark'])->name('watermark.update');
+    Route::get('/watermark/preview', [PhotoController::class, 'watermarkPreview'])->name('watermark.preview');
     Route::post('/withdrawals', [FotograferController::class, 'withdraw'])->name('withdrawals.store');
 
     // Stubbed routes for missing menus
@@ -149,11 +148,3 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 require __DIR__.'/auth.php';
-
-Route::post('/logout-register', function (Request $request) {
-    Auth::guard('web')->logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-
-    return redirect()->route('register', ['role' => 'fotografer']);
-})->name('logout.register');
