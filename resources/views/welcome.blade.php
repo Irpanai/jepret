@@ -67,7 +67,7 @@
                     <p class="text-[10px] font-extrabold uppercase text-white/55">Berkarya bersama Jepret</p>
                     <div class="mt-2 flex items-end justify-between gap-4">
                         <div>
-                            <p class="max-w-md text-xl font-extrabold leading-tight sm:text-2xl">Ubah setiap jepretan menjadi peluang.</p>
+                            <p class="max-w-md text-xl font-extrabold leading-tight sm:text-2xl">Ubah setiap jepretan menjadi Cuan!</p>
                             <p class="mt-2 max-w-md text-xs font-bold leading-5 text-white/60">Bangun portofolio, jangkau lebih banyak buyer, dan kelola penjualan dalam satu ruang.</p>
                         </div>
                         <span class="shrink-0 text-xs font-extrabold uppercase">Daftar Photographer →</span>
@@ -88,9 +88,6 @@
                     <h2 class="public-heading mt-4">Momen pilihan dari berbagai event.</h2>
                 </div>
                 <div class="flex max-w-md flex-col items-start gap-4 sm:items-end">
-                    <p class="text-sm font-semibold leading-6 text-public-muted sm:text-right">
-                        Jelajahi foto terbaru yang tersedia di galeri Jepret dan temukan momen terbaikmu.
-                    </p>
                     <a href="{{ route('login') }}" class="public-button public-button-secondary">Lihat Semua</a>
                 </div>
             </div>
@@ -183,8 +180,7 @@
                 @endforeach
             </div>
 
-            <div class="mt-8 flex flex-col gap-4 border-t border-public-line pt-7 sm:flex-row sm:items-center sm:justify-between">
-                <p class="max-w-3xl text-sm font-extrabold leading-6 text-public-ink">Tampilkan karya terbaikmu, jangkau lebih banyak buyer, dan kelola penjualan melalui satu platform.</p>
+            <div class="mt-6 flex flex-col gap-4 border-t border-public-line pt-7 sm:flex-row sm:items-center sm:justify-between">
                 <a href="{{ route('register', ['role' => 'fotografer']) }}" class="shrink-0 text-xs font-extrabold uppercase text-public-ink hover:underline">Mulai sebagai Photographer →</a>
             </div>
         </div>
@@ -194,7 +190,7 @@
         <div class="public-container grid gap-8 border border-public-line bg-public-bone p-6 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center" data-reveal>
             <div>
                 <p class="public-kicker">Untuk photographer</p>
-                <h2 class="mt-4 text-4xl font-extrabold leading-none sm:text-6xl">Upload karya. Jual lebih mudah.</h2>
+                <h2 class="mt-4 text-4xl font-extrabold leading-none sm:text-6xl">Jepret Momen. Jual Foto. Hasilkan Uang!</h2>
                 <p class="mt-5 max-w-2xl text-sm font-semibold leading-6 text-public-muted">
                     Kelola event, unggah foto, lindungi preview dengan watermark, lalu jual file original dengan skema revenue 90% photographer dan 10% platform.
                 </p>

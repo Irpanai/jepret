@@ -161,7 +161,7 @@ class SubscriptionBilling
             $values['trial_used_at'] = $paidAt;
         }
         Subscription::updateOrCreate(['user_id' => $order->user_id], $values);
-        User::whereKey($order->user_id)->update(['role' => 'fotografer', 'package_id' => $order->package_id]);
+        User::whereKey($order->user_id)->update(['package_id' => $order->package_id]);
         $order->update(['processed_at' => now()]);
 
         return $order;

@@ -16,7 +16,7 @@
         <img src="{{ asset('images/photographers.jpg') }}" alt="" class="absolute inset-0 h-full w-full object-cover" aria-hidden="true">
         <div class="absolute inset-0 bg-black/55" aria-hidden="true"></div>
         <div class="public-container relative z-10">
-            <p class="public-kicker">Directory</p>
+            <p class="public-kicker">Creator</p>
             <div class="mt-4 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
                 <div>
                     <h1 class="public-heading text-white">Photographers.</h1>

@@ -18,12 +18,12 @@ export default {
             },
             colors: {
                 public: {
-                    ink: '#050505',
+                    ink: '#101114',
                     paper: '#ffffff',
-                    bone: '#E5E5E5',
-                    mist: '#ece9e3',
-                    line: '#d8d4cc',
-                    muted: '#6f6a61',
+                    bone: '#f1f4f7',
+                    mist: '#e8edf2',
+                    line: '#d7dde4',
+                    muted: '#5f6875',
                 },
             }
         },

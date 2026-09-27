@@ -32,9 +32,13 @@ class SubscriptionCheckoutController extends Controller
         return redirect()->route('subscriptions.payment', $order);
     }
 
-    public function show(Request $request, SubscriptionOrder $order): View
+    public function show(Request $request, SubscriptionOrder $order): View|RedirectResponse
     {
         abort_unless($order->user_id === $request->user()->id, 404);
+
+        if ($order->status === 'paid') {
+            return redirect()->route('fotografer.dashboard');
+        }
 
         return view('subscriptions.payment', compact('order'));
     }

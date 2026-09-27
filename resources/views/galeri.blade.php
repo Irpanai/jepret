@@ -30,7 +30,6 @@
             <div class="absolute inset-0 bg-gradient-to-r from-white/85 via-white/45 to-white/15" aria-hidden="true"></div>
             <div class="public-container relative flex min-h-[190px] items-center justify-between gap-8 py-7 sm:min-h-[225px] sm:py-8">
                 <div class="max-w-xl">
-                    <p class="gallery-hero-copy text-[10px] font-bold uppercase tracking-[0.22em] sm:text-xs">Momen, Orang, Kota</p>
                     <h1 class="gallery-title-mask mt-2"><span class="gallery-title public-heading block">Galeri.</span></h1>
                     <div class="gallery-hero-copy mt-3 max-w-md text-xs font-medium leading-5 sm:text-sm">
                         <p>Temukan cerita di balik setiap jepretan.</p>
@@ -39,7 +38,7 @@
                 </div>
                 <div class="gallery-hero-copy hidden items-stretch gap-4 pr-2 sm:flex" aria-hidden="true">
                     <span class="w-px bg-black/45"></span>
-                    <p class="text-[9px] font-semibold uppercase leading-[1.7] tracking-[0.25em] sm:text-[10px]">People<br>Events<br>Stories<br>Forever</p>
+                    <p class="max-w-24 text-xs font-semibold uppercase leading-[1.7] tracking-[0.18em]">Momen, Orang, Kota</p>
                 </div>
             </div>
         </section>

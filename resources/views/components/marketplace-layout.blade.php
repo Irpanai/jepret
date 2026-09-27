@@ -46,9 +46,10 @@
         @endif
     </head>
     <body class="public-shell min-h-screen overflow-x-hidden antialiased" x-data="{ mobileMenuOpen: false }">
+        <a href="#main-content" class="skip-link">Lewati ke konten utama</a>
         <x-navbar />
 
-        <main class="min-w-0 overflow-x-hidden">
+        <main id="main-content" class="min-w-0 overflow-x-hidden" tabindex="-1">
             {{ $slot }}
         </main>
 
@@ -63,32 +64,32 @@
                             </span>
                             <span class="text-xl font-extrabold uppercase">Jepret</span>
                         </a>
-                        <p class="mt-5 max-w-sm text-sm leading-6 text-white/55">Karya terlindungi, transaksi terhubung, dan file original tersedia setelah pembayaran.</p>
+                        <p class="mt-5 max-w-sm text-sm leading-6 text-white/55">Jepret adalah platform digital yang menghubungkan fotografer dengan pembeli dalam satu platfrom fotografi</p>
                     </div>
 
                     <nav aria-label="Jelajahi" class="flex flex-col items-start gap-3 text-sm font-bold text-white/65">
-                        <p class="mb-1 text-[0.68rem] font-extrabold uppercase text-white/35">Jelajahi</p>
-                        <a href="{{ url('/#tentang') }}" class="footer-link">Tentang</a>
+                        <p class="mb-1 text-xs font-extrabold uppercase tracking-wider text-white/65">Jelajahi</p>
+                        <a href="{{ route('about') }}" class="footer-link">About</a>
                         <a href="{{ route('galeri') }}" class="footer-link">Galeri</a>
                         <a href="{{ route('photographers.index') }}" class="footer-link">Photographers</a>
-                        <a href="{{ url('/#pricing') }}" class="footer-link">Pricing</a>
+                        <a href="{{ route('pricing') }}" class="footer-link">Pricing</a>
                     </nav>
 
                     <nav aria-label="Legal" class="flex flex-col items-start gap-3 text-sm font-bold text-white/65">
-                        <p class="mb-1 text-[0.68rem] font-extrabold uppercase text-white/35">Legal</p>
+                        <p class="mb-1 text-xs font-extrabold uppercase tracking-wider text-white/65">Legal</p>
                         <a href="{{ route('terms') }}" class="footer-link">Terms of Service</a>
                         <a href="{{ route('privacy') }}" class="footer-link">Privacy Policy</a>
                     </nav>
 
                     <div class="text-sm text-white/70">
-                        <p class="text-[0.68rem] font-extrabold uppercase text-white/35">Terhubung</p>
+                        <p class="text-xs font-extrabold uppercase tracking-wider text-white/65">Contact</p>
                         <p class="mt-3 text-sm font-bold text-white">Punya pertanyaan?</p>
                         <a href="mailto:jepretccfdd@gmail.com" class="footer-link mt-1 inline-block text-sm text-white/55">jepretccfdd@gmail.com</a>
                         <div class="mt-5 flex items-center gap-3">
                             <a href="https://wa.me/6285156767900" target="_blank" rel="noopener noreferrer" class="footer-social grid h-11 w-11 place-items-center border border-white/20" aria-label="WhatsApp Jepret" title="WhatsApp">
                                 <svg class="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true"><path fill="#25D366" d="M12 2a9.75 9.75 0 0 0-8.42 14.65L2.25 21.5l4.96-1.3A9.75 9.75 0 1 0 12 2Z"/><path fill="#fff" d="M16.97 14.35c-.27-.14-1.6-.79-1.85-.88-.25-.09-.43-.14-.61.14-.18.27-.7.88-.86 1.06-.16.18-.32.2-.59.07-1.61-.8-2.67-1.44-3.74-3.27-.28-.49.28-.45.8-1.5.09-.18.05-.34-.02-.48-.07-.13-.61-1.47-.84-2.02-.22-.53-.45-.46-.61-.47h-.52c-.18 0-.48.07-.73.34-.25.27-.95.93-.95 2.27s.98 2.63 1.11 2.81c.14.18 1.92 2.93 4.65 4.11 1.73.75 2.41.81 3.28.68 1.04-.16 1.6-.66 1.83-1.29.23-.64.23-1.18.16-1.29-.07-.12-.25-.18-.52-.32Z"/></svg>
                             </a>
-                            <a href="https://instagram.com/jepret.cfd" target="_blank" rel="noopener noreferrer" class="footer-social grid h-11 w-11 place-items-center border border-white/20" aria-label="Instagram Jepret" title="Instagram">
+                            <a href="https://instagram.com/jepret.web" target="_blank" rel="noopener noreferrer" class="footer-social grid h-11 w-11 place-items-center border border-white/20" aria-label="Instagram Jepret" title="Instagram">
                                 <svg class="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true"><defs><radialGradient id="instagram-gradient" cx="30%" cy="107%" r="130%"><stop offset="0" stop-color="#FFD600"/><stop offset=".3" stop-color="#FF7A00"/><stop offset=".55" stop-color="#FF0169"/><stop offset=".82" stop-color="#D300C5"/><stop offset="1" stop-color="#7638FA"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#instagram-gradient)"/><rect x="5" y="5" width="14" height="14" rx="4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="3.25" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="17.25" cy="6.75" r="1" fill="#fff"/></svg>
                             </a>
                             <a href="mailto:jepretccfdd@gmail.com" class="footer-social grid h-11 w-11 place-items-center border border-white/20" aria-label="Email Jepret" title="Email">

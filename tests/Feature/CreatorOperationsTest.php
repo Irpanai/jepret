@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AdminAuditLog;
+use App\Models\Camera;
 use App\Models\Event;
 use App\Models\Photo;
 use App\Models\PlatformSetting;
@@ -32,6 +33,34 @@ class CreatorOperationsTest extends TestCase
 
         $this->actingAs($photographer)->get(route('fotografer.dashboard'))
             ->assertOk()->assertSee('Rp18.000')->assertSee('10')->assertSee('10%')->assertDontSee('Rp90.000');
+    }
+
+    public function test_photographer_can_search_and_filter_only_their_photo_catalog(): void
+    {
+        $photographer = User::factory()->fotografer()->create();
+        $other = User::factory()->fotografer()->create();
+        $raceEvent = Event::factory()->create(['fotografer_id' => $photographer->id, 'nama_event' => 'Bali Marathon']);
+        $studioEvent = Event::factory()->create(['fotografer_id' => $photographer->id, 'nama_event' => 'Studio Session']);
+        $raceCamera = Camera::factory()->create(['fotografer_id' => $photographer->id, 'name' => 'Track Camera']);
+        $studioCamera = Camera::factory()->create(['fotografer_id' => $photographer->id, 'name' => 'Studio Camera']);
+        Photo::factory()->create(['fotografer_id' => $photographer->id, 'event_id' => $raceEvent->id, 'camera_id' => $raceCamera->id, 'title' => 'Sunset Sprint', 'category' => 'Race', 'status' => 'active']);
+        Photo::factory()->create(['fotografer_id' => $photographer->id, 'event_id' => $studioEvent->id, 'camera_id' => $studioCamera->id, 'title' => 'Indoor Portrait', 'category' => 'Portrait', 'status' => 'inactive']);
+        $otherPhoto = $this->photo($other, ['title' => 'Sunset Private']);
+
+        $this->actingAs($photographer)->get(route('fotografer.photos.index', ['q' => 'Sunset']))
+            ->assertOk()
+            ->assertSee('Sunset Sprint')
+            ->assertDontSee('Indoor Portrait')
+            ->assertDontSee($otherPhoto->title);
+
+        $this->actingAs($photographer)->get(route('fotografer.photos.index', [
+            'event' => $studioEvent->id,
+            'camera' => $studioCamera->id,
+            'category' => 'Portrait',
+            'status' => 'inactive',
+        ]))->assertOk()
+            ->assertSee('Indoor Portrait')
+            ->assertDontSee('Sunset Sprint');
     }
 
     public function test_withdrawal_uses_platform_minimum_and_prevents_duplicate_balance_mutation(): void
@@ -261,7 +290,7 @@ class CreatorOperationsTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         $photographer->refresh();
-        $this->assertSame('+62 812-3456-7890', $photographer->whatsapp);
+        $this->assertSame('6281234567890', $photographer->whatsapp);
         $this->assertSame('winantioo', $photographer->instagram_username);
 
         $this->get(route('photographers.show', $photographer->slug))

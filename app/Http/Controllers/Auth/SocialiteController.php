@@ -8,6 +8,7 @@ use Exception;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Laravel\Socialite\Facades\Socialite;
 
 class SocialiteController extends Controller
@@ -15,25 +16,15 @@ class SocialiteController extends Controller
     /**
      * Redirect to Google OAuth provider.
      */
-    public function redirectToGoogle(Request $request): RedirectResponse
+    public function redirectToGoogle(): RedirectResponse
     {
-        $role = $request->query('role', 'pembeli');
-        if (! in_array($role, ['pembeli', 'fotografer'], true)) {
-            $role = 'pembeli';
-        }
-
-        session(['google_register_role' => $role]);
-        if ($role === 'fotografer' && $request->filled('package')) {
-            session(['intended_photographer_package' => $request->string('package')->toString()]);
-        }
-
         return Socialite::driver('google')->redirect();
     }
 
     /**
      * Handle callback from Google OAuth provider.
      */
-    public function handleGoogleCallback(): RedirectResponse
+    public function handleGoogleCallback(Request $request): RedirectResponse
     {
         try {
             $googleUser = Socialite::driver('google')->user();
@@ -41,40 +32,40 @@ class SocialiteController extends Controller
             return redirect()->route('login')->withErrors(['email' => 'Gagal melakukan otentikasi dengan Google. Silakan coba lagi.']);
         }
 
-        $role = session()->pull('google_register_role', 'pembeli');
-        if (! in_array($role, ['pembeli', 'fotografer'], true)) {
-            $role = 'pembeli';
-        }
-
-        // Find existing user by google_id or email
-        $user = User::where('google_id', $googleUser->getId())
-            ->orWhere('email', $googleUser->getEmail())
-            ->first();
+        $googleId = (string) $googleUser->getId();
+        $email = $googleUser->getEmail();
+        $user = User::where('google_id', $googleId)->first();
 
         if ($user) {
             $user->update([
-                'google_id' => $user->google_id ?? $googleUser->getId(),
                 'avatar' => $googleUser->getAvatar() ?? $user->avatar,
             ]);
         } else {
-            $user = User::create([
+            if (! $email || User::where('email', $email)->exists()) {
+                return redirect()->route('login')->withErrors([
+                    'email' => 'Email tersebut sudah digunakan akun lokal. Login dengan password terlebih dahulu; akun tidak ditautkan otomatis demi keamanan.',
+                ]);
+            }
+
+            $user = DB::transaction(fn (): User => User::create([
                 'name' => $googleUser->getName() ?? $googleUser->getNickname() ?? 'Pengguna Google',
-                'email' => $googleUser->getEmail(),
-                'google_id' => $googleUser->getId(),
+                'email' => $email,
+                'google_id' => $googleId,
                 'avatar' => $googleUser->getAvatar(),
                 'role' => 'pembeli',
                 'email_verified_at' => now(),
-            ]);
+            ]));
         }
 
         Auth::login($user, true);
+        $request->session()->regenerate();
 
-        if (session()->has('intended_photographer_package')) {
-            return redirect()->intended(route('pricing', absolute: false));
+        if (! $user->hasRole('fotografer')) {
+            return redirect()->intended(route('galeri', absolute: false));
         }
 
-        if ($user->role === 'pembeli') {
-            return redirect()->intended(route('galeri', absolute: false));
+        if (! $user->hasCompletedPhotographerOnboarding()) {
+            return redirect()->intended(route('fotografer.onboarding', absolute: false));
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

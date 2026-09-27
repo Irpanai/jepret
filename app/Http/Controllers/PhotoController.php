@@ -21,11 +21,56 @@ class PhotoController extends Controller
 {
     public function index(Request $request): View
     {
+        $filters = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'event' => ['nullable', 'integer'],
+            'camera' => ['nullable', 'integer'],
+            'category' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:active,inactive'],
+            'sort' => ['nullable', 'in:newest,oldest,title,price_low,price_high'],
+        ]);
         $events = Event::where('fotografer_id', $request->user()->id)->withCount('photos')->latest()->get();
         $cameras = Camera::where('fotografer_id', $request->user()->id)->orderBy('name')->get();
-        $photos = Photo::with(['event', 'camera'])->where('fotografer_id', $request->user()->id)->latest()->paginate(18);
+        $categories = Photo::query()
+            ->where('fotografer_id', $request->user()->id)
+            ->whereNotNull('category')
+            ->where('category', '!=', '')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+        $search = trim($filters['q'] ?? '');
+        $photos = Photo::query()
+            ->with(['event', 'camera'])
+            ->where('fotografer_id', $request->user()->id)
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($searchQuery) use ($search): void {
+                    $searchQuery
+                        ->where('title', 'like', "%{$search}%")
+                        ->orWhere('original_filename', 'like', "%{$search}%")
+                        ->orWhere('category', 'like', "%{$search}%")
+                        ->orWhere('ai_tags', 'like', "%{$search}%")
+                        ->orWhereHas('event', fn ($eventQuery) => $eventQuery->where('nama_event', 'like', "%{$search}%"))
+                        ->orWhereHas('camera', fn ($cameraQuery) => $cameraQuery->where('name', 'like', "%{$search}%")->orWhere('brand_model', 'like', "%{$search}%"));
+                });
+            })
+            ->when(isset($filters['event']), fn ($query) => $query->where('event_id', $filters['event']))
+            ->when(isset($filters['camera']), fn ($query) => $query->where('camera_id', $filters['camera']))
+            ->when(isset($filters['category']), fn ($query) => $query->where('category', $filters['category']))
+            ->when(isset($filters['status']), fn ($query) => $query->where('status', $filters['status']))
+            ->when(
+                ($filters['sort'] ?? 'newest') === 'oldest',
+                fn ($query) => $query->oldest(),
+                fn ($query) => match ($filters['sort'] ?? 'newest') {
+                    'title' => $query->orderBy('title'),
+                    'price_low' => $query->orderBy('harga'),
+                    'price_high' => $query->orderByDesc('harga'),
+                    default => $query->latest(),
+                },
+            )
+            ->paginate(18)
+            ->withQueryString();
 
-        return view('fotografer.photos.index', compact('events', 'cameras', 'photos'));
+        return view('fotografer.photos.index', compact('events', 'cameras', 'categories', 'photos'));
     }
 
     public function create(Request $request): View

@@ -12,7 +12,7 @@
             </a>
 
             <div class="hidden items-center gap-7 text-xs font-extrabold uppercase text-public-muted md:flex">
-                <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'text-public-ink' : 'hover:text-public-ink' }}">Tentang</a>
+                <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'text-public-ink' : 'hover:text-public-ink' }}">About</a>
                 <a href="{{ route('galeri') }}" class="{{ request()->routeIs('galeri') || request()->routeIs('marketplace.*') ? 'text-public-ink' : 'hover:text-public-ink' }}">Galeri</a>
                 <a href="{{ route('photographers.index') }}" class="{{ request()->routeIs('photographers.*') ? 'text-public-ink' : 'hover:text-public-ink' }}">Photographers</a>
                 <a href="{{ route('pricing') }}" class="{{ request()->routeIs('pricing') ? 'text-public-ink' : 'hover:text-public-ink' }}">Pricing</a>
@@ -45,7 +45,7 @@
 
                             @if($userRole === 'pembeli')
                                 <a href="{{ route('purchases.index') }}" class="block px-3 py-2 text-sm font-bold hover:bg-public-bone" role="menuitem">Pembelian Saya</a>
-                                <a href="{{ route('pricing') }}" class="block px-3 py-2 text-sm font-bold hover:bg-public-bone" role="menuitem">Daftar Photographer</a>
+                                <a href="{{ route('register') }}" class="block px-3 py-2 text-sm font-bold hover:bg-public-bone" role="menuitem">Daftar Photographer</a>
                             @elseif($userRole === 'fotografer')
                                 <a href="{{ route('fotografer.dashboard') }}" class="block px-3 py-2 text-sm font-bold hover:bg-public-bone" role="menuitem">Halaman Saya</a>
                                 <a href="{{ route('purchases.index') }}" class="block px-3 py-2 text-sm font-bold hover:bg-public-bone" role="menuitem">Pembelian Saya</a>
@@ -84,6 +84,9 @@
                         <span>Keranjang <span x-cloak x-show="cartCount > 0">(<span x-text="cartCount"></span>)</span></span>
                     </a>
                     <a href="{{ route('purchases.index') }}" class="py-2">Pembelian Saya</a>
+                    @if($userRole === 'pembeli')
+                        <a href="{{ route('register') }}" class="py-2">Daftar Photographer</a>
+                    @endif
                     @if(in_array($userRole, ['fotografer', 'superadmin'], true))
                         <a href="{{ route('dashboard') }}" class="py-2 {{ request()->routeIs('fotografer.*') || request()->routeIs('superadmin.*') ? 'text-public-ink' : '' }}">Halaman Saya</a>
                     @endif

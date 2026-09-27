@@ -86,7 +86,7 @@
                 <h2>Watermark batch</h2>
                 <p class="helper">PNG/WEBP transparan. Kosongkan bila watermark tersimpan sudah locked.</p>
                 <input class="w-full text-sm" type="file" name="watermark" accept="image/png,image/webp" @change="selectWatermark($event)">
-                <p class="rounded-lg bg-amber-50 p-3 text-xs text-amber-800" x-show="!watermarkUrl">Pilih watermark agar hasilnya terlihat di editor.</p>
+                <p class="border-l-4 border-amber-500 bg-white p-3 text-sm text-gray-700" x-show="!watermarkUrl">Pilih watermark agar hasilnya terlihat di editor.</p>
                 <label class="flex items-center gap-2">
                     <input type="checkbox" name="lock_watermark" value="1">
                     Simpan dan lock untuk upload berikutnya
@@ -95,8 +95,81 @@
             </aside>
         </form>
 
-        <section>
-            <h2>Katalog ({{ $photos->total() }})</h2>
+        <section class="space-y-5" aria-labelledby="catalog-title">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <h2 id="catalog-title">Katalog</h2>
+                    <p class="helper mt-1">{{ $photos->total() }} foto ditemukan</p>
+                </div>
+                @if(request()->hasAny(['q', 'event', 'camera', 'category', 'status', 'sort']))
+                    <a href="{{ route('fotografer.photos.index') }}" class="text-sm font-bold text-gray-600 underline decoration-gray-300 underline-offset-4 hover:text-black">Reset pencarian</a>
+                @endif
+            </div>
+
+            <form method="GET" action="{{ route('fotografer.photos.index') }}" class="rounded-2xl border bg-white p-4 sm:p-5" role="search">
+                <div class="grid gap-3 lg:grid-cols-[minmax(16rem,2fr)_repeat(3,minmax(0,1fr))]">
+                    <div class="relative">
+                        <label class="sr-only" for="catalog-search">Cari katalog</label>
+                        <svg class="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+                        <input id="catalog-search" name="q" value="{{ request('q') }}" class="h-11 w-full rounded-lg border-gray-300 pl-10 text-sm" type="search" placeholder="Cari nama foto, file, tag, event, atau kamera">
+                    </div>
+
+                    <div>
+                        <label class="sr-only" for="catalog-event">Filter event</label>
+                        <select id="catalog-event" name="event" class="h-11 w-full rounded-lg border-gray-300 text-sm">
+                            <option value="">Semua event</option>
+                            @foreach($events as $event)
+                                <option value="{{ $event->id }}" @selected((string) request('event') === (string) $event->id)>{{ $event->nama_event }} ({{ $event->photos_count }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="sr-only" for="catalog-camera">Filter kamera</label>
+                        <select id="catalog-camera" name="camera" class="h-11 w-full rounded-lg border-gray-300 text-sm">
+                            <option value="">Semua kamera</option>
+                            @foreach($cameras as $camera)
+                                <option value="{{ $camera->id }}" @selected((string) request('camera') === (string) $camera->id)>{{ $camera->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="sr-only" for="catalog-category">Filter kategori</label>
+                        <select id="catalog-category" name="category" class="h-11 w-full rounded-lg border-gray-300 text-sm">
+                            <option value="">Semua kategori</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category }}" @selected(request('category') === $category)>{{ $category }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
+                    <div>
+                        <label class="sr-only" for="catalog-status">Filter status</label>
+                        <select id="catalog-status" name="status" class="h-11 w-full rounded-lg border-gray-300 text-sm">
+                            <option value="">Semua status</option>
+                            <option value="active" @selected(request('status') === 'active')>Active</option>
+                            <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="sr-only" for="catalog-sort">Urutkan katalog</label>
+                        <select id="catalog-sort" name="sort" class="h-11 w-full rounded-lg border-gray-300 text-sm">
+                            <option value="newest" @selected(request('sort', 'newest') === 'newest')>Terbaru</option>
+                            <option value="oldest" @selected(request('sort') === 'oldest')>Terlama</option>
+                            <option value="title" @selected(request('sort') === 'title')>Nama A–Z</option>
+                            <option value="price_low" @selected(request('sort') === 'price_low')>Harga terendah</option>
+                            <option value="price_high" @selected(request('sort') === 'price_high')>Harga tertinggi</option>
+                        </select>
+                    </div>
+
+                    <button class="h-11 rounded-lg bg-black px-6 text-sm font-bold text-white hover:bg-gray-800">Terapkan</button>
+                </div>
+            </form>
+
             <div class="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 @forelse($photos as $photo)
                     <article class="overflow-hidden rounded-xl border bg-white">
@@ -125,7 +198,10 @@
                         </div>
                     </article>
                 @empty
-                    <p class="helper">Belum ada foto.</p>
+                    <div class="rounded-xl border border-dashed bg-white p-8 sm:col-span-2 xl:col-span-3">
+                        <p class="font-bold">Tidak ada foto yang cocok.</p>
+                        <p class="helper mt-1">Ubah kata pencarian atau reset filter katalog.</p>
+                    </div>
                 @endforelse
             </div>
             <div class="mt-4">{{ $photos->links() }}</div>

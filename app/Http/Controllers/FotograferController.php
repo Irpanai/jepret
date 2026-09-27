@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\Photo;
 use App\Models\Transaction;
+use App\Models\User;
 use App\Models\Withdrawal;
 use App\ProfilePhotoProcessor;
 use App\TransactionReporting;
@@ -19,8 +20,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FotograferController extends Controller
 {
-    public function dashboard(Request $request, TransactionReporting $reporting): View
+    public function dashboard(Request $request, TransactionReporting $reporting): View|RedirectResponse
     {
+        if (! $request->user()->hasCompletedPhotographerOnboarding()) {
+            return redirect()->route('fotografer.onboarding');
+        }
+
         $user = $request->user()->load(['package', 'subscription']);
         $base = $reporting->query($request, $user->id);
         $paid = (clone $base)->paid();
@@ -99,6 +104,7 @@ class FotograferController extends Controller
         ]);
 
         $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'studio_name' => ['nullable', 'string', 'max:255'], 'slug' => ['nullable', 'alpha_dash', 'max:255', 'unique:users,slug,'.$request->user()->id], 'whatsapp' => ['nullable', 'string', 'max:30'], 'instagram_username' => ['nullable', 'regex:/^[A-Za-z0-9._]+$/', 'max:30'], 'location' => ['nullable', 'string', 'max:150'], 'category' => ['nullable', 'string', 'max:100'], 'bio' => ['nullable', 'string', 'max:1000'], 'profile_photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'], 'profile_photo_zoom' => ['nullable', 'integer', 'between:100,200'], 'profile_photo_x' => ['nullable', 'integer', 'between:0,100'], 'profile_photo_y' => ['nullable', 'integer', 'between:0,100']]);
+        $data['whatsapp'] = User::normalizeWhatsapp($data['whatsapp'] ?? null);
         $data['slug'] = $data['slug'] ?: Str::slug($data['name']).'-'.$request->user()->id;
         unset($data['profile_photo'], $data['profile_photo_zoom'], $data['profile_photo_x'], $data['profile_photo_y']);
         if ($request->hasFile('profile_photo')) {

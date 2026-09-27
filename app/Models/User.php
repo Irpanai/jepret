@@ -36,7 +36,36 @@ class User extends Authenticatable
             'photographer_watermark_locked' => 'boolean',
             'verified_at' => 'datetime',
             'rejected_at' => 'datetime',
+            'photographer_onboarded_at' => 'datetime',
         ];
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return match ($role) {
+            'pembeli' => in_array($this->role, ['pembeli', 'fotografer'], true),
+            default => $this->role === $role,
+        };
+    }
+
+    public function hasCompletedPhotographerOnboarding(): bool
+    {
+        return $this->photographer_onboarded_at !== null;
+    }
+
+    public static function normalizeWhatsapp(?string $number): ?string
+    {
+        if ($number === null || trim($number) === '') {
+            return null;
+        }
+
+        $digits = (string) preg_replace('/\D+/', '', $number);
+
+        if (str_starts_with($digits, '0')) {
+            return '62'.substr($digits, 1);
+        }
+
+        return $digits;
     }
 
     public function package(): BelongsTo

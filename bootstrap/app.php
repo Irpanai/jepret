@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\EnsureApprovedPhotographer;
+use App\Http\Middleware\EnsurePhotographerSubscriptionStarted;
 use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'subscription.active' => EnsureActiveSubscription::class,
+            'subscription.started' => EnsurePhotographerSubscriptionStarted::class,
             'photographer.approved' => EnsureApprovedPhotographer::class,
         ]);
         $middleware->validateCsrfTokens(except: ['payments/midtrans/notification']);

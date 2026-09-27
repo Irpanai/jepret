@@ -7,5 +7,5 @@
     <link rel="preconnect" href="https://fonts.bunny.net"><link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700,800&family=instrument-serif:400&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="public-shell min-h-screen bg-public-paper text-public-ink antialiased"><x-navbar /><main class="public-container grid min-h-[calc(100vh-64px)] items-center py-10 sm:py-16">{{ $slot }}</main></body>
+<body class="public-shell min-h-screen bg-public-paper text-public-ink antialiased"><a href="#main-content" class="skip-link">Lewati ke konten utama</a><x-navbar /><main id="main-content" class="public-container grid min-h-[calc(100vh-64px)] items-center py-10 sm:py-16" tabindex="-1">{{ $slot }}</main></body>
 </html>

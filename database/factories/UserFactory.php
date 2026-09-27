@@ -46,6 +46,7 @@ class UserFactory extends Factory
             'saldo' => fake()->numberBetween(100000, 5000000),
             'storage_terpakai_mb' => fake()->numberBetween(100, 10000),
             'is_verified' => true,
+            'photographer_onboarded_at' => now(),
         ])->afterCreating(function (User $user): void {
             Subscription::factory()->create(['user_id' => $user->id]);
         });

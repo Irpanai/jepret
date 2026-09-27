@@ -1,6 +1,6 @@
 <x-fg-layout>
 @if(! $user->subscription?->isActive())
-    <div class="mb-6 border border-amber-300 bg-amber-50 p-5 text-amber-900"><p class="font-extrabold">{{ $user->subscription?->trial_used_at ? 'Masa trial kamu telah berakhir, silakan melakukan pembelian paket yang tersedia.' : 'Subscription Photographer tidak aktif.' }}</p><p class="mt-1 text-sm">Dashboard tersedia dalam mode read-only.</p><a href="{{ route('pricing') }}" class="mt-4 inline-flex border border-amber-900 px-4 py-2 text-xs font-extrabold uppercase">Upgrade</a></div>
+    <div class="mb-6 border-l-4 border-amber-500 bg-white p-5 text-gray-900"><p class="font-extrabold">{{ $user->subscription?->trial_used_at ? 'Masa trial kamu telah berakhir, silakan melakukan pembelian paket yang tersedia.' : 'Subscription Photographer tidak aktif.' }}</p><p class="mt-1 text-sm text-gray-600">Dashboard tersedia dalam mode read-only.</p><a href="{{ route('pricing') }}" class="mt-4 inline-flex min-h-11 items-center border border-gray-900 px-4 py-2 text-sm font-extrabold uppercase">Upgrade</a></div>
 @elseif(! $user->is_verified)
     <div class="mb-6 border border-blue-300 bg-blue-50 p-5 text-blue-900"><p class="font-extrabold">Profil sedang menunggu persetujuan Super Admin.</p><p class="mt-1 text-sm">Upload dan penjualan akan tersedia setelah profil disetujui.</p></div>
 @endif

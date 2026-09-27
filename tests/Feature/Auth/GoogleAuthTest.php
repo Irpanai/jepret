@@ -46,7 +46,7 @@ class GoogleAuthTest extends TestCase
         $response->assertRedirect(route('galeri', absolute: false));
     }
 
-    public function test_existing_user_can_link_google_account_on_login(): void
+    public function test_google_login_does_not_link_an_existing_local_account_by_email(): void
     {
         $user = User::factory()->create([
             'email' => 'existing@example.com',
@@ -68,11 +68,32 @@ class GoogleAuthTest extends TestCase
 
         $response = $this->get(route('auth.google.callback'));
 
-        $this->assertAuthenticatedAs($user);
-        $this->assertDatabaseHas('users', [
-            'id' => $user->id,
-            'google_id' => 'google-67890',
+        $this->assertGuest();
+        $this->assertNull($user->fresh()->google_id);
+        $response->assertRedirect(route('login', absolute: false));
+        $response->assertSessionHasErrors('email');
+    }
+
+    public function test_linked_photographer_keeps_all_roles_after_google_login(): void
+    {
+        $photographer = User::factory()->fotografer()->create([
+            'google_id' => 'google-photographer',
         ]);
-        $response->assertRedirect(route('galeri', absolute: false));
+
+        $abstractUser = Mockery::mock('Laravel\Socialite\Two\User');
+        $abstractUser->shouldReceive('getId')->andReturn('google-photographer');
+        $abstractUser->shouldReceive('getEmail')->andReturn($photographer->email);
+        $abstractUser->shouldReceive('getAvatar')->andReturn('https://avatar.url');
+
+        $provider = Mockery::mock('Laravel\Socialite\Contracts\Provider');
+        $provider->shouldReceive('user')->andReturn($abstractUser);
+        Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
+
+        $response = $this->get(route('auth.google.callback'));
+
+        $this->assertAuthenticatedAs($photographer);
+        $this->assertTrue($photographer->fresh()->hasRole('pembeli'));
+        $this->assertTrue($photographer->fresh()->hasRole('fotografer'));
+        $response->assertRedirect(route('dashboard', absolute: false));
     }
 }

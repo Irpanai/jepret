@@ -9,6 +9,7 @@ use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\PembeliController;
 use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\PhotographerController;
+use App\Http\Controllers\PhotographerOnboardingController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PurchaseDownloadController;
@@ -87,10 +88,14 @@ Route::get('/sitemap.xml', function () {
 })->name('sitemap');
 
 Route::get('/dashboard', function () {
-    $role = request()->user()->role;
-    if ($role === 'superadmin') {
+    $user = request()->user();
+    if ($user->hasRole('superadmin')) {
         return redirect()->route('superadmin.dashboard');
-    } elseif ($role === 'fotografer') {
+    } elseif ($user->hasRole('fotografer')) {
+        if (! $user->hasCompletedPhotographerOnboarding()) {
+            return redirect()->route('fotografer.onboarding');
+        }
+
         return redirect()->route('fotografer.dashboard');
     }
 
@@ -120,9 +125,20 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
 });
 
 Route::middleware(['auth', 'role:fotografer'])->prefix('fotografer')->name('fotografer.')->group(function () {
-    Route::get('/dashboard', [FotograferController::class, 'dashboard'])->name('dashboard');
-    Route::get('/dashboard/data', [FotograferController::class, 'dashboardData'])->name('dashboard.data');
-    Route::middleware(['subscription.active', 'photographer.approved'])->group(function () {
+    Route::get('/onboarding', [PhotographerOnboardingController::class, 'show'])->name('onboarding');
+    Route::post('/onboarding', [PhotographerOnboardingController::class, 'store'])->middleware('throttle:6,1')->name('onboarding.store');
+    Route::middleware('subscription.started')->group(function () {
+        Route::get('/dashboard', [FotograferController::class, 'dashboard'])->name('dashboard');
+        Route::get('/dashboard/data', [FotograferController::class, 'dashboardData'])->name('dashboard.data');
+        Route::resource('events', EventController::class)->only(['index', 'show']);
+        Route::resource('photos', PhotoController::class)->only(['index']);
+        Route::get('/watermark/preview', [PhotoController::class, 'watermarkPreview'])->name('watermark.preview');
+        Route::get('/orders', [FotograferController::class, 'orders'])->name('orders');
+        Route::get('/orders/export', [FotograferController::class, 'exportOrders'])->name('orders.export');
+        Route::get('/storage', [FotograferController::class, 'storage'])->name('storage');
+        Route::get('/portfolio', [FotograferController::class, 'portfolio'])->name('portfolio');
+    });
+    Route::middleware(['subscription.started', 'subscription.active', 'photographer.approved'])->group(function () {
         Route::post('/radar/toggle', [FotograferController::class, 'toggleRadar'])->name('radar.toggle');
         Route::resource('cameras', CameraController::class)->except(['show']);
         Route::resource('events', EventController::class)->only(['create', 'store', 'destroy']);
@@ -131,19 +147,11 @@ Route::middleware(['auth', 'role:fotografer'])->prefix('fotografer')->name('foto
         Route::post('/withdrawals', [FotograferController::class, 'withdraw'])->name('withdrawals.store');
         Route::patch('/portfolio', [FotograferController::class, 'updatePortfolio'])->name('portfolio.update');
     });
-    Route::resource('events', EventController::class)->only(['index', 'show']);
-    Route::resource('photos', PhotoController::class)->only(['index']);
-    Route::get('/watermark/preview', [PhotoController::class, 'watermarkPreview'])->name('watermark.preview');
-
-    // Stubbed routes for missing menus
-    Route::get('/orders', [FotograferController::class, 'orders'])->name('orders');
-    Route::get('/orders/export', [FotograferController::class, 'exportOrders'])->name('orders.export');
-    Route::get('/storage', [FotograferController::class, 'storage'])->name('storage');
-    Route::get('/portfolio', [FotograferController::class, 'portfolio'])->name('portfolio');
 });
 
 Route::middleware('auth')->group(function () {
-    Route::post('/subscriptions/packages/{package}/checkout', [SubscriptionCheckoutController::class, 'store'])->name('subscriptions.checkout');
+    Route::get('/subscription/plans', [PricingController::class, 'subscriptions'])->middleware('role:fotografer')->name('subscriptions.plans');
+    Route::post('/subscriptions/packages/{package}/checkout', [SubscriptionCheckoutController::class, 'store'])->middleware('role:fotografer')->name('subscriptions.checkout');
     Route::get('/subscriptions/orders/{order}/payment', [SubscriptionCheckoutController::class, 'show'])->name('subscriptions.payment');
     Route::get('/subscriptions/orders/{order}/status', [SubscriptionCheckoutController::class, 'status'])->name('subscriptions.status');
     Route::post('/subscriptions/orders/{order}/refunds', [SubscriptionCheckoutController::class, 'requestRefund'])->name('subscriptions.refunds.store');

@@ -15,9 +15,10 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased text-gray-900 bg-[#F9FAFB]" x-data="{ sidebarOpen: window.innerWidth >= 1024 }" @resize.window="sidebarOpen = window.innerWidth >= 1024">
+<body class="font-sans antialiased text-gray-900 bg-slate-50" x-data="{ sidebarOpen: window.innerWidth >= 1024 }" @resize.window="sidebarOpen = window.innerWidth >= 1024">
+    <a href="#main-content" class="skip-link">Lewati ke konten utama</a>
     
-    <div class="flex h-screen overflow-hidden bg-[#F9FAFB]">
+    <div class="flex h-dvh overflow-hidden bg-slate-50">
         <!-- Sidebar -->
         <aside :class="sidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full w-[260px] lg:translate-x-0 lg:w-[80px]'" 
                class="fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out lg:static shadow-sm shrink-0">
@@ -146,7 +147,7 @@
             </header>
 
             <!-- Main Content Area -->
-            <main class="workspace flex-1 overflow-y-auto bg-[#F9FAFB] w-full p-4 sm:px-6 lg:px-10 lg:py-8">
+            <main id="main-content" class="workspace flex-1 overflow-y-auto bg-slate-50 w-full p-4 sm:px-6 lg:px-10 lg:py-8" tabindex="-1">
                 <div class="w-full mx-auto">
                     {{ $slot }}
                 </div>

@@ -15,9 +15,10 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased text-gray-900 bg-[#F9FAFB]" x-data="{ sidebarOpen: window.innerWidth >= 1024 }" @resize.window="sidebarOpen = window.innerWidth >= 1024">
+<body class="font-sans antialiased text-gray-900 bg-slate-50" x-data="{ sidebarOpen: window.innerWidth >= 1024 }" @resize.window="sidebarOpen = window.innerWidth >= 1024">
+    <a href="#main-content" class="skip-link">Lewati ke konten utama</a>
     
-    <div class="flex h-screen overflow-hidden bg-[#F9FAFB]">
+    <div class="flex h-dvh overflow-hidden bg-slate-50">
         <!-- Sidebar -->
         <aside :class="sidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full w-[260px] lg:translate-x-0 lg:w-[80px]'" 
                class="fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out lg:static shadow-sm shrink-0">
@@ -140,12 +141,6 @@
                         <span class="text-xs font-semibold text-gray-500 hidden sm:inline">Creator Center</span>
                     </div>
                     
-                    <div class="relative max-w-[320px] lg:max-w-md w-full ml-2 lg:ml-4 hidden md:block">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        </div>
-                        <input type="text" class="block w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-black focus:border-black sm:text-sm transition text-gray-900 font-medium" placeholder="Search catalog, tags, orders (⌘K)...">
-                    </div>
                 </div>
 
                 <!-- Right actions -->
@@ -162,7 +157,7 @@
             </header>
 
             <!-- Main Content Area -->
-            <main class="workspace flex-1 overflow-y-auto bg-[#F9FAFB] w-full p-4 sm:px-6 lg:px-10 lg:py-8">
+            <main id="main-content" class="workspace flex-1 overflow-y-auto bg-slate-50 w-full p-4 sm:px-6 lg:px-10 lg:py-8" tabindex="-1">
                 <div class="w-full mx-auto">
                     {{ $slot }}
                 </div>

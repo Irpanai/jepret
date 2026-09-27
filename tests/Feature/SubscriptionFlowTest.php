@@ -16,16 +16,63 @@ class SubscriptionFlowTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_trial_can_be_activated_once_and_promotes_buyer_to_photographer(): void
+    public function test_photographer_without_subscription_is_redirected_to_plans(): void
+    {
+        $photographer = User::factory()->create([
+            'role' => 'fotografer',
+            'photographer_onboarded_at' => now(),
+        ]);
+
+        $this->actingAs($photographer)->get(route('fotografer.dashboard'))
+            ->assertRedirect(route('subscriptions.plans', absolute: false));
+        $this->actingAs($photographer)->get(route('fotografer.photos.create'))
+            ->assertRedirect(route('subscriptions.plans', absolute: false));
+    }
+
+    public function test_photographer_with_pending_payment_is_redirected_to_payment_without_subscription(): void
     {
         $this->seed(PackageSeeder::class);
-        $buyer = User::factory()->pembeli()->create();
+        $photographer = User::factory()->create([
+            'role' => 'fotografer',
+            'photographer_onboarded_at' => now(),
+        ]);
+        $order = app(SubscriptionBilling::class)->createOrder($photographer, Package::where('code', 'starter')->firstOrFail());
+        $order->update(['snap_token' => 'pending-snap-token']);
+
+        $this->actingAs($photographer)->get(route('fotografer.dashboard'))
+            ->assertRedirect(route('subscriptions.payment', $order, absolute: false));
+
+        $this->assertDatabaseMissing('subscriptions', ['user_id' => $photographer->id]);
+        $this->assertSame('pending', $order->fresh()->status);
+    }
+
+    public function test_subscription_plans_show_active_database_packages_and_trial_action(): void
+    {
+        $this->seed(PackageSeeder::class);
+        $photographer = User::factory()->create(['role' => 'fotografer']);
+
+        $this->actingAs($photographer)->get(route('subscriptions.plans'))
+            ->assertOk()
+            ->assertSee('Aktifkan Trial')
+            ->assertSee('Starter')
+            ->assertSee('Creator')
+            ->assertDontSee('Basic');
+    }
+
+    public function test_photographer_trial_can_be_activated_once_without_changing_roles(): void
+    {
+        $this->seed(PackageSeeder::class);
+        $buyer = User::factory()->create([
+            'role' => 'fotografer',
+            'photographer_onboarded_at' => now(),
+        ]);
         $trial = Package::where('code', 'trial')->firstOrFail();
 
         $this->actingAs($buyer)->post(route('subscriptions.checkout', $trial))->assertRedirect(route('fotografer.dashboard'));
 
         $buyer->refresh()->load('subscription');
-        $this->assertSame('fotografer', $buyer->role);
+        $this->assertTrue($buyer->hasRole('pembeli'));
+        $this->assertTrue($buyer->hasRole('fotografer'));
         $this->assertTrue($buyer->subscription->isActive());
         $this->assertNotNull($buyer->subscription->trial_used_at);
 
@@ -48,7 +95,7 @@ class SubscriptionFlowTest extends TestCase
         $subscription = Subscription::where('user_id', $buyer->id)->firstOrFail();
         $this->assertSame($starter->id, $subscription->package_id);
         $this->assertSame(1, $subscription->version);
-        $this->assertSame('fotografer', $buyer->fresh()->role);
+        $this->assertSame('pembeli', $buyer->fresh()->role);
     }
 
     public function test_invalid_signature_or_amount_does_not_activate_subscription(): void
