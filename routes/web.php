@@ -5,14 +5,19 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\FotograferController;
 use App\Http\Controllers\MarketplaceController;
+use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\PembeliController;
 use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\PhotographerController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PurchaseDownloadController;
+use App\Http\Controllers\SubscriptionCheckoutController;
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\SuperAdminPackageController;
 use App\Http\Controllers\SuperAdminPhotographerController;
 use App\Models\Camera;
+use App\Models\Package;
 use App\Models\Photo;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -25,14 +30,16 @@ Route::get('/', function () {
 
     $galleryPhotos = Photo::query()
         ->where('status', 'active')
-        ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))
+        ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())
         ->with(['event', 'fotografer'])
         ->orderByDesc('published_at')
         ->orderByDesc('id')
         ->limit(4)
         ->get();
 
-    return view('welcome', compact('galleryPhotos'));
+    $pricingPlans = Package::query()->publiclyAvailable()->ordered()->get();
+
+    return view('welcome', compact('galleryPhotos', 'pricingPlans'));
 })->name('landing');
 
 Route::view('/terms-of-service', 'legal.terms')->name('terms');
@@ -40,11 +47,11 @@ Route::view('/privacy-policy', 'legal.privacy')->name('privacy');
 
 Route::get('/galeri', [MarketplaceController::class, 'galeri'])->name('galeri');
 Route::view('/about', 'about')->name('about');
-Route::view('/pricing', 'pricing')->name('pricing');
+Route::get('/pricing', PricingController::class)->name('pricing');
 
 Route::get('/p/{photo}', [MarketplaceController::class, 'show'])->name('marketplace.show');
 Route::get('/media/preview/{photo}', function (Photo $photo) {
-    $isPublic = $photo->status === 'active' && $photo->fotografer()->where('is_verified', true)->where('is_active', true)->exists();
+    $isPublic = $photo->status === 'active' && $photo->fotografer()->where('is_verified', true)->where('is_active', true)->withActiveSubscription()->exists();
     abort_unless($isPublic || auth()->id() === $photo->fotografer_id || auth()->user()?->role === 'superadmin', 404);
     abort_unless(Storage::disk('local')->exists($photo->file_watermark), 404);
 
@@ -68,10 +75,11 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/photographers', [PhotographerController::class, 'index'])->name('photographers.index');
 Route::get('/photographers/{photographer}', [PhotographerController::class, 'show'])->name('photographers.show');
+Route::post('/payments/midtrans/notification', MidtransWebhookController::class)->name('payments.midtrans.notification');
 
 Route::get('/sitemap.xml', function () {
-    $photos = Photo::query()->where('status', 'active')->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))->select(['id', 'updated_at'])->get();
-    $photographers = User::query()->where('role', 'fotografer')->where('is_verified', true)->where('is_active', true)->select(['id', 'slug', 'updated_at'])->get();
+    $photos = Photo::query()->where('status', 'active')->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())->select(['id', 'updated_at'])->get();
+    $photographers = User::query()->where('role', 'fotografer')->where('is_verified', true)->where('is_active', true)->withActiveSubscription()->select(['id', 'slug', 'updated_at'])->get();
 
     return response()
         ->view('sitemap', compact('photos', 'photographers'))
@@ -97,6 +105,7 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
     Route::post('/fotografer/{user}/review', [SuperAdminController::class, 'reviewPhotographer'])->name('fotografer.review');
     Route::patch('/photographers/{photographer}/status', [SuperAdminPhotographerController::class, 'status'])->name('photographers.status');
     Route::resource('photographers', SuperAdminPhotographerController::class);
+    Route::resource('packages', SuperAdminPackageController::class)->except(['show', 'destroy']);
 
     Route::get('/compliance', [SuperAdminController::class, 'compliance'])->name('compliance');
     Route::get('/orders', [SuperAdminController::class, 'ledger'])->name('orders');
@@ -106,25 +115,38 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
     Route::patch('/storage/{user}', [SuperAdminController::class, 'updateQuota'])->name('storage.update');
     Route::get('/settings', [SuperAdminController::class, 'settings'])->name('settings');
     Route::patch('/settings', [SuperAdminController::class, 'updateSettings'])->name('settings.update');
+    Route::get('/subscriptions', [SuperAdminController::class, 'subscriptions'])->name('subscriptions');
+    Route::patch('/subscription-refunds/{refund}', [SuperAdminController::class, 'reviewSubscriptionRefund'])->name('subscription-refunds.review');
 });
 
 Route::middleware(['auth', 'role:fotografer'])->prefix('fotografer')->name('fotografer.')->group(function () {
     Route::get('/dashboard', [FotograferController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard/data', [FotograferController::class, 'dashboardData'])->name('dashboard.data');
-    Route::post('/radar/toggle', [FotograferController::class, 'toggleRadar'])->name('radar.toggle');
-    Route::resource('cameras', CameraController::class)->except(['show']);
-    Route::resource('events', EventController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
-    Route::resource('photos', PhotoController::class)->only(['index', 'create', 'store', 'update', 'destroy']);
-    Route::patch('/watermark', [PhotoController::class, 'watermark'])->name('watermark.update');
+    Route::middleware(['subscription.active', 'photographer.approved'])->group(function () {
+        Route::post('/radar/toggle', [FotograferController::class, 'toggleRadar'])->name('radar.toggle');
+        Route::resource('cameras', CameraController::class)->except(['show']);
+        Route::resource('events', EventController::class)->only(['create', 'store', 'destroy']);
+        Route::resource('photos', PhotoController::class)->only(['create', 'store', 'update', 'destroy']);
+        Route::patch('/watermark', [PhotoController::class, 'watermark'])->name('watermark.update');
+        Route::post('/withdrawals', [FotograferController::class, 'withdraw'])->name('withdrawals.store');
+        Route::patch('/portfolio', [FotograferController::class, 'updatePortfolio'])->name('portfolio.update');
+    });
+    Route::resource('events', EventController::class)->only(['index', 'show']);
+    Route::resource('photos', PhotoController::class)->only(['index']);
     Route::get('/watermark/preview', [PhotoController::class, 'watermarkPreview'])->name('watermark.preview');
-    Route::post('/withdrawals', [FotograferController::class, 'withdraw'])->name('withdrawals.store');
 
     // Stubbed routes for missing menus
     Route::get('/orders', [FotograferController::class, 'orders'])->name('orders');
     Route::get('/orders/export', [FotograferController::class, 'exportOrders'])->name('orders.export');
     Route::get('/storage', [FotograferController::class, 'storage'])->name('storage');
     Route::get('/portfolio', [FotograferController::class, 'portfolio'])->name('portfolio');
-    Route::patch('/portfolio', [FotograferController::class, 'updatePortfolio'])->name('portfolio.update');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::post('/subscriptions/packages/{package}/checkout', [SubscriptionCheckoutController::class, 'store'])->name('subscriptions.checkout');
+    Route::get('/subscriptions/orders/{order}/payment', [SubscriptionCheckoutController::class, 'show'])->name('subscriptions.payment');
+    Route::get('/subscriptions/orders/{order}/status', [SubscriptionCheckoutController::class, 'status'])->name('subscriptions.status');
+    Route::post('/subscriptions/orders/{order}/refunds', [SubscriptionCheckoutController::class, 'requestRefund'])->name('subscriptions.refunds.store');
 });
 
 Route::middleware('auth')->group(function () {
@@ -134,7 +156,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/checkout', [PembeliController::class, 'checkoutPage'])->name('checkout.page');
     Route::post('/checkout', [PembeliController::class, 'processCheckout'])->name('checkout.process')->block();
     Route::get('/checkout/payment/{order}', [PembeliController::class, 'paymentPage'])->name('checkout.payment');
-    Route::post('/checkout/payment/{order}/pay', [PembeliController::class, 'simulatePay'])->name('checkout.payment.simulate');
+    Route::get('/checkout/payment/{order}/status', [PembeliController::class, 'paymentStatus'])->name('checkout.payment.status');
+    if (app()->environment(['local', 'testing'])) {
+        Route::post('/checkout/payment/{order}/pay', [PembeliController::class, 'simulatePay'])->name('checkout.payment.simulate');
+    }
     Route::get('/checkout/success/{order}', [PembeliController::class, 'checkoutSuccess'])->name('checkout.success');
     Route::get('/purchases', [PembeliController::class, 'purchases'])->name('purchases.index');
     Route::get('/purchases/{order}/download/{transaction}', PurchaseDownloadController::class)->name('purchases.download');

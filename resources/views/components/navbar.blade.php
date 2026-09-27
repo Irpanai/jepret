@@ -3,7 +3,7 @@
     $userRole = auth()->user()?->role;
 @endphp
 
-<nav class="sticky top-0 z-50 border-b border-public-line bg-white/95" x-data="{ cartCount: {{ $cartCount }} }" @cart:updated.window="cartCount = $event.detail.count">
+<nav class="sticky top-0 z-50 border-b border-public-line bg-white/95" x-data="{ cartCount: {{ $cartCount }} }" @cart:updated.window="cartCount = $event.detail.count ?? Math.max(0, cartCount + ($event.detail.delta ?? 0))">
     <div class="public-container">
         <div class="flex min-h-16 items-center justify-between gap-5">
             <a href="{{ route('landing') }}" class="flex items-center gap-3 text-sm font-extrabold uppercase tracking-normal text-public-ink" aria-label="Jepret home">

@@ -111,44 +111,23 @@
     <section id="pricing" class="border-y border-public-line bg-public-bone py-16 sm:py-24">
         <div class="public-container" data-reveal>
             @php
-                $pricingPlans = [
-                    [
-                        'name' => 'Trial',
-                        'price' => 'Gratis',
-                        'period' => '7 hari',
-                        'storage' => '500 MB',
-                        'description' => 'Untuk mencoba Jepret selama 7 hari.',
-                        'features' => ['500 MB Cloud Storage', 'Upload & kelola foto', 'Protected preview', 'Marketplace access', 'Atur harga foto'],
-                        'cta' => 'Mulai Gratis',
-                    ],
-                    [
-                        'name' => 'Starter',
-                        'price' => 'Rp29.000',
-                        'period' => 'bulan',
-                        'storage' => '5 GB',
-                        'description' => 'Untuk photographer yang mulai aktif menjual.',
-                        'features' => ['5 GB Cloud Storage', 'Semua fitur utama Jepret', 'Protected preview + watermark', 'Dashboard photographer', 'Transaksi realtime'],
-                        'cta' => 'Pilih Starter',
-                    ],
-                    [
-                        'name' => 'Creator',
-                        'price' => 'Rp59.000',
-                        'period' => 'bulan',
-                        'storage' => '20 GB',
-                        'description' => 'Untuk photographer dengan aktivitas dan koleksi lebih besar.',
-                        'features' => ['20 GB Cloud Storage', 'Semua fitur Starter', 'Dashboard & monitoring penjualan', 'Statistik transaksi & pendapatan', 'Pengelolaan storage'],
-                        'cta' => 'Pilih Creator',
-                    ],
-                    [
-                        'name' => 'Studio',
-                        'price' => 'Custom',
-                        'period' => null,
-                        'storage' => 'Custom Storage',
-                        'description' => 'Untuk studio, tim, dan kebutuhan skala besar.',
-                        'features' => ['Kapasitas sesuai kebutuhan', 'Semua fitur Creator', 'Kebutuhan operasional custom', 'Dukungan kebutuhan tim', 'Konfigurasi fleksibel'],
-                        'cta' => 'Hubungi Kami',
-                    ],
-                ];
+                $pricingPlans = $pricingPlans->map(function ($package) {
+                    $quotaMb = $package->storageQuotaMb();
+
+                    return [
+                        'name' => $package->display_name,
+                        'id' => $package->id,
+                        'code' => $package->code,
+                        'price' => $package->is_custom ? 'Custom' : ($package->harga === 0 ? 'Gratis' : 'Rp'.number_format($package->harga, 0, ',', '.')),
+                        'period' => $package->billing_period,
+                        'storage' => $package->is_custom ? 'Custom Storage' : ($quotaMb >= 1024 ? number_format($quotaMb / 1024, 0).' GB' : number_format($quotaMb, 0).' MB'),
+                        'description' => $package->description,
+                        'features' => $package->features ?? [],
+                        'cta' => $package->is_custom ? 'Hubungi Kami' : ($package->is_trial ? 'Mulai Gratis' : 'Pilih '.$package->display_name),
+                        'is_custom' => $package->is_custom,
+                        'featured' => $package->code === 'creator',
+                    ];
+                });
             @endphp
 
             <div class="grid gap-8 border-b border-public-line pb-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
@@ -191,12 +170,15 @@
                             </ul>
                         </div>
 
-                        <a
-                            href="{{ $plan['name'] === 'Studio' ? 'mailto:jepretccfdd@gmail.com?subject=Paket%20Studio%20Jepret' : route('register', ['role' => 'fotografer']) }}"
-                            class="mt-8 inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}"
-                        >
-                            {{ $plan['cta'] }}
-                        </a>
+                        @auth
+                            @if($plan['is_custom'])
+                                <a href="https://wa.me/6285156767900?text={{ urlencode('Halo Jepret, saya tertarik dengan paket Studio Jepret.') }}" class="mt-8 inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}">{{ $plan['cta'] }}</a>
+                            @else
+                                <form class="mt-8" method="POST" action="{{ route('subscriptions.checkout', $plan['id']) }}">@csrf<button class="inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}">{{ $plan['cta'] }}</button></form>
+                            @endif
+                        @else
+                            <a href="{{ $plan['is_custom'] ? 'https://wa.me/6285156767900?text='.urlencode('Halo Jepret, saya tertarik dengan paket Studio Jepret.') : route('register', ['role' => 'fotografer', 'package' => $plan['code']]) }}" class="mt-8 inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}">{{ $plan['cta'] }}</a>
+                        @endauth
                     </article>
                 @endforeach
             </div>

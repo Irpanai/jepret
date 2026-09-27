@@ -16,7 +16,7 @@ class PhotoProcessor
 
     private const PHOTOGRAPHER_WATERMARK_SCALE = 30;
 
-    /** @return array{original:string,preview:string,purchased:string,bytes:int,media_type:string} */
+    /** @return array{original:string,preview:string,purchased:string,bytes:int,original_bytes:int,preview_bytes:int,purchased_bytes:int,media_type:string} */
     public function process(UploadedFile $file, string $eventSlug, string $personalWatermarkPath, array $watermarkSettings = []): array
     {
         $uuid = (string) Str::uuid();
@@ -38,7 +38,21 @@ class PhotoProcessor
             throw $exception;
         }
 
-        return ['original' => $original, 'preview' => $preview, 'purchased' => $purchased, 'bytes' => $file->getSize(), 'media_type' => $mediaType];
+        $disk = Storage::disk('local');
+        $originalBytes = $disk->size($original);
+        $previewBytes = $disk->size($preview);
+        $purchasedBytes = $disk->size($purchased);
+
+        return [
+            'original' => $original,
+            'preview' => $preview,
+            'purchased' => $purchased,
+            'bytes' => $originalBytes + $previewBytes + $purchasedBytes,
+            'original_bytes' => $originalBytes,
+            'preview_bytes' => $previewBytes,
+            'purchased_bytes' => $purchasedBytes,
+            'media_type' => $mediaType,
+        ];
     }
 
     private function processImage(string $source, string $preview, string $purchased, string $personalWatermarkPath, array $watermarkSettings = []): void

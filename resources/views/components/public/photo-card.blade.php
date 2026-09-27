@@ -46,7 +46,7 @@
             <time class="text-[9px] font-medium text-public-muted sm:text-[10px]" datetime="{{ optional($photo->taken_at ?? $photo->published_at ?? $photo->created_at)->toDateString() }}">
                 {{ optional($photo->taken_at ?? $photo->published_at ?? $photo->created_at)->translatedFormat('d M Y') }}
             </time>
-            <form method="POST" action="{{ route('cart.store') }}" data-cart-form data-authenticated="{{ auth()->check() ? 'true' : 'false' }}">
+            <form method="POST" action="{{ route('cart.store') }}" data-cart-form data-authenticated="{{ auth()->check() ? 'true' : 'false' }}" data-in-cart="{{ $isInCart ? 'true' : 'false' }}">
                 @csrf
                 <input type="hidden" name="photo_id" value="{{ $photo->id }}">
                 <button

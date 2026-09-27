@@ -65,6 +65,11 @@ class Transaction extends Model
         return $this->belongsTo(Photo::class);
     }
 
+    public function photoOrder(): BelongsTo
+    {
+        return $this->belongsTo(PhotoOrder::class);
+    }
+
     public function pembeli(): BelongsTo
     {
         return $this->belongsTo(User::class, 'pembeli_id');

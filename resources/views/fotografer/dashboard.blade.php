@@ -1,4 +1,9 @@
 <x-fg-layout>
+@if(! $user->subscription?->isActive())
+    <div class="mb-6 border border-amber-300 bg-amber-50 p-5 text-amber-900"><p class="font-extrabold">{{ $user->subscription?->trial_used_at ? 'Masa trial kamu telah berakhir, silakan melakukan pembelian paket yang tersedia.' : 'Subscription Photographer tidak aktif.' }}</p><p class="mt-1 text-sm">Dashboard tersedia dalam mode read-only.</p><a href="{{ route('pricing') }}" class="mt-4 inline-flex border border-amber-900 px-4 py-2 text-xs font-extrabold uppercase">Upgrade</a></div>
+@elseif(! $user->is_verified)
+    <div class="mb-6 border border-blue-300 bg-blue-50 p-5 text-blue-900"><p class="font-extrabold">Profil sedang menunggu persetujuan Super Admin.</p><p class="mt-1 text-sm">Upload dan penjualan akan tersedia setelah profil disetujui.</p></div>
+@endif
 <div class="space-y-7" x-data="{ latest: {{ $sales->first()?->id ?? 0 }}, newSale: false }" x-init="setInterval(async () => { const r = await fetch('{{ route('fotografer.dashboard.data') }}'); if (r.ok) { const d = await r.json(); if (d.latest_id > latest) { latest = d.latest_id; newSale = true; } } }, 15000)">
     <div x-cloak x-show="newSale" class="rounded-lg border border-gray-900 bg-gray-900 p-4 text-sm font-semibold text-white">Penjualan baru diterima. <button type="button" class="ml-2 underline" @click="window.location.reload()">Perbarui data</button></div>
     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p class="helper uppercase font-bold tracking-widest">Ringkasan</p><h1>Selamat datang, {{ $user->name }}</h1><p class="helper mt-2">Data penjualan, saldo, dan aktivitas karya Anda.</p></div><a class="button rounded-lg bg-black px-5 py-3 text-white" href="{{ route('fotografer.photos.index') }}">Upload foto</a></div>

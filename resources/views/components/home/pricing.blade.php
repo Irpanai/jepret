@@ -1,43 +1,4 @@
-@php
-    $pricingPlans = [
-        [
-            'name' => 'Trial',
-            'price' => 'Gratis',
-            'period' => '7 hari',
-            'storage' => '500 MB',
-            'description' => 'Untuk mencoba Jepret selama 7 hari.',
-            'features' => ['500 MB Cloud Storage', 'Upload & kelola foto', 'Protected preview', 'Marketplace access', 'Atur harga foto'],
-            'cta' => 'Mulai Gratis',
-        ],
-        [
-            'name' => 'Starter',
-            'price' => 'Rp29.000',
-            'period' => 'bulan',
-            'storage' => '5 GB',
-            'description' => 'Untuk photographer yang mulai aktif menjual.',
-            'features' => ['5 GB Cloud Storage', 'Semua fitur utama Jepret', 'Protected preview + watermark', 'Dashboard photographer', 'Transaksi realtime'],
-            'cta' => 'Pilih Starter',
-        ],
-        [
-            'name' => 'Creator',
-            'price' => 'Rp59.000',
-            'period' => 'bulan',
-            'storage' => '20 GB',
-            'description' => 'Untuk photographer dengan aktivitas dan koleksi lebih besar.',
-            'features' => ['20 GB Cloud Storage', 'Semua fitur Starter', 'Dashboard & monitoring penjualan', 'Statistik transaksi & pendapatan', 'Pengelolaan storage'],
-            'cta' => 'Pilih Creator',
-        ],
-        [
-            'name' => 'Studio',
-            'price' => 'Custom',
-            'period' => null,
-            'storage' => 'Custom Storage',
-            'description' => 'Untuk studio, tim, dan kebutuhan skala besar.',
-            'features' => ['Kapasitas sesuai kebutuhan', 'Semua fitur Creator', 'Kebutuhan operasional custom', 'Dukungan kebutuhan tim', 'Konfigurasi fleksibel'],
-            'cta' => 'Hubungi Kami',
-        ],
-    ];
-@endphp
+@props(['pricingPlans'])
 
 <section id="pricing" class="border-y border-public-line bg-public-bone py-16 sm:py-24">
     <div class="public-container" data-reveal>
@@ -53,26 +14,35 @@
 
         <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             @foreach($pricingPlans as $plan)
-                @php($isFeatured = $plan['featured'] ?? false)
+                @php
+                    $isFeatured = $plan->code === 'creator';
+                    $quotaMb = $plan->storageQuotaMb();
+                    $storage = $plan->is_custom ? 'Custom Storage' : ($quotaMb >= 1024 ? number_format($quotaMb / 1024, 0).' GB' : number_format($quotaMb, 0).' MB');
+                    $price = $plan->is_custom ? 'Custom' : ($plan->harga === 0 ? 'Gratis' : 'Rp'.number_format($plan->harga, 0, ',', '.'));
+                    $cta = $plan->is_custom ? 'Hubungi Kami' : ($plan->is_trial ? 'Mulai Gratis' : 'Pilih '.$plan->display_name);
+                    $href = $plan->is_custom
+                        ? 'https://wa.me/6285156767900?text='.urlencode('Halo Jepret, saya tertarik dengan paket Studio Jepret.')
+                        : route('register', ['role' => 'fotografer', 'package' => $plan->code]);
+                @endphp
                 <article class="flex min-w-0 flex-col border p-5 sm:p-6 {{ $isFeatured ? 'border-public-ink bg-public-ink text-white' : 'border-public-line bg-white text-public-ink' }}">
                     <div class="flex min-h-7 items-start justify-between gap-3">
-                        <h3 class="text-xl font-extrabold">{{ $plan['name'] }}</h3>
+                        <h3 class="text-xl font-extrabold">{{ $plan->display_name }}</h3>
                     </div>
 
                     <div class="mt-8 flex min-h-12 flex-wrap items-baseline gap-x-1">
-                        <p class="text-3xl font-extrabold sm:text-4xl">{{ $plan['price'] }}</p>
-                        @if($plan['period'])
-                            <span class="text-xs font-bold {{ $isFeatured ? 'text-white/55' : 'text-public-muted' }}">/ {{ $plan['period'] }}</span>
+                        <p class="text-3xl font-extrabold sm:text-4xl">{{ $price }}</p>
+                        @if($plan->billing_period)
+                            <span class="text-xs font-bold {{ $isFeatured ? 'text-white/55' : 'text-public-muted' }}">/ {{ $plan->billing_period }}</span>
                         @endif
                     </div>
 
-                    <p class="mt-3 text-xs font-extrabold uppercase {{ $isFeatured ? 'text-white/55' : 'text-public-muted' }}">{{ $plan['storage'] }}</p>
-                    <p class="mt-5 min-h-[4.5rem] text-sm font-semibold leading-6 {{ $isFeatured ? 'text-white/68' : 'text-public-muted' }}">{{ $plan['description'] }}</p>
+                    <p class="mt-3 text-xs font-extrabold uppercase {{ $isFeatured ? 'text-white/55' : 'text-public-muted' }}">{{ $storage }}</p>
+                    <p class="mt-5 min-h-[4.5rem] text-sm font-semibold leading-6 {{ $isFeatured ? 'text-white/68' : 'text-public-muted' }}">{{ $plan->description }}</p>
 
                     <div class="mt-6 border-t pt-5 {{ $isFeatured ? 'border-white/20' : 'border-public-line' }}">
                         <p class="text-xs font-extrabold uppercase {{ $isFeatured ? 'text-white/55' : 'text-public-muted' }}">Termasuk</p>
                         <ul class="mt-4 grid gap-3">
-                            @foreach($plan['features'] as $feature)
+                            @foreach($plan->features ?? [] as $feature)
                                 <li class="grid grid-cols-[18px_minmax(0,1fr)] gap-2 text-sm font-semibold leading-5">
                                     <span class="grid h-[18px] w-[18px] place-items-center border text-[10px] {{ $isFeatured ? 'border-white/35 text-white' : 'border-public-ink text-public-ink' }}" aria-hidden="true">+</span>
                                     <span>{{ $feature }}</span>
@@ -81,12 +51,18 @@
                         </ul>
                     </div>
 
-                    <a
-                        href="{{ $plan['name'] === 'Studio' ? 'mailto:jepretccfdd@gmail.com?subject=Paket%20Studio%20Jepret' : route('register', ['role' => 'fotografer']) }}"
-                        class="mt-8 inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}"
-                    >
-                        {{ $plan['cta'] }}
-                    </a>
+                    @auth
+                        @if($plan->is_custom)
+                            <a href="{{ $href }}" class="mt-8 inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}">{{ $cta }}</a>
+                        @else
+                            <form class="mt-8" method="POST" action="{{ route('subscriptions.checkout', $plan) }}">
+                                @csrf
+                                <button class="inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}">{{ $cta }}</button>
+                            </form>
+                        @endif
+                    @else
+                        <a href="{{ $href }}" class="mt-8 inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}">{{ $cta }}</a>
+                    @endauth
                 </article>
             @endforeach
         </div>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Camera;
 use App\Models\Event;
 use App\Models\Photo;
+use App\Models\User;
 use App\PhotoProcessor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\File;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -65,35 +67,44 @@ class PhotoController extends Controller
         if (! $watermarkPath || (! $user->photographer_watermark_locked && ! $request->hasFile('watermark'))) {
             return back()->withErrors(['watermark' => 'Unggah watermark PNG/WEBP untuk batch ini, atau kunci watermark tersimpan.'])->withInput();
         }
-        $batchBytes = collect($request->file('photos'))->sum(fn ($file) => $file->getSize());
-        $usedBytes = (int) Photo::where('fotografer_id', $user->id)
-            ->selectRaw('COALESCE(SUM(COALESCE(storage_bytes, file_size_mb * 1048576)), 0) AS total_bytes')
-            ->value('total_bytes');
-        if ($usedBytes + $batchBytes > $user->effectiveQuotaMb() * 1048576) {
-            return back()->withErrors(['photos' => 'Storage tidak mencukupi.'])->withInput();
+        $createdPaths = [];
+        try {
+            DB::transaction(function () use ($request, $validated, $user, $event, $watermarkPath, $processor, &$createdPaths): void {
+                $lockedUser = User::whereKey($user->id)->lockForUpdate()->firstOrFail()->load(['package', 'subscription']);
+                $usedBytes = (int) Photo::where('fotografer_id', $user->id)->sum('storage_bytes');
+                foreach ($request->file('photos') as $index => $file) {
+                    $watermarkSettings = $validated['watermark_settings'][$index] ?? [
+                        'x' => 50,
+                        'y' => 85,
+                        'scale' => 30,
+                        'opacity' => 100,
+                    ];
+                    $paths = $processor->process($file, Str::slug($event->nama_event), $watermarkPath, $watermarkSettings);
+                    $createdPaths[] = $paths['original'];
+                    $createdPaths[] = $paths['preview'];
+                    $createdPaths[] = $paths['purchased'];
+                    if ($usedBytes + $paths['bytes'] > $lockedUser->effectiveQuotaMb() * 1048576) {
+                        throw ValidationException::withMessages(['photos' => 'Storage tidak mencukupi.']);
+                    }
+                    $usedBytes += $paths['bytes'];
+                    Photo::create([
+                        'event_id' => $event->id, 'fotografer_id' => $user->id, 'camera_id' => $validated['camera_id'] ?? null,
+                        'title' => trim((string) ($validated['photo_titles'][$index] ?? $validated['title'] ?? '')) ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                        'file_asli' => $paths['original'], 'file_watermark' => $paths['preview'], 'purchased_path' => $paths['purchased'],
+                        'personal_watermark_path' => $watermarkPath, 'media_type' => $paths['media_type'], 'storage_bytes' => $paths['bytes'],
+                        'original_bytes' => $paths['original_bytes'], 'preview_bytes' => $paths['preview_bytes'], 'purchased_bytes' => $paths['purchased_bytes'],
+                        'watermark_settings' => $watermarkSettings,
+                        'harga' => $validated['harga'], 'status' => 'active', 'published_at' => now(), 'taken_at' => $validated['taken_at'] ?? null,
+                        'daypart' => $validated['daypart'] ?? null, 'category' => $validated['category'] ?? null,
+                        'original_filename' => $file->getClientOriginalName(), 'file_size_mb' => round($paths['bytes'] / 1048576, 2),
+                    ]);
+                }
+                $lockedUser->forceFill(['storage_terpakai_mb' => (int) ceil($usedBytes / 1048576)])->save();
+            });
+        } catch (\Throwable $exception) {
+            Storage::disk('local')->delete($createdPaths);
+            throw $exception;
         }
-        DB::transaction(function () use ($request, $validated, $user, $event, $watermarkPath, $processor): void {
-            foreach ($request->file('photos') as $index => $file) {
-                $watermarkSettings = $validated['watermark_settings'][$index] ?? [
-                    'x' => 50,
-                    'y' => 85,
-                    'scale' => 30,
-                    'opacity' => 100,
-                ];
-                $paths = $processor->process($file, Str::slug($event->nama_event), $watermarkPath, $watermarkSettings);
-                Photo::create([
-                    'event_id' => $event->id, 'fotografer_id' => $user->id, 'camera_id' => $validated['camera_id'] ?? null,
-                    'title' => trim((string) ($validated['photo_titles'][$index] ?? $validated['title'] ?? '')) ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
-                    'file_asli' => $paths['original'], 'file_watermark' => $paths['preview'], 'purchased_path' => $paths['purchased'],
-                    'personal_watermark_path' => $watermarkPath, 'media_type' => $paths['media_type'], 'storage_bytes' => $paths['bytes'],
-                    'watermark_settings' => $watermarkSettings,
-                    'harga' => $validated['harga'], 'status' => 'active', 'published_at' => now(), 'taken_at' => $validated['taken_at'] ?? null,
-                    'daypart' => $validated['daypart'] ?? null, 'category' => $validated['category'] ?? null,
-                    'original_filename' => $file->getClientOriginalName(), 'file_size_mb' => round($paths['bytes'] / 1048576, 2),
-                ]);
-            }
-            $user->forceFill(['storage_terpakai_mb' => (int) ceil(Photo::where('fotografer_id', $user->id)->sum('storage_bytes') / 1048576)])->save();
-        });
 
         return back()->with('success', count($request->file('photos')).' file berhasil diunggah.');
     }
@@ -110,6 +121,11 @@ class PhotoController extends Controller
     public function destroy(Photo $photo, Request $request): RedirectResponse
     {
         abort_unless($photo->fotografer_id === $request->user()->id, 404);
+        if ($photo->transactions()->exists()) {
+            $photo->update(['status' => 'inactive', 'published_at' => null]);
+
+            return back()->with('success', 'Foto yang pernah terjual diarsipkan agar hak unduh Buyer tetap tersedia.');
+        }
         Storage::disk('local')->delete(array_filter([$photo->file_asli, $photo->file_watermark, $photo->purchased_path]));
         $photo->delete();
         $request->user()->forceFill(['storage_terpakai_mb' => (int) ceil(Photo::where('fotografer_id', $request->user()->id)->sum('storage_bytes') / 1048576)])->save();

@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\MidtransService;
 use App\Models\Event;
 use App\Models\Photo;
+use App\Models\PhotoOrder;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class MarketplaceFlowTest extends TestCase
@@ -42,6 +45,7 @@ class MarketplaceFlowTest extends TestCase
 
     public function test_photographer_can_purchase_another_photographers_photo_with_the_existing_flow(): void
     {
+        $this->fakeMidtrans();
         Storage::fake('local');
         $buyer = User::factory()->fotografer()->create(['is_verified' => true, 'verified_at' => now()]);
         $seller = User::factory()->fotografer()->create(['saldo' => 0, 'is_verified' => true, 'verified_at' => now()]);
@@ -104,6 +108,7 @@ class MarketplaceFlowTest extends TestCase
 
     public function test_checkout_creates_pending_transactions_with_90_10_snapshot(): void
     {
+        $this->fakeMidtrans();
         $buyer = User::factory()->pembeli()->create();
         $photographer = User::factory()->fotografer()->create(['saldo' => 0, 'is_verified' => true, 'verified_at' => now()]);
         $photo = $this->createMarketplacePhoto($photographer, ['harga' => 25000]);
@@ -120,10 +125,20 @@ class MarketplaceFlowTest extends TestCase
         $this->assertSame(2500, $transaction->platform_amount);
         $this->assertSame(90, $transaction->revenue_share_snapshot['photographer_percent']);
         $this->assertSame(10, $transaction->revenue_share_snapshot['platform_percent']);
+        $this->assertNotNull($transaction->photo_order_id);
+        $this->assertSame('sandbox-snap-token', $transaction->photoOrder->snap_token);
+
+        $this->actingAs($buyer)
+            ->get(route('checkout.payment', ['order' => $transaction->order_number]))
+            ->assertOk()
+            ->assertSee('window.snap.pay', false)
+            ->assertDontSee('Bayar dengan Midtrans')
+            ->assertDontSee('Tandai Paid (Local)');
     }
 
     public function test_multi_item_checkout_keeps_cart_until_every_item_is_paid(): void
     {
+        $this->fakeMidtrans();
         $buyer = User::factory()->pembeli()->create();
         $firstPhoto = $this->createMarketplacePhoto(attributes: ['harga' => 20000]);
         $secondPhoto = $this->createMarketplacePhoto(attributes: ['harga' => 35000]);
@@ -220,8 +235,14 @@ class MarketplaceFlowTest extends TestCase
         $buyer = User::factory()->pembeli()->create();
         $photo = $this->createMarketplacePhoto();
         $orderNumber = 'JEPRET-TEST-PAID';
+        $photoOrder = PhotoOrder::factory()->create([
+            'order_id' => $orderNumber,
+            'user_id' => $buyer->id,
+            'gross_amount' => $photo->harga,
+        ]);
 
         $transaction = Transaction::factory()->create([
+            'photo_order_id' => $photoOrder->id,
             'order_number' => $orderNumber,
             'pembeli_id' => $buyer->id,
             'photo_id' => $photo->id,
@@ -305,6 +326,26 @@ class MarketplaceFlowTest extends TestCase
         }
     }
 
+    public function test_sold_photo_is_archived_without_removing_buyer_transaction(): void
+    {
+        $photographer = User::factory()->fotografer()->create(['is_verified' => true]);
+        $buyer = User::factory()->pembeli()->create();
+        $photo = $this->createMarketplacePhoto($photographer);
+        $transaction = Transaction::factory()->create([
+            'pembeli_id' => $buyer->id,
+            'photo_id' => $photo->id,
+            'fotografer_id' => $photographer->id,
+            'status' => 'paid',
+            'payment_status' => 'paid',
+        ]);
+
+        $this->actingAs($photographer)->delete(route('fotografer.photos.destroy', $photo))->assertSessionHasNoErrors();
+
+        $this->assertModelExists($photo);
+        $this->assertModelExists($transaction);
+        $this->assertSame('inactive', $photo->fresh()->status);
+    }
+
     /**
      * @param  array<string, mixed>  $attributes
      */
@@ -320,5 +361,15 @@ class MarketplaceFlowTest extends TestCase
             'published_at' => now(),
             'harga' => 20000,
         ], $attributes));
+    }
+
+    private function fakeMidtrans(): void
+    {
+        $this->mock(MidtransService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('createPhotoOrderTransaction')->once()->andReturn([
+                'token' => 'sandbox-snap-token',
+                'redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/test',
+            ]);
+        });
     }
 }

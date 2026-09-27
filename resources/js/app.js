@@ -9,6 +9,20 @@ Alpine.data('photoWatermarkEditor', photoWatermarkEditor);
 
 Alpine.start();
 
+const updateCartButton = (form, inCart) => {
+    const button = form.querySelector('button[type="submit"]');
+    const cartIcon = form.querySelector('[data-cart-icon]');
+    const checkIcon = form.querySelector('[data-cart-check]');
+
+    cartIcon?.classList.toggle('hidden', inCart);
+    checkIcon?.classList.toggle('hidden', !inCart);
+    button?.classList.toggle('border-public-ink', inCart);
+    button?.classList.toggle('bg-public-ink', inCart);
+    button?.classList.toggle('text-white', inCart);
+    button?.setAttribute('aria-label', inCart ? 'Foto sudah ada di keranjang' : 'Tambahkan foto ke keranjang');
+    button?.setAttribute('title', inCart ? 'Sudah di keranjang' : 'Tambah ke keranjang');
+};
+
 document.addEventListener('submit', async (event) => {
     const form = event.target.closest('[data-cart-form]');
 
@@ -20,11 +34,15 @@ document.addEventListener('submit', async (event) => {
 
     const button = form.querySelector('button[type="submit"]');
 
-    if (button?.disabled) {
+    if (button?.disabled || form.dataset.inCart === 'true') {
         return;
     }
 
     button.disabled = true;
+    form.dataset.inCart = 'true';
+    updateCartButton(form, true);
+    window.dispatchEvent(new CustomEvent('cart:updated', { detail: { delta: 1 } }));
+    window.dispatchEvent(new CustomEvent('cart:added', { detail: { message: 'Ditambahkan ke keranjang' } }));
 
     try {
         const response = await fetch(form.action, {
@@ -41,18 +59,12 @@ document.addEventListener('submit', async (event) => {
         }
 
         const payload = await response.json();
-        const cartIcon = form.querySelector('[data-cart-icon]');
-        const checkIcon = form.querySelector('[data-cart-check]');
-
-        cartIcon?.classList.add('hidden');
-        checkIcon?.classList.remove('hidden');
-        button.classList.add('border-public-ink', 'bg-public-ink', 'text-white');
-        button.setAttribute('aria-label', 'Foto sudah ada di keranjang');
-        button.setAttribute('title', 'Sudah di keranjang');
 
         window.dispatchEvent(new CustomEvent('cart:updated', { detail: { count: payload.cart_count } }));
-        window.dispatchEvent(new CustomEvent('cart:added', { detail: { message: payload.message } }));
     } catch (error) {
+        form.dataset.inCart = 'false';
+        updateCartButton(form, false);
+        window.dispatchEvent(new CustomEvent('cart:updated', { detail: { delta: -1 } }));
         window.dispatchEvent(new CustomEvent('cart:added', { detail: { message: 'Gagal menambahkan foto. Coba lagi.' } }));
     } finally {
         button.disabled = false;

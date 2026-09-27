@@ -6,6 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -43,9 +44,28 @@ class User extends Authenticatable
         return $this->belongsTo(Package::class);
     }
 
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class);
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        return $this->subscription?->isActive() ?? false;
+    }
+
+    public function scopeWithActiveSubscription(Builder $query): void
+    {
+        $query->whereHas('subscription', fn (Builder $subscription) => $subscription
+            ->where('status', 'active')
+            ->where(fn (Builder $dates) => $dates->whereNull('ends_at')->orWhere('ends_at', '>', now())));
+    }
+
     public function effectiveQuotaMb(): float
     {
-        return (float) ($this->storage_quota_override_mb ?? $this->package?->kuota_storage_mb ?? 5000);
+        $subscriptionQuotaBytes = $this->subscription?->entitlement_snapshot['storage_quota_bytes'] ?? null;
+
+        return (float) ($this->storage_quota_override_mb ?? ($subscriptionQuotaBytes !== null ? $subscriptionQuotaBytes / 1048576 : null) ?? $this->package?->storageQuotaMb() ?? $this->package?->kuota_storage_mb ?? 5000);
     }
 
     public function verificationState(): string

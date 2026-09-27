@@ -8,5 +8,5 @@
         </div>
     </div>
     
-    <x-home.pricing />
+    <x-home.pricing :pricing-plans="$pricingPlans" />
 </x-marketplace-layout>

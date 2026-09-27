@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\EnsureActiveSubscription;
+use App\Http\Middleware\EnsureApprovedPhotographer;
+use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,8 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'role' => RoleMiddleware::class,
+            'subscription.active' => EnsureActiveSubscription::class,
+            'photographer.approved' => EnsureApprovedPhotographer::class,
         ]);
+        $middleware->validateCsrfTokens(except: ['payments/midtrans/notification']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

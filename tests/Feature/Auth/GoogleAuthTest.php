@@ -20,7 +20,7 @@ class GoogleAuthTest extends TestCase
         $this->assertStringContainsString('accounts.google.com', $response->getTargetUrl());
     }
 
-    public function test_new_user_can_register_via_google_with_selected_role(): void
+    public function test_photographer_intent_does_not_grant_role_before_subscription_activation(): void
     {
         $abstractUser = Mockery::mock('Laravel\Socialite\Two\User');
         $abstractUser->shouldReceive('getId')->andReturn('google-12345');
@@ -41,9 +41,9 @@ class GoogleAuthTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'fotografer@example.com',
             'google_id' => 'google-12345',
-            'role' => 'fotografer',
+            'role' => 'pembeli',
         ]);
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('galeri', absolute: false));
     }
 
     public function test_existing_user_can_link_google_account_on_login(): void

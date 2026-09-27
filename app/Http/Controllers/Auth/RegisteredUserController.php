@@ -18,8 +18,12 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
+        if ($request->query('role') === 'fotografer' && $request->filled('package')) {
+            session(['intended_photographer_package' => $request->string('package')->toString()]);
+        }
+
         return view('auth.register');
     }
 
@@ -41,12 +45,16 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->input('role', 'pembeli'),
+            'role' => 'pembeli',
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
+
+        if (session()->has('intended_photographer_package')) {
+            return redirect()->route('pricing');
+        }
 
         return redirect(route('dashboard', absolute: false));
     }

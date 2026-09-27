@@ -24,9 +24,10 @@ class CartController extends Controller
             'photo_id' => 'required|exists:photos,id',
         ]);
 
-        $photo = Photo::with(['fotografer', 'event'])
+        $photo = Photo::query()
+            ->select(['id'])
             ->where('status', 'active')
-            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))
+            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())
             ->findOrFail($request->photo_id);
 
         $cart = session()->get('cart', []);

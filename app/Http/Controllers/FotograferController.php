@@ -21,7 +21,7 @@ class FotograferController extends Controller
 {
     public function dashboard(Request $request, TransactionReporting $reporting): View
     {
-        $user = $request->user()->load('package');
+        $user = $request->user()->load(['package', 'subscription']);
         $base = $reporting->query($request, $user->id);
         $paid = (clone $base)->paid();
         $sales = (clone $paid)->latest('paid_at')->paginate(5, ['*'], 'sales_page')->withQueryString();

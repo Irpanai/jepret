@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\AdminAuditLog;
 use App\Models\PlatformSetting;
+use App\Models\Subscription;
+use App\Models\SubscriptionOrder;
+use App\Models\SubscriptionRefund;
 use App\Models\User;
 use App\Models\Withdrawal;
 use App\TransactionReporting;
@@ -159,5 +162,24 @@ class SuperAdminController extends Controller
         AdminAuditLog::record($request->user(), 'settings.updated', $request->user(), ['before' => $before, 'after' => $data]);
 
         return back()->with('success', 'Pengaturan platform disimpan.');
+    }
+
+    public function subscriptions(): View
+    {
+        $subscriptions = Subscription::with(['user', 'package'])->latest()->paginate(15, ['*'], 'subscriptions');
+        $orders = SubscriptionOrder::with(['user', 'package'])->latest()->limit(30)->get();
+        $refunds = SubscriptionRefund::latest()->limit(30)->get();
+
+        return view('superadmin.subscriptions', compact('subscriptions', 'orders', 'refunds'));
+    }
+
+    public function reviewSubscriptionRefund(Request $request, SubscriptionRefund $refund): RedirectResponse
+    {
+        $data = $request->validate(['status' => ['required', 'in:approved,rejected'], 'review_notes' => ['nullable', 'string', 'max:1000']]);
+        $before = $refund->toArray();
+        $refund->update(['status' => $data['status'], 'review_notes' => $data['review_notes'] ?? null, 'reviewed_by' => $request->user()->id, 'reviewed_at' => now()]);
+        AdminAuditLog::record($request->user(), 'subscription_refund.reviewed', $refund, ['before' => $before, 'after' => $refund->fresh()->toArray()]);
+
+        return back()->with('success', 'Review refund disimpan tanpa mencabut akses otomatis.');
     }
 }

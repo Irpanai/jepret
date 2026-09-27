@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -44,8 +45,10 @@ class UserFactory extends Factory
             'role' => 'fotografer',
             'saldo' => fake()->numberBetween(100000, 5000000),
             'storage_terpakai_mb' => fake()->numberBetween(100, 10000),
-            'is_verified' => fake()->boolean(80), // 80% verified
-        ]);
+            'is_verified' => true,
+        ])->afterCreating(function (User $user): void {
+            Subscription::factory()->create(['user_id' => $user->id]);
+        });
     }
 
     public function pembeli(): static

@@ -11,6 +11,9 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        $this->call(ConnectedScenarioSeeder::class);
+        $this->call([
+            ConnectedScenarioSeeder::class,
+            PackageSeeder::class,
+        ]);
     }
 }

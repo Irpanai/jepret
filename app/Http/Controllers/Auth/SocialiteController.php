@@ -23,6 +23,9 @@ class SocialiteController extends Controller
         }
 
         session(['google_register_role' => $role]);
+        if ($role === 'fotografer' && $request->filled('package')) {
+            session(['intended_photographer_package' => $request->string('package')->toString()]);
+        }
 
         return Socialite::driver('google')->redirect();
     }
@@ -59,12 +62,16 @@ class SocialiteController extends Controller
                 'email' => $googleUser->getEmail(),
                 'google_id' => $googleUser->getId(),
                 'avatar' => $googleUser->getAvatar(),
-                'role' => $role,
+                'role' => 'pembeli',
                 'email_verified_at' => now(),
             ]);
         }
 
         Auth::login($user, true);
+
+        if (session()->has('intended_photographer_package')) {
+            return redirect()->intended(route('pricing', absolute: false));
+        }
 
         if ($user->role === 'pembeli') {
             return redirect()->intended(route('galeri', absolute: false));

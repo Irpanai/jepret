@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\MidtransService;
 use App\Models\Photo;
+use App\Models\PhotoOrder;
 use App\Models\Transaction;
-use App\Models\User;
+use App\PhotoOrderBilling;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Throwable;
 
 class PembeliController extends Controller
 {
@@ -41,7 +43,7 @@ class PembeliController extends Controller
         $cart = Photo::with(['fotografer', 'event'])
             ->whereIn('id', $ids)
             ->where('status', 'active')
-            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))
+            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())
             ->get()
             ->map(fn (Photo $photo): array => [
                 'id' => $photo->id,
@@ -56,7 +58,7 @@ class PembeliController extends Controller
         return view('checkout', compact('cart', 'total'));
     }
 
-    public function processCheckout(Request $request): RedirectResponse
+    public function processCheckout(Request $request, PhotoOrderBilling $billing, MidtransService $midtrans): RedirectResponse
     {
         $user = $request->user();
         $ids = array_values(array_unique(array_map('intval', session()->get('cart', []))));
@@ -65,10 +67,14 @@ class PembeliController extends Controller
             return redirect()->route('galeri')->withErrors(['cart' => 'Keranjang masih kosong.']);
         }
 
+        if (! filter_var($user->email, FILTER_VALIDATE_EMAIL)) {
+            return redirect()->route('profile.edit')->withErrors(['email' => 'Gunakan alamat email yang valid sebelum melakukan pembayaran.']);
+        }
+
         $photos = Photo::with('fotografer')
             ->whereIn('id', $ids)
             ->where('status', 'active')
-            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true))
+            ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())
             ->get();
 
         if ($photos->count() !== count($ids)) {
@@ -79,57 +85,29 @@ class PembeliController extends Controller
         $pendingCheckout = session('pending_checkout_order');
 
         if (is_array($pendingCheckout) && ($pendingCheckout['photo_ids'] ?? []) === $ids) {
-            $pendingOrderExists = Transaction::where('order_number', $pendingCheckout['order_id'] ?? '')
-                ->where('pembeli_id', $user->id)
-                ->where('payment_status', 'pending')
-                ->exists();
+            $pendingOrder = PhotoOrder::where('order_id', $pendingCheckout['order_id'] ?? '')
+                ->where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->first();
 
-            if ($pendingOrderExists) {
-                return redirect()->route('checkout.payment', ['order' => $pendingCheckout['order_id']]);
+            if ($pendingOrder) {
+                return $this->startPayment($pendingOrder, $midtrans);
             }
         }
 
-        $orderId = 'JEPRET-'.now()->format('YmdHis').'-'.Str::upper(Str::random(5));
-
-        DB::transaction(function () use ($photos, $user, $orderId): void {
-            foreach ($photos as $photo) {
-                $price = (int) $photo->harga;
-                $photographerAmount = Photo::photographerAmount($price);
-                $platformAmount = Photo::platformAmount($price);
-
-                Transaction::create([
-                    'order_number' => $orderId,
-                    'pembeli_id' => $user->id,
-                    'photo_id' => $photo->id,
-                    'fotografer_id' => $photo->fotografer_id,
-                    'harga_foto' => $price,
-                    'tip_amount' => 0,
-                    'total_bayar' => $price,
-                    'photographer_amount' => $photographerAmount,
-                    'platform_amount' => $platformAmount,
-                    'revenue_share_snapshot' => [
-                        'photographer_percent' => Photo::PHOTOGRAPHER_SHARE_PERCENT,
-                        'platform_percent' => Photo::PLATFORM_SHARE_PERCENT,
-                        'photographer_name' => $photo->fotografer->name ?? null,
-                    ],
-                    'status' => 'pending',
-                    'payment_status' => 'pending',
-                    'payment_method' => 'qris',
-                    'expires_at' => now()->addHour(),
-                ]);
-            }
-        });
+        $order = $billing->createOrder($user, $photos);
 
         session()->put('pending_checkout_order', [
-            'order_id' => $orderId,
+            'order_id' => $order->order_id,
             'photo_ids' => $ids,
         ]);
 
-        return redirect()->route('checkout.payment', ['order' => $orderId]);
+        return $this->startPayment($order, $midtrans);
     }
 
     public function paymentPage(Request $request, string $order): View
     {
+        $photoOrder = $this->buyerPhotoOrder($request, $order);
         $transactions = $this->buyerOrderTransactions($request, $order);
         $summary = $this->orderSummary($order, $transactions);
 
@@ -137,49 +115,35 @@ class PembeliController extends Controller
             'order_id' => $order,
             'transactions' => $transactions,
             'total' => $summary['total'],
-            'paymentStatus' => $summary['status'],
+            'paymentStatus' => $photoOrder->status,
+            'snapToken' => $photoOrder->snap_token,
+            'snapClientKey' => config('midtrans.client_key'),
+            'snapIsProduction' => (bool) config('midtrans.is_production'),
         ]);
     }
 
-    public function simulatePay(Request $request, string $order): RedirectResponse
+    public function paymentStatus(Request $request, string $order): JsonResponse
     {
-        $purchasedPhotoIds = DB::transaction(function () use ($request, $order): array {
-            $transactions = Transaction::where('order_number', $order)
-                ->where('pembeli_id', $request->user()->id)->lockForUpdate()->get();
-            abort_if($transactions->isEmpty(), 404);
-            foreach ($transactions->where('payment_status', 'pending') as $transaction) {
-                $transaction->update([
-                    'status' => 'paid',
-                    'payment_status' => 'paid',
-                    'paid_at' => now(),
-                    'payment_reference' => 'LOCAL-'.Str::upper(Str::random(10)),
-                ]);
+        $photoOrder = $this->buyerPhotoOrder($request, $order);
 
-                User::whereKey($transaction->fotografer_id)->lockForUpdate()->increment('saldo', $transaction->jumlah_fotografer);
-            }
+        return response()->json(['status' => $photoOrder->status]);
+    }
 
-            return $transactions->pluck('photo_id')->map(fn ($id): int => (int) $id)->all();
-        });
-
-        $cart = session()->get('cart', []);
-        foreach ($purchasedPhotoIds as $photoId) {
-            unset($cart[$photoId]);
-        }
-
-        if ($cart === []) {
-            session()->forget('cart');
-        } else {
-            session()->put('cart', $cart);
-        }
-        session()->forget('pending_checkout_order');
+    public function simulatePay(Request $request, string $order, PhotoOrderBilling $billing): RedirectResponse
+    {
+        $photoOrder = $this->buyerPhotoOrder($request, $order);
+        $billing->markPaidLocally($photoOrder);
+        $this->removePurchasedPhotosFromCart($this->buyerOrderTransactions($request, $order));
 
         return redirect()->route('checkout.success', ['order' => $order]);
     }
 
     public function checkoutSuccess(Request $request, string $order): View
     {
+        $photoOrder = $this->buyerPhotoOrder($request, $order);
         $transactions = $this->buyerOrderTransactions($request, $order);
-        abort_unless($this->orderSummary($order, $transactions)['status'] === 'paid', 404);
+        abort_unless($photoOrder->status === 'paid', 404);
+        $this->removePurchasedPhotosFromCart($transactions);
 
         return view('checkout-success', [
             'order' => $this->orderSummary($order, $transactions),
@@ -219,6 +183,39 @@ class PembeliController extends Controller
         abort_if($transactions->isEmpty(), 404);
 
         return $transactions;
+    }
+
+    private function buyerPhotoOrder(Request $request, string $order): PhotoOrder
+    {
+        return PhotoOrder::where('order_id', $order)->where('user_id', $request->user()->id)->firstOrFail();
+    }
+
+    private function startPayment(PhotoOrder $order, MidtransService $midtrans): RedirectResponse
+    {
+        if (! $order->snap_token) {
+            try {
+                $snap = $midtrans->createPhotoOrderTransaction($order);
+                $order->update(['snap_token' => $snap['token'], 'snap_redirect_url' => $snap['redirect_url']]);
+            } catch (Throwable $exception) {
+                report($exception);
+
+                return redirect()->route('cart.index')->withErrors(['payment' => 'Midtrans belum dapat membuat pembayaran. Periksa data akun lalu coba kembali.']);
+            }
+        }
+
+        return redirect()->route('checkout.payment', ['order' => $order->order_id]);
+    }
+
+    /** @param Collection<int, Transaction> $transactions */
+    private function removePurchasedPhotosFromCart(Collection $transactions): void
+    {
+        $cart = session()->get('cart', []);
+        foreach ($transactions as $transaction) {
+            unset($cart[$transaction->photo_id]);
+        }
+
+        $cart === [] ? session()->forget('cart') : session()->put('cart', $cart);
+        session()->forget('pending_checkout_order');
     }
 
     /**
