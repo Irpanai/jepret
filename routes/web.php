@@ -2,10 +2,10 @@
 
 use App\Http\Controllers\CameraController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\DokuWebhookController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\FotograferController;
 use App\Http\Controllers\MarketplaceController;
-use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\PembeliController;
 use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\PhotographerController;
@@ -76,7 +76,7 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/photographers', [PhotographerController::class, 'index'])->name('photographers.index');
 Route::get('/photographers/{photographer}', [PhotographerController::class, 'show'])->name('photographers.show');
-Route::post('/payments/midtrans/notification', MidtransWebhookController::class)->name('payments.midtrans.notification');
+Route::post('/payments/doku/notification', DokuWebhookController::class)->name('payments.doku.notification');
 
 Route::get('/sitemap.xml', function () {
     $photos = Photo::query()->where('status', 'active')->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())->select(['id', 'updated_at'])->get();

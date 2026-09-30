@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\MidtransService;
+use App\DokuPaymentGateway;
 use App\Models\Package;
 use App\Models\SubscriptionOrder;
 use App\Models\SubscriptionRefund;
@@ -11,10 +11,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Throwable;
 
 class SubscriptionCheckoutController extends Controller
 {
-    public function store(Request $request, Package $package, SubscriptionBilling $billing, MidtransService $midtrans): RedirectResponse
+    public function store(Request $request, Package $package, SubscriptionBilling $billing, DokuPaymentGateway $doku): RedirectResponse
     {
         abort_unless($package->is_active && ! $package->is_legacy && ! $package->is_custom, 404);
         if ($package->is_trial) {
@@ -24,9 +25,15 @@ class SubscriptionCheckoutController extends Controller
         }
 
         $order = $billing->createOrder($request->user(), $package);
-        if (! $order->snap_token) {
-            $snap = $midtrans->createSnapTransaction($order->load('user'));
-            $order->update(['snap_token' => $snap['token'], 'snap_redirect_url' => $snap['redirect_url']]);
+        if (! $order->qr_content) {
+            try {
+                $payment = $doku->createSubscriptionPayment($order);
+                $order->update(['provider_transaction_id' => $payment['reference'], 'provider_external_id' => $payment['external_id'], 'qr_content' => $payment['qr_content']]);
+            } catch (Throwable $exception) {
+                report($exception);
+
+                return back()->withErrors(['payment' => 'DOKU belum dapat membuat QRIS. Silakan coba kembali.']);
+            }
         }
 
         return redirect()->route('subscriptions.payment', $order);

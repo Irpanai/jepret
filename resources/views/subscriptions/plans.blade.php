@@ -7,7 +7,7 @@
                     <h1 class="mt-4 max-w-4xl text-4xl font-extrabold leading-none text-public-ink sm:text-6xl">Pilih ruang untuk mulai berkarya.</h1>
                 </div>
                 <p class="max-w-xl text-sm font-semibold leading-6 text-public-muted lg:justify-self-end">
-                    Aktifkan Trial satu kali atau pilih paket berbayar. Creator Center terbuka setelah Trial aktif atau pembayaran dikonfirmasi Midtrans.
+                    Aktifkan Trial satu kali atau pilih paket berbayar. Creator Center terbuka setelah Trial aktif atau pembayaran dikonfirmasi DOKU.
                 </p>
             </div>
 

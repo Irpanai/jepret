@@ -27,7 +27,7 @@ class SubscriptionOrderFactory extends Factory
             'package_snapshot' => ['code' => 'starter', 'name' => 'Starter', 'revision' => 1, 'price' => 29000, 'currency' => 'IDR', 'duration_days' => 30, 'storage_quota_bytes' => 5 * 1073741824],
             'gross_amount' => 29000,
             'currency' => 'IDR',
-            'provider' => 'midtrans',
+            'provider' => 'doku',
             'status' => 'pending',
             'source_subscription_version' => 0,
             'expires_at' => now()->addDay(),

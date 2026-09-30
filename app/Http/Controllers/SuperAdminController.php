@@ -31,7 +31,7 @@ class SuperAdminController extends Controller
         $pendingUsers = User::where('role', 'fotografer')->where('is_verified', false)->whereNull('verification_rejection_reason')->latest()->limit(5)->get();
         $pendingWithdrawals = Withdrawal::with('fotografer')->where('status', 'pending')->latest()->limit(5)->get();
         $storage = ['used_mb' => (float) User::where('role', 'fotografer')->sum('storage_terpakai_mb'), 'quota_mb' => (float) User::where('role', 'fotografer')->with('package')->get()->sum(fn ($user) => $user->effectiveQuotaMb())];
-        $integrations = ['database' => DB::connection()->getDatabaseName(), 'payment' => config('midtrans.server_key') ? 'Midtrans configured' : 'Simulated / not configured', 'storage' => config('filesystems.default'), 'queue' => config('queue.default'), 'mail' => config('mail.default')];
+        $integrations = ['database' => DB::connection()->getDatabaseName(), 'payment' => config('doku.client_id') ? 'DOKU configured' : 'Simulated / not configured', 'storage' => config('filesystems.default'), 'queue' => config('queue.default'), 'mail' => config('mail.default')];
 
         return view('superadmin.dashboard', compact('metrics', 'daily', 'locations', 'pendingUsers', 'pendingWithdrawals', 'storage', 'integrations'));
     }

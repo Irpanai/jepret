@@ -23,7 +23,7 @@ class PricingController extends Controller
         $pendingOrder = SubscriptionOrder::query()
             ->whereBelongsTo($user)
             ->where('status', 'pending')
-            ->whereNotNull('snap_token')
+            ->whereNotNull('qr_content')
             ->where('expires_at', '>', now())
             ->latest()
             ->first();

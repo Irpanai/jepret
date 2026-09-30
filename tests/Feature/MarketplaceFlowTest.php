@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\MidtransService;
+use App\DokuPaymentGateway;
 use App\Models\Event;
 use App\Models\Photo;
 use App\Models\PhotoOrder;
@@ -45,7 +45,7 @@ class MarketplaceFlowTest extends TestCase
 
     public function test_photographer_can_purchase_another_photographers_photo_with_the_existing_flow(): void
     {
-        $this->fakeMidtrans();
+        $this->fakeDoku();
         Storage::fake('local');
         $buyer = User::factory()->fotografer()->create(['is_verified' => true, 'verified_at' => now()]);
         $seller = User::factory()->fotografer()->create(['saldo' => 0, 'is_verified' => true, 'verified_at' => now()]);
@@ -108,7 +108,7 @@ class MarketplaceFlowTest extends TestCase
 
     public function test_checkout_creates_pending_transactions_with_90_10_snapshot(): void
     {
-        $this->fakeMidtrans();
+        $this->fakeDoku();
         $buyer = User::factory()->pembeli()->create();
         $photographer = User::factory()->fotografer()->create(['saldo' => 0, 'is_verified' => true, 'verified_at' => now()]);
         $photo = $this->createMarketplacePhoto($photographer, ['harga' => 25000]);
@@ -126,19 +126,19 @@ class MarketplaceFlowTest extends TestCase
         $this->assertSame(90, $transaction->revenue_share_snapshot['photographer_percent']);
         $this->assertSame(10, $transaction->revenue_share_snapshot['platform_percent']);
         $this->assertNotNull($transaction->photo_order_id);
-        $this->assertSame('sandbox-snap-token', $transaction->photoOrder->snap_token);
+        $this->assertSame('test-qris-content', $transaction->photoOrder->qr_content);
 
         $this->actingAs($buyer)
             ->get(route('checkout.payment', ['order' => $transaction->order_number]))
             ->assertOk()
-            ->assertSee('window.snap.pay', false)
+            ->assertSee('window.QRCode.toCanvas', false)
             ->assertDontSee('Bayar dengan Midtrans')
             ->assertDontSee('Tandai Paid (Local)');
     }
 
     public function test_multi_item_checkout_keeps_cart_until_every_item_is_paid(): void
     {
-        $this->fakeMidtrans();
+        $this->fakeDoku();
         $buyer = User::factory()->pembeli()->create();
         $firstPhoto = $this->createMarketplacePhoto(attributes: ['harga' => 20000]);
         $secondPhoto = $this->createMarketplacePhoto(attributes: ['harga' => 35000]);
@@ -363,12 +363,13 @@ class MarketplaceFlowTest extends TestCase
         ], $attributes));
     }
 
-    private function fakeMidtrans(): void
+    private function fakeDoku(): void
     {
-        $this->mock(MidtransService::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('createPhotoOrderTransaction')->once()->andReturn([
-                'token' => 'sandbox-snap-token',
-                'redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/test',
+        $this->mock(DokuPaymentGateway::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('createPhotoOrderPayment')->once()->andReturn([
+                'reference' => 'DOKU-REFERENCE',
+                'external_id' => '123456789',
+                'qr_content' => 'test-qris-content',
             ]);
         });
     }

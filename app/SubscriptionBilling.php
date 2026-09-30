@@ -37,9 +37,10 @@ class SubscriptionBilling
                 'package_snapshot' => $this->snapshot($package),
                 'gross_amount' => $package->harga,
                 'currency' => $package->currency,
+                'provider' => 'doku',
                 'status' => 'pending',
                 'source_subscription_version' => $subscription?->version ?? 0,
-                'expires_at' => now()->addDay(),
+                'expires_at' => now()->addMinutes(config('doku.qris_ttl_minutes')),
             ]);
         });
     }
@@ -87,20 +88,27 @@ class SubscriptionBilling
 
             $amount = (int) round((float) ($payload['gross_amount'] ?? 0));
             $validAmount = $amount === $order->gross_amount;
-            $result = ! $signatureValid ? 'invalid_signature' : (! $validAmount ? 'invalid_amount' : 'recorded');
+            $validCurrency = ($payload['currency'] ?? null) === $order->currency;
+            $result = ! $signatureValid ? 'invalid_signature' : (! $validAmount ? 'invalid_amount' : (! $validCurrency ? 'invalid_currency' : 'recorded'));
             PaymentEvent::create([
                 'subscription_order_id' => $order->id,
+                'provider' => 'doku',
                 'event_key' => $eventKey,
                 'provider_transaction_id' => $payload['transaction_id'] ?? null,
                 'provider_status' => $status,
                 'gross_amount' => $amount,
                 'signature_valid' => $signatureValid,
-                'payload' => collect($payload)->except(['signature_key'])->only(['order_id', 'status_code', 'gross_amount', 'transaction_status', 'transaction_id', 'payment_type', 'fraud_status', 'transaction_time', 'settlement_time'])->all(),
+                'payload' => collect($payload)->except(['signature_key'])->only(['order_id', 'status_code', 'gross_amount', 'currency', 'transaction_status', 'transaction_id', 'external_id', 'payment_type', 'transaction_time'])->all(),
                 'processing_result' => $result,
                 'provider_event_at' => $this->providerTime($payload),
             ]);
-            if (! $signatureValid || ! $validAmount) {
+            if (! $signatureValid || ! $validAmount || ! $validCurrency) {
                 return $result;
+            }
+            if ($paid && $order->expires_at?->isPast()) {
+                $order->update(['status' => 'expired', 'provider_status' => $status]);
+
+                return 'expired';
             }
 
             $order->update(['provider_status' => $status, 'provider_transaction_id' => $payload['transaction_id'] ?? $order->provider_transaction_id]);
@@ -113,7 +121,7 @@ class SubscriptionBilling
             }
 
             $mapped = match ($status) {
-                'deny' => 'failed', 'cancel' => 'cancelled', 'expire' => 'expired', 'refund', 'partial_refund' => 'refunded', default => 'pending',
+                'deny', 'failed' => 'failed', 'cancel' => 'cancelled', 'expire' => 'expired', 'refund', 'partial_refund' => 'refunded', default => 'pending',
             };
             $order->update(['status' => $mapped]);
 

@@ -22,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription.started' => EnsurePhotographerSubscriptionStarted::class,
             'photographer.approved' => EnsureApprovedPhotographer::class,
         ]);
-        $middleware->validateCsrfTokens(except: ['payments/midtrans/notification']);
+        $middleware->validateCsrfTokens(except: ['payments/doku/notification']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

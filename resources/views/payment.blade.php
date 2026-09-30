@@ -18,11 +18,12 @@
                         <p class="mt-2 text-sm font-semibold text-public-muted">Original file dapat diakses dari halaman Pembelian Saya.</p>
                         <a href="{{ route('checkout.success', ['order' => $order_id]) }}" class="public-button mt-6">Lihat Hasil Pembelian</a>
                     @elseif($paymentStatus === 'pending')
-                        <div class="mx-auto size-10 animate-spin rounded-full border-4 border-public-line border-t-public-ink" aria-hidden="true"></div>
-                        <h2 class="mt-5 text-2xl font-extrabold text-public-ink">Membuka pembayaran Midtrans.</h2>
+                        <canvas id="qris-code" class="mx-auto max-w-full" aria-label="QRIS untuk order {{ $order_id }}"></canvas>
+                        <h2 class="mt-5 text-2xl font-extrabold text-public-ink">Scan QRIS untuk membayar.</h2>
                         <p class="mx-auto mt-5 max-w-md text-sm font-semibold leading-6 text-public-muted">
-                            Pilih QRIS, transfer bank, e-wallet, atau metode lain melalui jendela pembayaran yang terbuka otomatis.
+                            Gunakan mobile banking atau aplikasi pembayaran yang mendukung QRIS.
                         </p>
+                        <p id="payment-expiry" class="mt-3 text-sm font-semibold text-public-muted"></p>
                         <div class="mt-5 inline-flex border border-public-line bg-public-bone px-4 py-3 text-xs font-extrabold uppercase text-public-muted">
                             Status: <span id="payment-state" class="ml-1">{{ $paymentStatus }}</span>
                         </div>
@@ -39,29 +40,46 @@
         </div>
     </section>
 
-    @if($paymentStatus === 'pending' && $snapToken)
-        <script src="{{ $snapIsProduction ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' }}" data-client-key="{{ $snapClientKey }}"></script>
+    @if($paymentStatus === 'pending' && $qrContent)
         <script>
             const paymentState = document.getElementById('payment-state');
             const successUrl = @json(route('checkout.success', ['order' => $order_id]));
+            window.QRCode.toCanvas(document.getElementById('qris-code'), @json($qrContent), { width: 280, margin: 1 });
 
-            window.snap.pay(@json($snapToken), {
-                onSuccess: () => paymentState.textContent = 'memverifikasi pembayaran',
-                onPending: () => paymentState.textContent = 'menunggu pembayaran',
-                onError: () => paymentState.textContent = 'pembayaran gagal',
-                onClose: () => paymentState.textContent = 'jendela pembayaran ditutup',
-            });
+            const expiry = new Date(@json($expiresAt));
+            const expiryLabel = document.getElementById('payment-expiry');
+            const updateCountdown = () => {
+                const seconds = Math.max(0, Math.floor((expiry.getTime() - Date.now()) / 1000));
+                expiryLabel.textContent = seconds > 0
+                    ? `Berlaku ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')} lagi`
+                    : 'QRIS telah kedaluwarsa.';
+            };
+            updateCountdown();
+            window.setInterval(updateCountdown, 1000);
 
             const paymentPoll = window.setInterval(async () => {
-                const response = await fetch(@json(route('checkout.payment.status', ['order' => $order_id])), {
-                    headers: { Accept: 'application/json' },
-                });
-                const data = await response.json();
-                paymentState.textContent = data.status;
+                if (document.hidden) {
+                    return;
+                }
 
-                if (data.status === 'paid') {
-                    window.clearInterval(paymentPoll);
-                    window.location.assign(successUrl);
+                try {
+                    const response = await fetch(@json(route('checkout.payment.status', ['order' => $order_id])), {
+                        headers: { Accept: 'application/json' },
+                    });
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const data = await response.json();
+                    paymentState.textContent = data.status;
+
+                    if (data.status === 'paid') {
+                        window.clearInterval(paymentPoll);
+                        window.location.assign(successUrl);
+                    }
+                } catch (_) {
+                    paymentState.textContent = 'koneksi terputus, mencoba kembali';
                 }
             }, 3000);
         </script>

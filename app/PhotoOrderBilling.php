@@ -27,9 +27,9 @@ class PhotoOrderBilling
                 'user_id' => $user->id,
                 'gross_amount' => $photos->sum(fn (Photo $photo): int => (int) $photo->harga),
                 'currency' => 'IDR',
-                'provider' => 'midtrans',
+                'provider' => 'doku',
                 'status' => 'pending',
-                'expires_at' => now()->addDay(),
+                'expires_at' => now()->addMinutes(config('doku.qris_ttl_minutes')),
             ]);
 
             foreach ($photos as $photo) {
@@ -64,9 +64,10 @@ class PhotoOrderBilling
     public function processNotification(PhotoOrder $order, array $payload, bool $signatureValid): string
     {
         $status = (string) ($payload['transaction_status'] ?? '');
+        $paid = $status === 'settlement' || ($status === 'capture' && ($payload['fraud_status'] ?? null) === 'accept');
         $eventKey = hash('sha256', implode('|', [$order->order_id, $payload['transaction_id'] ?? '', $status, $payload['status_code'] ?? '', $payload['settlement_time'] ?? $payload['transaction_time'] ?? '', $payload['signature_key'] ?? '']));
 
-        return DB::transaction(function () use ($order, $payload, $signatureValid, $status, $eventKey): string {
+        return DB::transaction(function () use ($order, $payload, $signatureValid, $status, $paid, $eventKey): string {
             $order = PhotoOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (PaymentEvent::where('event_key', $eventKey)->exists()) {
                 return 'duplicate';
@@ -74,20 +75,29 @@ class PhotoOrderBilling
 
             $amount = (int) round((float) ($payload['gross_amount'] ?? 0));
             $validAmount = $amount === (int) $order->gross_amount;
-            $result = ! $signatureValid ? 'invalid_signature' : (! $validAmount ? 'invalid_amount' : 'recorded');
+            $validCurrency = ($payload['currency'] ?? null) === $order->currency;
+            $result = ! $signatureValid ? 'invalid_signature' : (! $validAmount ? 'invalid_amount' : (! $validCurrency ? 'invalid_currency' : 'recorded'));
             $event = PaymentEvent::create([
                 'photo_order_id' => $order->id,
+                'provider' => 'doku',
                 'event_key' => $eventKey,
                 'provider_transaction_id' => $payload['transaction_id'] ?? null,
                 'provider_status' => $status,
                 'gross_amount' => $amount,
                 'signature_valid' => $signatureValid,
-                'payload' => collect($payload)->except(['signature_key'])->only(['order_id', 'status_code', 'gross_amount', 'transaction_status', 'transaction_id', 'payment_type', 'fraud_status', 'transaction_time', 'settlement_time'])->all(),
+                'payload' => collect($payload)->except(['signature_key'])->only(['order_id', 'status_code', 'gross_amount', 'currency', 'transaction_status', 'transaction_id', 'external_id', 'payment_type', 'transaction_time'])->all(),
                 'processing_result' => $result,
                 'provider_event_at' => $this->providerTime($payload),
             ]);
-            if (! $signatureValid || ! $validAmount) {
+            if (! $signatureValid || ! $validAmount || ! $validCurrency) {
                 return $result;
+            }
+            if ($paid && $order->expires_at?->isPast()) {
+                $order->update(['status' => 'expired', 'provider_status' => $status]);
+                $order->transactions()->where('payment_status', 'pending')->update(['status' => 'expired', 'payment_status' => 'expired']);
+                $event->update(['processing_result' => 'expired']);
+
+                return 'expired';
             }
 
             if ($order->processed_at && $order->status === 'paid') {
@@ -108,7 +118,6 @@ class PhotoOrderBilling
                 'provider_transaction_id' => $payload['transaction_id'] ?? $order->provider_transaction_id,
                 'payment_method' => $payload['payment_type'] ?? $order->payment_method,
             ];
-            $paid = $status === 'settlement' || ($status === 'capture' && ($payload['fraud_status'] ?? null) === 'accept');
             if ($paid) {
                 $paidAt = $this->providerTime($payload) ?? now();
                 $order->update($providerValues + ['status' => 'paid', 'provider_paid_at' => $paidAt]);
@@ -119,7 +128,7 @@ class PhotoOrderBilling
             }
 
             $mapped = match ($status) {
-                'deny' => 'failed',
+                'deny', 'failed' => 'failed',
                 'cancel' => 'cancelled',
                 'expire' => 'expired',
                 default => 'pending',

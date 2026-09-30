@@ -25,7 +25,7 @@ class EnsurePhotographerSubscriptionStarted
         $pendingOrder = SubscriptionOrder::query()
             ->where('user_id', $user?->id)
             ->where('status', 'pending')
-            ->whereNotNull('snap_token')
+            ->whereNotNull('qr_content')
             ->where('expires_at', '>', now())
             ->latest()
             ->first();

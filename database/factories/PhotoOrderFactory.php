@@ -24,7 +24,7 @@ class PhotoOrderFactory extends Factory
             'user_id' => User::factory(),
             'gross_amount' => 20000,
             'currency' => 'IDR',
-            'provider' => 'midtrans',
+            'provider' => 'doku',
             'status' => 'pending',
             'expires_at' => now()->addDay(),
         ];

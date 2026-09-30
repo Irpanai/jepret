@@ -37,7 +37,7 @@ class SubscriptionFlowTest extends TestCase
             'photographer_onboarded_at' => now(),
         ]);
         $order = app(SubscriptionBilling::class)->createOrder($photographer, Package::where('code', 'starter')->firstOrFail());
-        $order->update(['snap_token' => 'pending-snap-token']);
+        $order->update(['qr_content' => 'pending-qris-content']);
 
         $this->actingAs($photographer)->get(route('fotografer.dashboard'))
             ->assertRedirect(route('subscriptions.payment', $order, absolute: false));
@@ -82,15 +82,15 @@ class SubscriptionFlowTest extends TestCase
 
     public function test_valid_webhook_activates_subscription_once_and_duplicate_is_idempotent(): void
     {
-        config(['midtrans.server_key' => 'test-server-key']);
+        $this->configureDoku();
         $this->seed(PackageSeeder::class);
         $buyer = User::factory()->pembeli()->create();
         $starter = Package::where('code', 'starter')->firstOrFail();
         $order = app(SubscriptionBilling::class)->createOrder($buyer, $starter);
-        $payload = $this->payload($order, 'settlement', '2026-09-26 10:00:00');
+        $payload = $this->payload($order, '00', '2026-09-26 10:00:00');
 
-        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk()->assertJson(['result' => 'paid']);
-        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk()->assertJson(['result' => 'duplicate']);
+        $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
+        $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
 
         $subscription = Subscription::where('user_id', $buyer->id)->firstOrFail();
         $this->assertSame($starter->id, $subscription->package_id);
@@ -100,19 +100,19 @@ class SubscriptionFlowTest extends TestCase
 
     public function test_invalid_signature_or_amount_does_not_activate_subscription(): void
     {
-        config(['midtrans.server_key' => 'test-server-key']);
+        $this->configureDoku();
         $this->seed(PackageSeeder::class);
         $buyer = User::factory()->pembeli()->create();
         $order = app(SubscriptionBilling::class)->createOrder($buyer, Package::where('code', 'starter')->firstOrFail());
 
-        $badSignature = $this->payload($order, 'settlement', '2026-09-26 10:00:00');
-        $badSignature['signature_key'] = 'invalid';
-        $this->postJson(route('payments.midtrans.notification'), $badSignature)->assertUnprocessable();
+        $badSignature = $this->payload($order, '00', '2026-09-26 10:00:00');
+        $headers = $this->headers($badSignature);
+        $headers['X-SIGNATURE'] = 'invalid';
+        $this->postJson(route('payments.doku.notification'), $badSignature, $headers)->assertUnauthorized();
 
-        $badAmount = $this->payload($order, 'settlement', '2026-09-26 10:01:00');
-        $badAmount['gross_amount'] = '1.00';
-        $badAmount['signature_key'] = $this->signature($badAmount);
-        $this->postJson(route('payments.midtrans.notification'), $badAmount)->assertUnprocessable();
+        $badAmount = $this->payload($order, '00', '2026-09-26 10:01:00');
+        $badAmount['amount']['value'] = '1.00';
+        $this->postJson(route('payments.doku.notification'), $badAmount, $this->headers($badAmount))->assertBadRequest();
 
         $this->assertDatabaseMissing('subscriptions', ['user_id' => $buyer->id]);
         $this->assertSame('pembeli', $buyer->fresh()->role);
@@ -201,27 +201,37 @@ class SubscriptionFlowTest extends TestCase
         $this->assertTrue($user->fresh()->subscription->isActive());
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, mixed> */
     private function payload(SubscriptionOrder $order, string $status, string $settlementTime): array
     {
-        $payload = [
-            'order_id' => $order->order_id,
-            'status_code' => '200',
-            'gross_amount' => number_format($order->gross_amount, 2, '.', ''),
-            'transaction_status' => $status,
-            'transaction_id' => 'midtrans-'.$order->id,
-            'payment_type' => 'qris',
-            'fraud_status' => 'accept',
-            'settlement_time' => $settlementTime,
-        ];
-        $payload['signature_key'] = $this->signature($payload);
+        $order->update(['provider_external_id' => '987654321']);
 
-        return $payload;
+        return [
+            'originalPartnerReferenceNo' => $order->order_id,
+            'originalReferenceNo' => 'doku-'.$order->id,
+            'originalExternalId' => '987654321',
+            'latestTransactionStatus' => $status,
+            'transactionStatusDesc' => 'Test status',
+            'amount' => ['value' => number_format($order->gross_amount, 2, '.', ''), 'currency' => 'IDR'],
+            'paidTime' => $settlementTime,
+        ];
     }
 
-    /** @param array<string, string> $payload */
-    private function signature(array $payload): string
+    private function configureDoku(): void
     {
-        return hash('sha512', $payload['order_id'].$payload['status_code'].$payload['gross_amount'].config('midtrans.server_key'));
+        config(['doku.client_id' => 'test-client', 'doku.client_secret' => 'test-server-key']);
+    }
+
+    /** @param array<string, mixed> $payload
+     * @return array<string, string>
+     */
+    private function headers(array $payload): array
+    {
+        $timestamp = '2026-09-26T12:00:00+07:00';
+        $token = 'notification-token';
+        $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $signature = base64_encode(hash_hmac('sha512', 'POST:/payments/doku/notification:'.$token.':'.hash('sha256', $body).':'.$timestamp, 'test-server-key', true));
+
+        return ['X-PARTNER-ID' => 'test-client', 'X-EXTERNAL-ID' => 'notification-456', 'X-TIMESTAMP' => $timestamp, 'X-SIGNATURE' => $signature, 'Authorization' => 'Bearer '.$token];
     }
 }

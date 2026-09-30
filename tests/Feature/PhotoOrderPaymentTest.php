@@ -16,12 +16,12 @@ class PhotoOrderPaymentTest extends TestCase
 
     public function test_valid_webhook_pays_all_photographers_once_and_unlocks_downloads(): void
     {
-        config(['midtrans.server_key' => 'photo-test-key']);
+        $this->configureDoku();
         [$order, $firstPhotographer, $secondPhotographer] = $this->pendingOrder();
-        $payload = $this->payload($order, 'settlement', 'PHOTO-TXN-1');
+        $payload = $this->payload($order, '00', 'PHOTO-TXN-1');
 
-        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk()->assertJson(['result' => 'paid']);
-        $this->postJson(route('payments.midtrans.notification'), $payload)->assertOk()->assertJson(['result' => 'duplicate']);
+        $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
+        $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
 
         $this->assertSame('paid', $order->fresh()->status);
         $this->assertNotNull($order->fresh()->processed_at);
@@ -33,17 +33,17 @@ class PhotoOrderPaymentTest extends TestCase
 
     public function test_invalid_signature_and_amount_do_not_pay_or_credit_photographers(): void
     {
-        config(['midtrans.server_key' => 'photo-test-key']);
+        $this->configureDoku();
         [$order, $firstPhotographer] = $this->pendingOrder();
-        $invalidSignature = $this->payload($order, 'settlement', 'PHOTO-TXN-BAD-SIGNATURE');
-        $invalidSignature['signature_key'] = 'invalid';
+        $invalidSignature = $this->payload($order, '00', 'PHOTO-TXN-BAD-SIGNATURE');
 
-        $this->postJson(route('payments.midtrans.notification'), $invalidSignature)->assertUnprocessable()->assertJson(['result' => 'invalid_signature']);
+        $headers = $this->headers($invalidSignature);
+        $headers['X-SIGNATURE'] = 'invalid';
+        $this->postJson(route('payments.doku.notification'), $invalidSignature, $headers)->assertUnauthorized();
 
-        $invalidAmount = $this->payload($order, 'settlement', 'PHOTO-TXN-BAD-AMOUNT');
-        $invalidAmount['gross_amount'] = '1.00';
-        $invalidAmount['signature_key'] = $this->signature($invalidAmount);
-        $this->postJson(route('payments.midtrans.notification'), $invalidAmount)->assertUnprocessable()->assertJson(['result' => 'invalid_amount']);
+        $invalidAmount = $this->payload($order, '00', 'PHOTO-TXN-BAD-AMOUNT');
+        $invalidAmount['amount']['value'] = '1.00';
+        $this->postJson(route('payments.doku.notification'), $invalidAmount, $this->headers($invalidAmount))->assertBadRequest();
 
         $this->assertSame('pending', $order->fresh()->status);
         $this->assertSame(0, (int) $firstPhotographer->fresh()->saldo);
@@ -52,14 +52,30 @@ class PhotoOrderPaymentTest extends TestCase
 
     public function test_late_non_paid_webhook_cannot_overwrite_paid_photo_order(): void
     {
-        config(['midtrans.server_key' => 'photo-test-key']);
+        $this->configureDoku();
         [$order, $firstPhotographer] = $this->pendingOrder();
 
-        $this->postJson(route('payments.midtrans.notification'), $this->payload($order, 'settlement', 'PHOTO-TXN-LATE'))->assertOk();
-        $this->postJson(route('payments.midtrans.notification'), $this->payload($order, 'expire', 'PHOTO-TXN-LATE'))->assertOk()->assertJson(['result' => 'ignored_paid']);
+        $paid = $this->payload($order, '00', 'PHOTO-TXN-LATE');
+        $cancelled = $this->payload($order, '05', 'PHOTO-TXN-LATE');
+        $this->postJson(route('payments.doku.notification'), $paid, $this->headers($paid))->assertOk();
+        $this->postJson(route('payments.doku.notification'), $cancelled, $this->headers($cancelled))->assertOk();
 
         $this->assertSame('paid', $order->fresh()->status);
         $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
+    }
+
+    public function test_paid_notification_cannot_activate_an_expired_qris_order(): void
+    {
+        $this->configureDoku();
+        [$order, $firstPhotographer] = $this->pendingOrder();
+        $order->update(['expires_at' => now()->subMinute()]);
+        $payload = $this->payload($order, '00', 'PHOTO-TXN-EXPIRED');
+
+        $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
+
+        $this->assertSame('expired', $order->fresh()->status);
+        $this->assertSame(0, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(0, Transaction::where('payment_status', 'paid')->count());
     }
 
     public function test_buyer_cannot_read_another_buyers_photo_order_status(): void
@@ -68,6 +84,17 @@ class PhotoOrderPaymentTest extends TestCase
         $otherBuyer = User::factory()->pembeli()->create();
 
         $this->actingAs($otherBuyer)->getJson(route('checkout.payment.status', $order->order_id))->assertNotFound();
+    }
+
+    public function test_expiry_command_expires_pending_order_and_transactions(): void
+    {
+        [$order] = $this->pendingOrder();
+        $order->update(['expires_at' => now()->subMinute()]);
+
+        $this->artisan('payments:expire')->assertSuccessful();
+
+        $this->assertSame('expired', $order->fresh()->status);
+        $this->assertSame(2, Transaction::where('payment_status', 'expired')->count());
     }
 
     /** @return array{PhotoOrder, User, User} */
@@ -81,6 +108,7 @@ class PhotoOrderPaymentTest extends TestCase
         $order = PhotoOrder::factory()->create([
             'user_id' => $buyer->id,
             'gross_amount' => 50000,
+            'provider_external_id' => '123456789',
         ]);
 
         Transaction::factory()->create([
@@ -113,27 +141,34 @@ class PhotoOrderPaymentTest extends TestCase
         return [$order, $firstPhotographer, $secondPhotographer];
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, mixed> */
     private function payload(PhotoOrder $order, string $status, string $transactionId): array
     {
-        $payload = [
-            'order_id' => $order->order_id,
-            'status_code' => '200',
-            'gross_amount' => number_format($order->gross_amount, 2, '.', ''),
-            'transaction_status' => $status,
-            'transaction_id' => $transactionId,
-            'payment_type' => 'qris',
-            'fraud_status' => 'accept',
-            'transaction_time' => '2026-09-26 12:00:00',
+        return [
+            'originalPartnerReferenceNo' => $order->order_id,
+            'originalReferenceNo' => $transactionId,
+            'originalExternalId' => '123456789',
+            'latestTransactionStatus' => $status,
+            'transactionStatusDesc' => 'Test status',
+            'amount' => ['value' => number_format($order->gross_amount, 2, '.', ''), 'currency' => 'IDR'],
         ];
-        $payload['signature_key'] = $this->signature($payload);
-
-        return $payload;
     }
 
-    /** @param array<string, string> $payload */
-    private function signature(array $payload): string
+    private function configureDoku(): void
     {
-        return hash('sha512', $payload['order_id'].$payload['status_code'].$payload['gross_amount'].config('midtrans.server_key'));
+        config(['doku.client_id' => 'test-client', 'doku.client_secret' => 'photo-test-key']);
+    }
+
+    /** @param array<string, mixed> $payload
+     * @return array<string, string>
+     */
+    private function headers(array $payload): array
+    {
+        $timestamp = '2026-09-26T12:00:00+07:00';
+        $token = 'notification-token';
+        $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $signature = base64_encode(hash_hmac('sha512', 'POST:/payments/doku/notification:'.$token.':'.hash('sha256', $body).':'.$timestamp, 'photo-test-key', true));
+
+        return ['X-PARTNER-ID' => 'test-client', 'X-EXTERNAL-ID' => 'notification-123', 'X-TIMESTAMP' => $timestamp, 'X-SIGNATURE' => $signature, 'Authorization' => 'Bearer '.$token];
     }
 }

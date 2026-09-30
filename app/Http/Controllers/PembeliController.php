@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\MidtransService;
+use App\DokuPaymentGateway;
 use App\Models\Photo;
 use App\Models\PhotoOrder;
 use App\Models\Transaction;
@@ -58,7 +58,7 @@ class PembeliController extends Controller
         return view('checkout', compact('cart', 'total'));
     }
 
-    public function processCheckout(Request $request, PhotoOrderBilling $billing, MidtransService $midtrans): RedirectResponse
+    public function processCheckout(Request $request, PhotoOrderBilling $billing, DokuPaymentGateway $doku): RedirectResponse
     {
         $user = $request->user();
         $ids = array_values(array_unique(array_map('intval', session()->get('cart', []))));
@@ -91,7 +91,7 @@ class PembeliController extends Controller
                 ->first();
 
             if ($pendingOrder) {
-                return $this->startPayment($pendingOrder, $midtrans);
+                return $this->startPayment($pendingOrder, $doku);
             }
         }
 
@@ -102,7 +102,7 @@ class PembeliController extends Controller
             'photo_ids' => $ids,
         ]);
 
-        return $this->startPayment($order, $midtrans);
+        return $this->startPayment($order, $doku);
     }
 
     public function paymentPage(Request $request, string $order): View
@@ -116,9 +116,8 @@ class PembeliController extends Controller
             'transactions' => $transactions,
             'total' => $summary['total'],
             'paymentStatus' => $photoOrder->status,
-            'snapToken' => $photoOrder->snap_token,
-            'snapClientKey' => config('midtrans.client_key'),
-            'snapIsProduction' => (bool) config('midtrans.is_production'),
+            'qrContent' => $photoOrder->qr_content,
+            'expiresAt' => $photoOrder->expires_at?->toIso8601String(),
         ]);
     }
 
@@ -190,16 +189,16 @@ class PembeliController extends Controller
         return PhotoOrder::where('order_id', $order)->where('user_id', $request->user()->id)->firstOrFail();
     }
 
-    private function startPayment(PhotoOrder $order, MidtransService $midtrans): RedirectResponse
+    private function startPayment(PhotoOrder $order, DokuPaymentGateway $doku): RedirectResponse
     {
-        if (! $order->snap_token) {
+        if (! $order->qr_content) {
             try {
-                $snap = $midtrans->createPhotoOrderTransaction($order);
-                $order->update(['snap_token' => $snap['token'], 'snap_redirect_url' => $snap['redirect_url']]);
+                $payment = $doku->createPhotoOrderPayment($order);
+                $order->update(['provider_transaction_id' => $payment['reference'], 'provider_external_id' => $payment['external_id'], 'qr_content' => $payment['qr_content'], 'payment_method' => 'qris']);
             } catch (Throwable $exception) {
                 report($exception);
 
-                return redirect()->route('cart.index')->withErrors(['payment' => 'Midtrans belum dapat membuat pembayaran. Periksa data akun lalu coba kembali.']);
+                return redirect()->route('cart.index')->withErrors(['payment' => 'DOKU belum dapat membuat QRIS. Silakan coba kembali.']);
             }
         }
 

@@ -1,10 +1,18 @@
 <?php
 
-return [
-    'merchant_id' => env('MIDTRANS_MERCHANT_ID'),
-    'client_key' => env('MIDTRANS_CLIENT_KEY'),
-    'server_key' => env('MIDTRANS_SERVER_KEY'),
-    'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
-    'is_sanitized' => (bool) env('MIDTRANS_IS_SANITIZED', true),
-    'is_3ds' => (bool) env('MIDTRANS_IS_3DS', true),
-];
+/*
+ * LEGACY CONFIGURATION — DISABLED
+ *
+ * Konfigurasi Midtrans dipertahankan sebagai catatan migrasi. Tidak ada kode aktif
+ * yang membaca file ini dan semua credential Midtrans telah dikeluarkan dari
+ * .env.example.
+ *
+ * return [
+ *     'merchant_id' => env('MIDTRANS_MERCHANT_ID'),
+ *     'client_key' => env('MIDTRANS_CLIENT_KEY'),
+ *     'server_key' => env('MIDTRANS_SERVER_KEY'),
+ *     'is_production' => (bool) env('MIDTRANS_IS_PRODUCTION', false),
+ *     'is_sanitized' => (bool) env('MIDTRANS_IS_SANITIZED', true),
+ *     'is_3ds' => (bool) env('MIDTRANS_IS_3DS', true),
+ * ];
+ */
