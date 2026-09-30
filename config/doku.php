@@ -8,6 +8,7 @@ return [
     'terminal_id' => env('DOKU_TERMINAL_ID'),
     'private_key' => env('DOKU_PRIVATE_KEY'),
     'private_key_path' => env('DOKU_PRIVATE_KEY_PATH'),
+    'channel_id' => env('DOKU_CHANNEL_ID', 'H2H'),
     'postal_code' => env('DOKU_POSTAL_CODE'),
     'fee_type' => (int) env('DOKU_FEE_TYPE', 1),
     'qris_ttl_minutes' => (int) env('DOKU_QRIS_TTL_MINUTES', 60),

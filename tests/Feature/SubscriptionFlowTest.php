@@ -87,7 +87,7 @@ class SubscriptionFlowTest extends TestCase
         $buyer = User::factory()->pembeli()->create();
         $starter = Package::where('code', 'starter')->firstOrFail();
         $order = app(SubscriptionBilling::class)->createOrder($buyer, $starter);
-        $payload = $this->payload($order, '00', '2026-09-26 10:00:00');
+        $payload = $this->payload($order, '00', now()->toIso8601String());
 
         $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
         $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
@@ -105,17 +105,33 @@ class SubscriptionFlowTest extends TestCase
         $buyer = User::factory()->pembeli()->create();
         $order = app(SubscriptionBilling::class)->createOrder($buyer, Package::where('code', 'starter')->firstOrFail());
 
-        $badSignature = $this->payload($order, '00', '2026-09-26 10:00:00');
+        $badSignature = $this->payload($order, '00', now()->toIso8601String());
         $headers = $this->headers($badSignature);
         $headers['X-SIGNATURE'] = 'invalid';
         $this->postJson(route('payments.doku.notification'), $badSignature, $headers)->assertUnauthorized();
 
-        $badAmount = $this->payload($order, '00', '2026-09-26 10:01:00');
+        $badAmount = $this->payload($order, '00', now()->toIso8601String());
         $badAmount['amount']['value'] = '1.00';
         $this->postJson(route('payments.doku.notification'), $badAmount, $this->headers($badAmount))->assertBadRequest();
 
         $this->assertDatabaseMissing('subscriptions', ['user_id' => $buyer->id]);
         $this->assertSame('pembeli', $buyer->fresh()->role);
+    }
+
+    public function test_late_cancel_notification_cannot_overwrite_paid_subscription_order(): void
+    {
+        $this->configureDoku();
+        $this->seed(PackageSeeder::class);
+        $user = User::factory()->pembeli()->create();
+        $order = app(SubscriptionBilling::class)->createOrder($user, Package::where('code', 'starter')->firstOrFail());
+        $paid = $this->payload($order, '00', now()->toIso8601String());
+        $cancelled = $this->payload($order, '05', now()->toIso8601String());
+
+        $this->postJson(route('payments.doku.notification'), $paid, $this->headers($paid))->assertOk();
+        $this->postJson(route('payments.doku.notification'), $cancelled, $this->headers($cancelled))->assertOk();
+
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertTrue($user->fresh()->subscription->isActive());
     }
 
     public function test_renewal_adds_duration_while_plan_change_preserves_end_date(): void
@@ -204,7 +220,7 @@ class SubscriptionFlowTest extends TestCase
     /** @return array<string, mixed> */
     private function payload(SubscriptionOrder $order, string $status, string $settlementTime): array
     {
-        $order->update(['provider_external_id' => '987654321']);
+        $order->update(['provider_external_id' => '987654321', 'provider_transaction_id' => 'doku-'.$order->id]);
 
         return [
             'originalPartnerReferenceNo' => $order->order_id,
@@ -227,7 +243,7 @@ class SubscriptionFlowTest extends TestCase
      */
     private function headers(array $payload): array
     {
-        $timestamp = '2026-09-26T12:00:00+07:00';
+        $timestamp = now()->format('Y-m-d\TH:i:sP');
         $token = 'notification-token';
         $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         $signature = base64_encode(hash_hmac('sha512', 'POST:/payments/doku/notification:'.$token.':'.hash('sha256', $body).':'.$timestamp, 'test-server-key', true));

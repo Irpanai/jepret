@@ -6,14 +6,20 @@
                 <h1 class="mt-3 text-3xl font-extrabold">{{ $order->package_snapshot['name'] }}</h1>
                 <p class="mt-3 text-2xl font-extrabold">Rp{{ number_format($order->gross_amount, 0, ',', '.') }}</p>
                 <p class="mt-2 text-sm text-public-muted">Order {{ $order->order_id }}</p>
-                <canvas id="qris-code" class="mx-auto mt-8 max-w-full" aria-label="QRIS untuk order {{ $order->order_id }}"></canvas>
-                <p class="mt-4 text-center text-sm font-semibold text-public-muted">Scan menggunakan mobile banking atau aplikasi pembayaran QRIS.</p>
-                <p id="payment-expiry" class="mt-2 text-center text-sm font-semibold text-public-muted"></p>
-                <p id="payment-state" class="mt-4 text-center text-sm font-semibold text-public-muted">Status: {{ $order->status }}</p>
+                @if($order->status === 'pending' && $order->qr_content)
+                    <canvas id="qris-code" class="mx-auto mt-8 max-w-full" aria-label="QRIS untuk order {{ $order->order_id }}"></canvas>
+                    <p class="mt-4 text-center text-sm font-semibold text-public-muted">Scan menggunakan mobile banking atau aplikasi pembayaran QRIS.</p>
+                    <p id="payment-expiry" class="mt-2 text-center text-sm font-semibold text-public-muted" aria-live="polite"></p>
+                    <p id="payment-state" class="mt-4 text-center text-sm font-semibold text-public-muted" aria-live="polite">Status: {{ $order->status }}</p>
+                @else
+                    <p class="mt-8 text-center text-lg font-bold text-public-ink">Pembayaran {{ $order->status }}.</p>
+                    <a href="{{ route('subscriptions.plans') }}" class="public-button public-button-secondary mt-6 w-full">Kembali ke Pilihan Paket</a>
+                @endif
             </div>
         </div>
     </section>
 
+    @if($order->status === 'pending' && $order->qr_content)
     <script>
         const state = document.getElementById('payment-state');
         window.QRCode.toCanvas(document.getElementById('qris-code'), @json($order->qr_content), { width: 280, margin: 1 });
@@ -50,4 +56,5 @@
             }
         }, 3000);
     </script>
+    @endif
 </x-marketplace-layout>

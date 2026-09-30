@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DokuPaymentGateway;
+use App\DokuPaymentReconciler;
 use App\Models\Photo;
 use App\Models\PhotoOrder;
 use App\Models\Transaction;
@@ -121,11 +122,12 @@ class PembeliController extends Controller
         ]);
     }
 
-    public function paymentStatus(Request $request, string $order): JsonResponse
+    public function paymentStatus(Request $request, string $order, DokuPaymentReconciler $reconciler): JsonResponse
     {
         $photoOrder = $this->buyerPhotoOrder($request, $order);
+        $reconciler->reconcile($photoOrder);
 
-        return response()->json(['status' => $photoOrder->status]);
+        return response()->json(['status' => $photoOrder->refresh()->status]);
     }
 
     public function simulatePay(Request $request, string $order, PhotoOrderBilling $billing): RedirectResponse
@@ -191,15 +193,12 @@ class PembeliController extends Controller
 
     private function startPayment(PhotoOrder $order, DokuPaymentGateway $doku): RedirectResponse
     {
-        if (! $order->qr_content) {
-            try {
-                $payment = $doku->createPhotoOrderPayment($order);
-                $order->update(['provider_transaction_id' => $payment['reference'], 'provider_external_id' => $payment['external_id'], 'qr_content' => $payment['qr_content'], 'payment_method' => 'qris']);
-            } catch (Throwable $exception) {
-                report($exception);
+        try {
+            $doku->ensurePhotoOrderPayment($order);
+        } catch (Throwable $exception) {
+            report($exception);
 
-                return redirect()->route('cart.index')->withErrors(['payment' => 'DOKU belum dapat membuat QRIS. Silakan coba kembali.']);
-            }
+            return redirect()->route('cart.index')->withErrors(['payment' => 'DOKU belum dapat membuat QRIS. Silakan coba kembali.']);
         }
 
         return redirect()->route('checkout.payment', ['order' => $order->order_id]);

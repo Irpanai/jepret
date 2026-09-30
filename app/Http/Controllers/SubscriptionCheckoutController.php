@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\DokuPaymentGateway;
+use App\DokuPaymentReconciler;
 use App\Models\Package;
 use App\Models\SubscriptionOrder;
 use App\Models\SubscriptionRefund;
@@ -25,15 +26,12 @@ class SubscriptionCheckoutController extends Controller
         }
 
         $order = $billing->createOrder($request->user(), $package);
-        if (! $order->qr_content) {
-            try {
-                $payment = $doku->createSubscriptionPayment($order);
-                $order->update(['provider_transaction_id' => $payment['reference'], 'provider_external_id' => $payment['external_id'], 'qr_content' => $payment['qr_content']]);
-            } catch (Throwable $exception) {
-                report($exception);
+        try {
+            $doku->ensureSubscriptionPayment($order);
+        } catch (Throwable $exception) {
+            report($exception);
 
-                return back()->withErrors(['payment' => 'DOKU belum dapat membuat QRIS. Silakan coba kembali.']);
-            }
+            return back()->withErrors(['payment' => 'DOKU belum dapat membuat QRIS. Silakan coba kembali.']);
         }
 
         return redirect()->route('subscriptions.payment', $order);
@@ -50,9 +48,10 @@ class SubscriptionCheckoutController extends Controller
         return view('subscriptions.payment', compact('order'));
     }
 
-    public function status(Request $request, SubscriptionOrder $order): JsonResponse
+    public function status(Request $request, SubscriptionOrder $order, DokuPaymentReconciler $reconciler): JsonResponse
     {
         abort_unless($order->user_id === $request->user()->id, 404);
+        $reconciler->reconcile($order);
         $order->refresh();
 
         return response()->json(['status' => $order->status, 'redirect' => $order->status === 'paid' ? route('fotografer.dashboard') : null]);

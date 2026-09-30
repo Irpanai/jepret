@@ -65,7 +65,7 @@ class PhotoOrderBilling
     {
         $status = (string) ($payload['transaction_status'] ?? '');
         $paid = $status === 'settlement' || ($status === 'capture' && ($payload['fraud_status'] ?? null) === 'accept');
-        $eventKey = hash('sha256', implode('|', [$order->order_id, $payload['transaction_id'] ?? '', $status, $payload['status_code'] ?? '', $payload['settlement_time'] ?? $payload['transaction_time'] ?? '', $payload['signature_key'] ?? '']));
+        $eventKey = hash('sha256', implode('|', ['doku', $payload['notification_id'] ?? '', $order->order_id, $payload['transaction_id'] ?? '', $status, $payload['status_code'] ?? '', $payload['settlement_time'] ?? $payload['transaction_time'] ?? '']));
 
         return DB::transaction(function () use ($order, $payload, $signatureValid, $status, $paid, $eventKey): string {
             $order = PhotoOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
@@ -92,18 +92,15 @@ class PhotoOrderBilling
             if (! $signatureValid || ! $validAmount || ! $validCurrency) {
                 return $result;
             }
-            if ($paid && $order->expires_at?->isPast()) {
+            $providerTime = $this->providerTime($payload);
+            if ($paid && (! $providerTime
+                || $providerTime->isBefore($order->created_at)
+                || ($order->expires_at && $providerTime->isAfter($order->expires_at)))) {
                 $order->update(['status' => 'expired', 'provider_status' => $status]);
                 $order->transactions()->where('payment_status', 'pending')->update(['status' => 'expired', 'payment_status' => 'expired']);
                 $event->update(['processing_result' => 'expired']);
 
                 return 'expired';
-            }
-
-            if ($order->processed_at && $order->status === 'paid') {
-                $event->update(['processing_result' => 'ignored_paid']);
-
-                return 'ignored_paid';
             }
 
             if (in_array($status, ['refund', 'partial_refund'], true)) {
@@ -113,13 +110,25 @@ class PhotoOrderBilling
                 return 'requires_review';
             }
 
+            if ($order->processed_at && $order->status === 'paid') {
+                $event->update(['processing_result' => 'ignored_paid']);
+
+                return 'ignored_paid';
+            }
+
+            if (in_array($order->status, ['cancelled', 'expired', 'failed'], true) && ! $paid) {
+                $event->update(['processing_result' => 'ignored_terminal']);
+
+                return 'ignored_terminal';
+            }
+
             $providerValues = [
                 'provider_status' => $status,
                 'provider_transaction_id' => $payload['transaction_id'] ?? $order->provider_transaction_id,
                 'payment_method' => $payload['payment_type'] ?? $order->payment_method,
             ];
             if ($paid) {
-                $paidAt = $this->providerTime($payload) ?? now();
+                $paidAt = $providerTime;
                 $order->update($providerValues + ['status' => 'paid', 'provider_paid_at' => $paidAt]);
                 $this->applyPaidOrder($order, $paidAt, (string) ($payload['transaction_id'] ?? ''));
                 $event->update(['processing_result' => 'paid']);

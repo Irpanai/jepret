@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\DokuPaymentGateway;
 use App\Models\PaymentEvent;
 use App\Models\Photo;
 use App\Models\PhotoOrder;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class PhotoOrderPaymentTest extends TestCase
@@ -50,6 +52,22 @@ class PhotoOrderPaymentTest extends TestCase
         $this->assertSame(0, Transaction::where('payment_status', 'paid')->count());
     }
 
+    public function test_webhook_rejects_unknown_reference_and_missing_fields(): void
+    {
+        $this->configureDoku();
+        [$order] = $this->pendingOrder();
+        $unknownReference = $this->payload($order, '00', 'PHOTO-TXN-EXPECTED');
+        $unknownReference['originalReferenceNo'] = 'PHOTO-TXN-UNKNOWN';
+
+        $this->postJson(route('payments.doku.notification'), $unknownReference, $this->headers($unknownReference))->assertNotFound();
+
+        $missingAmount = $this->payload($order, '00', 'PHOTO-TXN-EXPECTED');
+        unset($missingAmount['amount']);
+        $this->postJson(route('payments.doku.notification'), $missingAmount, $this->headers($missingAmount))->assertBadRequest();
+
+        $this->assertSame('pending', $order->fresh()->status);
+    }
+
     public function test_late_non_paid_webhook_cannot_overwrite_paid_photo_order(): void
     {
         $this->configureDoku();
@@ -84,6 +102,31 @@ class PhotoOrderPaymentTest extends TestCase
         $otherBuyer = User::factory()->pembeli()->create();
 
         $this->actingAs($otherBuyer)->getJson(route('checkout.payment.status', $order->order_id))->assertNotFound();
+    }
+
+    public function test_status_poll_reconciles_with_doku_without_duplicate_fulfillment(): void
+    {
+        [$order, $firstPhotographer, $secondPhotographer] = $this->pendingOrder();
+        $order->update(['provider_transaction_id' => 'PHOTO-TXN-QUERY']);
+        $this->mock(DokuPaymentGateway::class, function (MockInterface $mock) use ($order): void {
+            $mock->shouldReceive('queryPhotoOrder')->once()->andReturn([
+                'responseCode' => '2005100',
+                'originalReferenceNo' => 'PHOTO-TXN-QUERY',
+                'originalPartnerReferenceNo' => $order->order_id,
+                'serviceCode' => '47',
+                'latestTransactionStatus' => '00',
+                'paidTime' => now()->toIso8601String(),
+                'amount' => ['value' => '50000.00', 'currency' => 'IDR'],
+            ]);
+        });
+        $buyer = $order->user;
+
+        $this->actingAs($buyer)->getJson(route('checkout.payment.status', $order->order_id))->assertOk()->assertJson(['status' => 'paid']);
+        $this->actingAs($buyer)->getJson(route('checkout.payment.status', $order->order_id))->assertOk()->assertJson(['status' => 'paid']);
+
+        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(27000, (int) $secondPhotographer->fresh()->saldo);
+        $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
     }
 
     public function test_expiry_command_expires_pending_order_and_transactions(): void
@@ -144,6 +187,8 @@ class PhotoOrderPaymentTest extends TestCase
     /** @return array<string, mixed> */
     private function payload(PhotoOrder $order, string $status, string $transactionId): array
     {
+        $order->update(['provider_transaction_id' => $transactionId]);
+
         return [
             'originalPartnerReferenceNo' => $order->order_id,
             'originalReferenceNo' => $transactionId,
@@ -151,6 +196,7 @@ class PhotoOrderPaymentTest extends TestCase
             'latestTransactionStatus' => $status,
             'transactionStatusDesc' => 'Test status',
             'amount' => ['value' => number_format($order->gross_amount, 2, '.', ''), 'currency' => 'IDR'],
+            'paidTime' => now()->toIso8601String(),
         ];
     }
 
@@ -164,7 +210,7 @@ class PhotoOrderPaymentTest extends TestCase
      */
     private function headers(array $payload): array
     {
-        $timestamp = '2026-09-26T12:00:00+07:00';
+        $timestamp = now()->format('Y-m-d\TH:i:sP');
         $token = 'notification-token';
         $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         $signature = base64_encode(hash_hmac('sha512', 'POST:/payments/doku/notification:'.$token.':'.hash('sha256', $body).':'.$timestamp, 'photo-test-key', true));

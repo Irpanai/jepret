@@ -366,11 +366,16 @@ class MarketplaceFlowTest extends TestCase
     private function fakeDoku(): void
     {
         $this->mock(DokuPaymentGateway::class, function (MockInterface $mock): void {
-            $mock->shouldReceive('createPhotoOrderPayment')->once()->andReturn([
-                'reference' => 'DOKU-REFERENCE',
-                'external_id' => '123456789',
-                'qr_content' => 'test-qris-content',
-            ]);
+            $mock->shouldReceive('ensurePhotoOrderPayment')->once()->andReturnUsing(function (PhotoOrder $order): PhotoOrder {
+                $order->update([
+                    'provider_transaction_id' => 'DOKU-REFERENCE',
+                    'provider_external_id' => '123456789',
+                    'qr_content' => 'test-qris-content',
+                    'payment_method' => 'qris',
+                ]);
+
+                return $order->refresh();
+            });
         });
     }
 }

@@ -23,9 +23,9 @@
                         <p class="mx-auto mt-5 max-w-md text-sm font-semibold leading-6 text-public-muted">
                             Gunakan mobile banking atau aplikasi pembayaran yang mendukung QRIS.
                         </p>
-                        <p id="payment-expiry" class="mt-3 text-sm font-semibold text-public-muted"></p>
+                        <p id="payment-expiry" class="mt-3 text-sm font-semibold text-public-muted" aria-live="polite"></p>
                         <div class="mt-5 inline-flex border border-public-line bg-public-bone px-4 py-3 text-xs font-extrabold uppercase text-public-muted">
-                            Status: <span id="payment-state" class="ml-1">{{ $paymentStatus }}</span>
+                            Status: <span id="payment-state" class="ml-1" aria-live="polite">{{ $paymentStatus }}</span>
                         </div>
                     @else
                         <h2 class="text-2xl font-extrabold text-public-ink">Pembayaran tidak dapat dilanjutkan.</h2>

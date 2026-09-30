@@ -78,7 +78,7 @@ class SubscriptionBilling
     {
         $status = (string) ($payload['transaction_status'] ?? '');
         $paid = $status === 'settlement' || ($status === 'capture' && ($payload['fraud_status'] ?? null) === 'accept');
-        $eventKey = hash('sha256', implode('|', [$order->order_id, $payload['transaction_id'] ?? '', $status, $payload['status_code'] ?? '', $payload['settlement_time'] ?? $payload['transaction_time'] ?? '', $payload['signature_key'] ?? '']));
+        $eventKey = hash('sha256', implode('|', ['doku', $payload['notification_id'] ?? '', $order->order_id, $payload['transaction_id'] ?? '', $status, $payload['status_code'] ?? '', $payload['settlement_time'] ?? $payload['transaction_time'] ?? '']));
 
         return DB::transaction(function () use ($order, $payload, $signatureValid, $status, $paid, $eventKey): string {
             $order = SubscriptionOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
@@ -90,7 +90,7 @@ class SubscriptionBilling
             $validAmount = $amount === $order->gross_amount;
             $validCurrency = ($payload['currency'] ?? null) === $order->currency;
             $result = ! $signatureValid ? 'invalid_signature' : (! $validAmount ? 'invalid_amount' : (! $validCurrency ? 'invalid_currency' : 'recorded'));
-            PaymentEvent::create([
+            $event = PaymentEvent::create([
                 'subscription_order_id' => $order->id,
                 'provider' => 'doku',
                 'event_key' => $eventKey,
@@ -105,17 +105,41 @@ class SubscriptionBilling
             if (! $signatureValid || ! $validAmount || ! $validCurrency) {
                 return $result;
             }
-            if ($paid && $order->expires_at?->isPast()) {
+            $providerTime = $this->providerTime($payload);
+            if ($paid && (! $providerTime
+                || $providerTime->isBefore($order->created_at)
+                || ($order->expires_at && $providerTime->isAfter($order->expires_at)))) {
                 $order->update(['status' => 'expired', 'provider_status' => $status]);
+                $event->update(['processing_result' => 'expired']);
 
                 return 'expired';
             }
 
+            if (in_array($status, ['refund', 'partial_refund'], true)) {
+                $order->update(['requires_review' => true, 'provider_status' => $status]);
+                $event->update(['processing_result' => 'requires_review']);
+
+                return 'requires_review';
+            }
+
+            if ($order->processed_at && $order->status === 'paid') {
+                $event->update(['processing_result' => 'ignored_paid']);
+
+                return 'ignored_paid';
+            }
+
+            if (in_array($order->status, ['cancelled', 'expired', 'failed'], true) && ! $paid) {
+                $event->update(['processing_result' => 'ignored_terminal']);
+
+                return 'ignored_terminal';
+            }
+
             $order->update(['provider_status' => $status, 'provider_transaction_id' => $payload['transaction_id'] ?? $order->provider_transaction_id]);
             if ($paid) {
-                $paidAt = $this->providerTime($payload) ?? now();
+                $paidAt = $providerTime;
                 $order->update(['status' => 'paid', 'provider_paid_at' => $paidAt]);
                 $this->applyPaidOrder($order, $paidAt);
+                $event->update(['processing_result' => 'paid']);
 
                 return 'paid';
             }
@@ -124,6 +148,7 @@ class SubscriptionBilling
                 'deny', 'failed' => 'failed', 'cancel' => 'cancelled', 'expire' => 'expired', 'refund', 'partial_refund' => 'refunded', default => 'pending',
             };
             $order->update(['status' => $mapped]);
+            $event->update(['processing_result' => $mapped]);
 
             return $mapped;
         });
