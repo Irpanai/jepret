@@ -134,6 +134,22 @@ class SubscriptionFlowTest extends TestCase
         $this->assertTrue($user->fresh()->subscription->isActive());
     }
 
+    public function test_verified_success_activates_a_subscription_order_that_expired_locally(): void
+    {
+        $this->configureDoku();
+        $this->seed(PackageSeeder::class);
+        $user = User::factory()->pembeli()->create();
+        $order = app(SubscriptionBilling::class)->createOrder($user, Package::where('code', 'starter')->firstOrFail());
+        $order->update(['expires_at' => now()->subMinute()]);
+        $this->artisan('payments:expire')->assertSuccessful();
+        $payload = $this->payload($order, '00', now()->toIso8601String());
+
+        $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
+
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertTrue($user->fresh()->subscription->isActive());
+    }
+
     public function test_renewal_adds_duration_while_plan_change_preserves_end_date(): void
     {
         $this->seed(PackageSeeder::class);

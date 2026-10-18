@@ -4,6 +4,7 @@ import Alpine from 'alpinejs';
 import QRCode from 'qrcode';
 import photoWatermarkEditor from './photo-watermark-editor';
 
+
 window.Alpine = Alpine;
 window.QRCode = QRCode;
 

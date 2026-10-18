@@ -6,14 +6,27 @@
                 <h1 class="mt-3 text-3xl font-extrabold">{{ $order->package_snapshot['name'] }}</h1>
                 <p class="mt-3 text-2xl font-extrabold">Rp{{ number_format($order->gross_amount, 0, ',', '.') }}</p>
                 <p class="mt-2 text-sm text-public-muted">Order {{ $order->order_id }}</p>
+
                 @if($order->status === 'pending' && $order->qr_content)
                     <canvas id="qris-code" class="mx-auto mt-8 max-w-full" aria-label="QRIS untuk order {{ $order->order_id }}"></canvas>
-                    <p class="mt-4 text-center text-sm font-semibold text-public-muted">Scan menggunakan mobile banking atau aplikasi pembayaran QRIS.</p>
+
+                    <p class="mt-4 text-center text-sm font-semibold text-public-muted">
+                        Scan menggunakan mobile banking atau aplikasi pembayaran QRIS.
+                    </p>
+
                     <p id="payment-expiry" class="mt-2 text-center text-sm font-semibold text-public-muted" aria-live="polite"></p>
-                    <p id="payment-state" class="mt-4 text-center text-sm font-semibold text-public-muted" aria-live="polite">Status: {{ $order->status }}</p>
+
+                    <p id="payment-state" class="mt-4 text-center text-sm font-semibold text-public-muted" aria-live="polite">
+                        Status: {{ $order->status }}
+                    </p>
                 @else
-                    <p class="mt-8 text-center text-lg font-bold text-public-ink">Pembayaran {{ $order->status }}.</p>
-                    <a href="{{ route('subscriptions.plans') }}" class="public-button public-button-secondary mt-6 w-full">Kembali ke Pilihan Paket</a>
+                    <p class="mt-8 text-center text-lg font-bold text-public-ink">
+                        Pembayaran {{ $order->status }}.
+                    </p>
+
+                    <a href="{{ route('subscriptions.plans') }}" class="public-button public-button-secondary mt-6 w-full">
+                        Kembali ke Pilihan Paket
+                    </a>
                 @endif
             </div>
         </div>
@@ -21,40 +34,77 @@
 
     @if($order->status === 'pending' && $order->qr_content)
     <script>
-        const state = document.getElementById('payment-state');
-        window.QRCode.toCanvas(document.getElementById('qris-code'), @json($order->qr_content), { width: 280, margin: 1 });
-        const expiry = new Date(@json($order->expires_at?->toIso8601String()));
-        const expiryLabel = document.getElementById('payment-expiry');
-        const updateCountdown = () => {
-            const seconds = Math.max(0, Math.floor((expiry.getTime() - Date.now()) / 1000));
-            expiryLabel.textContent = seconds > 0
-                ? `Berlaku ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')} lagi`
-                : 'QRIS telah kedaluwarsa.';
-        };
-        updateCountdown();
-        window.setInterval(updateCountdown, 1000);
-        const poll = window.setInterval(async () => {
-            if (document.hidden) {
-                return;
+        document.addEventListener('DOMContentLoaded', function () {
+            const state = document.getElementById('payment-state');
+            const canvas = document.getElementById('qris-code');
+
+            if (typeof window.QRCode !== 'undefined' && canvas) {
+                window.QRCode.toCanvas(
+                    canvas,
+                    @json($order->qr_content),
+                    {
+                        width: 280,
+                        margin: 1
+                    },
+                    function (error) {
+                        if (error) {
+                            console.error('Subscription QRIS render error:', error);
+                        }
+                    }
+                );
+            } else {
+                console.error('QRCode library tidak tersedia.');
             }
 
-            try {
-                const response = await fetch(@json(route('subscriptions.status', $order)), { headers: { Accept: 'application/json' } });
+            const expiry = new Date(@json($order->expires_at?->toIso8601String()));
+            const expiryLabel = document.getElementById('payment-expiry');
 
-                if (!response.ok) {
+            const updateCountdown = () => {
+                const seconds = Math.max(
+                    0,
+                    Math.floor((expiry.getTime() - Date.now()) / 1000)
+                );
+
+                expiryLabel.textContent = seconds > 0
+                    ? `Berlaku ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')} lagi`
+                    : 'QRIS telah kedaluwarsa.';
+            };
+
+            updateCountdown();
+            window.setInterval(updateCountdown, 1000);
+
+            const poll = window.setInterval(async () => {
+                if (document.hidden) {
                     return;
                 }
 
-                const data = await response.json();
-                state.textContent = 'Status: ' + data.status;
-                if (data.redirect) {
-                    window.clearInterval(poll);
-                    window.location.assign(data.redirect);
+                try {
+                    const response = await fetch(
+                        @json(route('subscriptions.status', $order)),
+                        {
+                            headers: {
+                                Accept: 'application/json'
+                            }
+                        }
+                    );
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const data = await response.json();
+
+                    state.textContent = 'Status: ' + data.status;
+
+                    if (data.redirect) {
+                        window.clearInterval(poll);
+                        window.location.assign(data.redirect);
+                    }
+                } catch (_) {
+                    state.textContent = 'Koneksi terputus, mencoba kembali';
                 }
-            } catch (_) {
-                state.textContent = 'Koneksi terputus, mencoba kembali';
-            }
-        }, 3000);
+            }, 3000);
+        });
     </script>
     @endif
 </x-marketplace-layout>

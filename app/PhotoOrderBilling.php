@@ -93,9 +93,7 @@ class PhotoOrderBilling
                 return $result;
             }
             $providerTime = $this->providerTime($payload);
-            if ($paid && (! $providerTime
-                || $providerTime->isBefore($order->created_at)
-                || ($order->expires_at && $providerTime->isAfter($order->expires_at)))) {
+            if ($paid && $providerTime?->isBefore($order->created_at->copy()->startOfSecond())) {
                 $order->update(['status' => 'expired', 'provider_status' => $status]);
                 $order->transactions()->where('payment_status', 'pending')->update(['status' => 'expired', 'payment_status' => 'expired']);
                 $event->update(['processing_result' => 'expired']);
@@ -128,7 +126,7 @@ class PhotoOrderBilling
                 'payment_method' => $payload['payment_type'] ?? $order->payment_method,
             ];
             if ($paid) {
-                $paidAt = $providerTime;
+                $paidAt = $providerTime ?? now();
                 $order->update($providerValues + ['status' => 'paid', 'provider_paid_at' => $paidAt]);
                 $this->applyPaidOrder($order, $paidAt, (string) ($payload['transaction_id'] ?? ''));
                 $event->update(['processing_result' => 'paid']);

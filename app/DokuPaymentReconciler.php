@@ -16,13 +16,13 @@ class DokuPaymentReconciler
         private SubscriptionBilling $subscriptionBilling,
     ) {}
 
-    public function reconcile(PhotoOrder|SubscriptionOrder $order): void
+    public function reconcile(PhotoOrder|SubscriptionOrder $order): ?string
     {
         if (! in_array($order->status, ['pending', 'expired'], true)
             || ! $order->provider_transaction_id
             || ! $order->provider_external_id
             || ! Cache::add('doku.query.'.$order::class.'.'.$order->getKey(), true, 15)) {
-            return;
+            return null;
         }
 
         try {
@@ -42,15 +42,17 @@ class DokuPaymentReconciler
             ];
 
             if ($order instanceof PhotoOrder) {
-                $this->photoBilling->processNotification($order, $payload, true);
-            } else {
-                $this->subscriptionBilling->processNotification($order, $payload, true);
+                return $this->photoBilling->processNotification($order, $payload, true);
             }
+
+            return $this->subscriptionBilling->processNotification($order, $payload, true);
         } catch (Throwable $exception) {
             Log::warning('DOKU QRIS reconciliation failed.', [
                 'order_id' => $order->order_id,
                 'exception' => $exception::class,
             ]);
+
+            return null;
         }
     }
 

@@ -9,6 +9,7 @@ use App\Models\PhotoOrder;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
@@ -82,18 +83,48 @@ class PhotoOrderPaymentTest extends TestCase
         $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
     }
 
-    public function test_paid_notification_cannot_activate_an_expired_qris_order(): void
+    public function test_expiry_scheduler_cannot_revert_a_paid_order(): void
+    {
+        $this->configureDoku();
+        [$order, $firstPhotographer] = $this->pendingOrder();
+        $payload = $this->payload($order, '00', 'PHOTO-TXN-SCHEDULER');
+        $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
+        $order->update(['expires_at' => now()->subMinute()]);
+
+        $this->artisan('payments:expire')->assertSuccessful();
+
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
+    }
+
+    public function test_verified_success_fulfills_an_order_that_expired_locally(): void
     {
         $this->configureDoku();
         [$order, $firstPhotographer] = $this->pendingOrder();
         $order->update(['expires_at' => now()->subMinute()]);
+        $this->artisan('payments:expire')->assertSuccessful();
         $payload = $this->payload($order, '00', 'PHOTO-TXN-EXPIRED');
 
         $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
 
-        $this->assertSame('expired', $order->fresh()->status);
-        $this->assertSame(0, (int) $firstPhotographer->fresh()->saldo);
-        $this->assertSame(0, Transaction::where('payment_status', 'paid')->count());
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(2, Transaction::where('payment_status', 'paid')->count());
+    }
+
+    public function test_provider_timestamp_rounded_to_the_order_creation_second_is_accepted(): void
+    {
+        $this->configureDoku();
+        [$order] = $this->pendingOrder();
+        $order->forceFill(['created_at' => now()->setMicrosecond(900000)])->saveQuietly();
+        $order->refresh();
+        $payload = $this->payload($order, '00', 'PHOTO-TXN-ROUNDED-TIME');
+        $payload['paidTime'] = $order->created_at->copy()->setTimezone('Asia/Jakarta')->format('Y-m-d\TH:i:sP');
+
+        $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
+
+        $this->assertSame('paid', $order->fresh()->status);
     }
 
     public function test_buyer_cannot_read_another_buyers_photo_order_status(): void
@@ -102,6 +133,19 @@ class PhotoOrderPaymentTest extends TestCase
         $otherBuyer = User::factory()->pembeli()->create();
 
         $this->actingAs($otherBuyer)->getJson(route('checkout.payment.status', $order->order_id))->assertNotFound();
+    }
+
+    public function test_payment_page_polling_redirects_on_success_and_backs_off_on_connection_errors(): void
+    {
+        [$order] = $this->pendingOrder();
+        $order->update(['qr_content' => '000201010212TESTQRIS']);
+
+        $this->actingAs($order->user)
+            ->get(route('checkout.payment', $order->order_id))
+            ->assertOk()
+            ->assertSee('window.location.assign(successUrl)', false)
+            ->assertSee('Math.min(retryDelay * 2, 30000)', false)
+            ->assertSee("['expired', 'failed', 'cancelled']", false);
     }
 
     public function test_status_poll_reconciles_with_doku_without_duplicate_fulfillment(): void
@@ -126,6 +170,61 @@ class PhotoOrderPaymentTest extends TestCase
 
         $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
         $this->assertSame(27000, (int) $secondPhotographer->fresh()->saldo);
+        $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
+    }
+
+    public function test_reconcile_command_dry_run_does_not_fulfill_then_reconciles_expired_success(): void
+    {
+        Storage::fake('local');
+        [$order, $firstPhotographer, $secondPhotographer] = $this->pendingOrder();
+        $order->update([
+            'provider_transaction_id' => 'PHOTO-TXN-COMMAND',
+            'status' => 'expired',
+            'expires_at' => now()->subHour(),
+        ]);
+        $order->transactions()->update(['status' => 'expired', 'payment_status' => 'expired']);
+        $response = [
+            'responseCode' => '2005100',
+            'originalReferenceNo' => 'PHOTO-TXN-COMMAND',
+            'originalPartnerReferenceNo' => $order->order_id,
+            'serviceCode' => '47',
+            'latestTransactionStatus' => '00',
+            'paidTime' => now()->toIso8601String(),
+            'amount' => ['value' => '50000.00', 'currency' => 'IDR'],
+        ];
+        $this->mock(DokuPaymentGateway::class, function (MockInterface $mock) use ($response): void {
+            $mock->shouldReceive('queryPhotoOrder')->twice()->andReturn($response);
+        });
+
+        $this->artisan('payments:reconcile', ['invoice' => $order->order_id, '--dry-run' => true])
+            ->expectsOutputToContain('No data changed')
+            ->assertSuccessful();
+        $this->assertSame('expired', $order->fresh()->status);
+
+        $this->artisan('payments:reconcile', ['invoice' => $order->order_id])
+            ->expectsOutputToContain('paid')
+            ->assertSuccessful();
+
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(27000, (int) $secondPhotographer->fresh()->saldo);
+        $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
+
+        $firstTransaction = $order->transactions()->orderBy('id')->firstOrFail();
+        $this->assertSame(20000, (int) $firstTransaction->total_bayar);
+        $this->assertSame(18000, (int) $firstTransaction->photographer_amount);
+        $this->assertSame(2000, (int) $firstTransaction->platform_amount);
+        $firstTransaction->photo->update([
+            'purchased_path' => 'photos/purchased/reconciled-photo.jpg',
+            'original_filename' => 'reconciled-photo.jpg',
+        ]);
+        Storage::disk('local')->put($firstTransaction->photo->purchased_path, 'purchased-photo');
+        $this->actingAs($order->user)
+            ->get(route('purchases.download', ['order' => $order->order_id, 'transaction' => $firstTransaction]))
+            ->assertDownload($firstTransaction->photo->original_filename);
+
+        $this->artisan('payments:reconcile', ['invoice' => $order->order_id])->assertSuccessful();
+        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
         $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
     }
 

@@ -106,9 +106,7 @@ class SubscriptionBilling
                 return $result;
             }
             $providerTime = $this->providerTime($payload);
-            if ($paid && (! $providerTime
-                || $providerTime->isBefore($order->created_at)
-                || ($order->expires_at && $providerTime->isAfter($order->expires_at)))) {
+            if ($paid && $providerTime?->isBefore($order->created_at->copy()->startOfSecond())) {
                 $order->update(['status' => 'expired', 'provider_status' => $status]);
                 $event->update(['processing_result' => 'expired']);
 
@@ -136,7 +134,7 @@ class SubscriptionBilling
 
             $order->update(['provider_status' => $status, 'provider_transaction_id' => $payload['transaction_id'] ?? $order->provider_transaction_id]);
             if ($paid) {
-                $paidAt = $providerTime;
+                $paidAt = $providerTime ?? now();
                 $order->update(['status' => 'paid', 'provider_paid_at' => $paidAt]);
                 $this->applyPaidOrder($order, $paidAt);
                 $event->update(['processing_result' => 'paid']);
