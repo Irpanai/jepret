@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\DokuPaymentGateway;
-use App\DokuPaymentReconciler;
 use App\Models\Package;
 use App\Models\SubscriptionOrder;
 use App\Models\SubscriptionRefund;
@@ -48,11 +47,9 @@ class SubscriptionCheckoutController extends Controller
         return view('subscriptions.payment', compact('order'));
     }
 
-    public function status(Request $request, SubscriptionOrder $order, DokuPaymentReconciler $reconciler): JsonResponse
+    public function status(Request $request, SubscriptionOrder $order): JsonResponse
     {
         abort_unless($order->user_id === $request->user()->id, 404);
-        $reconciler->reconcile($order);
-        $order->refresh();
 
         return response()->json(['status' => $order->status, 'redirect' => $order->status === 'paid' ? route('fotografer.dashboard') : null]);
     }

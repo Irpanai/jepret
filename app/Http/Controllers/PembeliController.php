@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\DokuPaymentGateway;
-use App\DokuPaymentReconciler;
 use App\Models\Photo;
 use App\Models\PhotoOrder;
 use App\Models\Transaction;
@@ -122,12 +121,16 @@ class PembeliController extends Controller
         ]);
     }
 
-    public function paymentStatus(Request $request, string $order, DokuPaymentReconciler $reconciler): JsonResponse
+    public function paymentStatus(Request $request, string $order): JsonResponse
     {
         $photoOrder = $this->buyerPhotoOrder($request, $order);
-        $reconciler->reconcile($photoOrder);
 
-        return response()->json(['status' => $photoOrder->refresh()->status]);
+        return response()->json([
+            'status' => $photoOrder->status,
+            'redirect' => $photoOrder->status === 'paid'
+                ? route('checkout.success', ['order' => $photoOrder->order_id])
+                : null,
+        ]);
     }
 
     public function simulatePay(Request $request, string $order, PhotoOrderBilling $billing): RedirectResponse

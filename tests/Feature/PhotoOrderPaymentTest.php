@@ -175,7 +175,7 @@ class PhotoOrderPaymentTest extends TestCase
         $this->actingAs($otherBuyer)->getJson(route('checkout.payment.status', $order->order_id))->assertNotFound();
     }
 
-    public function test_payment_page_polling_redirects_on_success_and_backs_off_on_connection_errors(): void
+    public function test_payment_page_polls_safely_and_redirects_on_success(): void
     {
         [$order] = $this->pendingOrder();
         $order->update(['qr_content' => '000201010212TESTQRIS']);
@@ -183,34 +183,36 @@ class PhotoOrderPaymentTest extends TestCase
         $this->actingAs($order->user)
             ->get(route('checkout.payment', $order->order_id))
             ->assertOk()
-            ->assertSee('window.location.assign(successUrl)', false)
+            ->assertSee('Menunggu konfirmasi pembayaran...')
+            ->assertSee('new AbortController()', false)
+            ->assertSee('window.location.assign(data.redirect)', false)
             ->assertSee('Math.min(retryDelay * 2, 30000)', false)
-            ->assertSee("['expired', 'failed', 'cancelled']", false);
+            ->assertSee("['expired', 'failed', 'cancelled']", false)
+            ->assertSee("window.addEventListener('pagehide', stopPolling", false);
     }
 
-    public function test_status_poll_reconciles_with_doku_without_duplicate_fulfillment(): void
+    public function test_status_poll_reads_webhook_updated_database_without_querying_doku(): void
     {
-        [$order, $firstPhotographer, $secondPhotographer] = $this->pendingOrder();
-        $order->update(['provider_transaction_id' => 'PHOTO-TXN-QUERY']);
-        $this->mock(DokuPaymentGateway::class, function (MockInterface $mock) use ($order): void {
-            $mock->shouldReceive('queryPhotoOrder')->once()->andReturn([
-                'responseCode' => '2005100',
-                'originalReferenceNo' => 'PHOTO-TXN-QUERY',
-                'originalPartnerReferenceNo' => $order->order_id,
-                'serviceCode' => '47',
-                'latestTransactionStatus' => '00',
-                'paidTime' => now()->toIso8601String(),
-                'amount' => ['value' => '50000.00', 'currency' => 'IDR'],
-            ]);
+        [$order] = $this->pendingOrder();
+        $this->mock(DokuPaymentGateway::class, function (MockInterface $mock): void {
+            $mock->shouldNotReceive('queryPhotoOrder');
         });
         $buyer = $order->user;
 
-        $this->actingAs($buyer)->getJson(route('checkout.payment.status', $order->order_id))->assertOk()->assertJson(['status' => 'paid']);
-        $this->actingAs($buyer)->getJson(route('checkout.payment.status', $order->order_id))->assertOk()->assertJson(['status' => 'paid']);
+        $this->actingAs($buyer)
+            ->getJson(route('checkout.payment.status', $order->order_id))
+            ->assertOk()
+            ->assertExactJson(['status' => 'pending', 'redirect' => null]);
 
-        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
-        $this->assertSame(27000, (int) $secondPhotographer->fresh()->saldo);
-        $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
+        $order->update(['status' => 'paid']);
+
+        $this->actingAs($buyer)
+            ->getJson(route('checkout.payment.status', $order->order_id))
+            ->assertOk()
+            ->assertExactJson([
+                'status' => 'paid',
+                'redirect' => route('checkout.success', ['order' => $order->order_id]),
+            ]);
     }
 
     public function test_reconcile_command_dry_run_does_not_fulfill_then_reconciles_expired_success(): void

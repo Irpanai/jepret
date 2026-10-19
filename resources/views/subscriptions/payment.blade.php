@@ -16,9 +16,10 @@
 
                     <p id="payment-expiry" class="mt-2 text-center text-sm font-semibold text-public-muted" aria-live="polite"></p>
 
-                    <p id="payment-state" class="mt-4 text-center text-sm font-semibold text-public-muted" aria-live="polite">
-                        Status: {{ $order->status }}
-                    </p>
+                    <div class="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-public-muted">
+                        <span class="size-4 animate-spin rounded-full border-2 border-public-line border-t-public-ink motion-reduce:animate-none" aria-hidden="true"></span>
+                        <p id="payment-state" aria-live="polite">Menunggu konfirmasi pembayaran...</p>
+                    </div>
                 @else
                     <p class="mt-8 text-center text-lg font-bold text-public-ink">
                         Pembayaran {{ $order->status }}.
@@ -71,39 +72,82 @@
             };
 
             updateCountdown();
-            window.setInterval(updateCountdown, 1000);
+            const countdown = window.setInterval(updateCountdown, 1000);
+            const terminalStatuses = ['expired', 'failed', 'cancelled'];
+            let poll;
+            let requestController;
+            let stopped = false;
 
-            const poll = window.setInterval(async () => {
+            const stopPolling = () => {
+                stopped = true;
+                window.clearTimeout(poll);
+                window.clearInterval(countdown);
+                requestController?.abort();
+            };
+
+            const pollPayment = async () => {
+                if (stopped) {
+                    return;
+                }
+
                 if (document.hidden) {
+                    poll = window.setTimeout(pollPayment, 3000);
                     return;
                 }
 
                 try {
+                    requestController = new AbortController();
                     const response = await fetch(
                         @json(route('subscriptions.status', $order)),
                         {
                             headers: {
                                 Accept: 'application/json'
-                            }
+                            },
+                            credentials: 'same-origin',
+                            cache: 'no-store',
+                            signal: requestController.signal
                         }
                     );
 
                     if (!response.ok) {
-                        return;
+                        throw new Error(`Payment status request failed with HTTP ${response.status}`);
                     }
 
                     const data = await response.json();
 
-                    state.textContent = 'Status: ' + data.status;
+                    state.textContent = data.status === 'pending'
+                        ? 'Menunggu konfirmasi pembayaran...'
+                        : `Pembayaran ${data.status}.`;
 
                     if (data.redirect) {
-                        window.clearInterval(poll);
+                        stopPolling();
                         window.location.assign(data.redirect);
+                        return;
                     }
-                } catch (_) {
+
+                    if (terminalStatuses.includes(data.status)) {
+                        stopPolling();
+                        window.location.reload();
+                        return;
+                    }
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        return;
+                    }
+
+                    console.error('Subscription payment polling error:', error);
                     state.textContent = 'Koneksi terputus, mencoba kembali';
+                } finally {
+                    requestController = undefined;
                 }
-            }, 3000);
+
+                if (!stopped) {
+                    poll = window.setTimeout(pollPayment, 3000);
+                }
+            };
+
+            poll = window.setTimeout(pollPayment, 3000);
+            window.addEventListener('pagehide', stopPolling, { once: true });
         });
     </script>
     @endif

@@ -150,6 +150,44 @@ class SubscriptionFlowTest extends TestCase
         $this->assertTrue($user->fresh()->subscription->isActive());
     }
 
+    public function test_subscription_status_poll_is_owner_only_and_reads_database_status(): void
+    {
+        $order = SubscriptionOrder::factory()->create(['qr_content' => 'pending-qris-content']);
+        $otherUser = User::factory()->create();
+
+        $this->actingAs($otherUser)
+            ->getJson(route('subscriptions.status', $order))
+            ->assertNotFound();
+
+        $this->actingAs($order->user)
+            ->getJson(route('subscriptions.status', $order))
+            ->assertOk()
+            ->assertExactJson(['status' => 'pending', 'redirect' => null]);
+
+        $order->update(['status' => 'paid']);
+
+        $this->actingAs($order->user)
+            ->getJson(route('subscriptions.status', $order))
+            ->assertOk()
+            ->assertExactJson([
+                'status' => 'paid',
+                'redirect' => route('fotografer.dashboard'),
+            ]);
+    }
+
+    public function test_subscription_payment_page_uses_single_abortable_polling_loop(): void
+    {
+        $order = SubscriptionOrder::factory()->create(['qr_content' => 'pending-qris-content']);
+
+        $this->actingAs($order->user)
+            ->get(route('subscriptions.payment', $order))
+            ->assertOk()
+            ->assertSee('Menunggu konfirmasi pembayaran...')
+            ->assertSee('new AbortController()', false)
+            ->assertSee("['expired', 'failed', 'cancelled']", false)
+            ->assertSee("window.addEventListener('pagehide', stopPolling", false);
+    }
+
     public function test_renewal_adds_duration_while_plan_change_preserves_end_date(): void
     {
         $this->seed(PackageSeeder::class);
