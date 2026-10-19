@@ -230,26 +230,25 @@ class DokuWebhookController extends Controller
      */
     private function hasMissingMandatoryField(array $payload): bool
     {
-        $fields = $payload['format'] === 'qris'
-            ? [
-                'order_id',
-                'notification_id',
-                'status_code',
-                'gross_amount',
-                'currency',
-                'transaction_time',
-                'service_id',
-                'api_format',
-            ]
-            : [
-                'order_id',
-                'transaction_id',
-                'external_id',
-                'notification_id',
-                'status_code',
-                'gross_amount',
-                'currency',
-            ];
+            $fields = $payload['format'] === 'qris'
+        ? [
+            'order_id',
+            'notification_id',
+            'status_code',
+            'gross_amount',
+            'currency',
+            'transaction_time',
+            'service_id',
+        ]
+        : [
+            'order_id',
+            'transaction_id',
+            'external_id',
+            'notification_id',
+            'status_code',
+            'gross_amount',
+            'currency',
+        ];
 
         $missing = collect($fields)
             ->filter(
@@ -261,13 +260,15 @@ class DokuWebhookController extends Controller
             ->all();
 
         $invalid = [];
-
         if ($payload['format'] === 'qris') {
             if (($payload['service_id'] ?? null) !== 'QRIS') {
                 $invalid[] = 'service_id';
             }
 
-            if (($payload['api_format'] ?? null) !== 'SNAP') {
+            if (
+                ! empty($payload['api_format']) &&
+                $payload['api_format'] !== 'SNAP'
+            ) {
                 $invalid[] = 'api_format';
             }
         }
