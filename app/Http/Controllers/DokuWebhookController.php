@@ -14,13 +14,20 @@ use Illuminate\Support\Facades\Log;
 
 class DokuWebhookController extends Controller
 {
-    public function __invoke(Request $request, DokuPaymentGateway $doku, DokuPaymentReconciler $reconciler, SubscriptionBilling $subscriptionBilling, PhotoOrderBilling $photoBilling): JsonResponse
-    {
+    public function __invoke(
+        Request $request,
+        DokuPaymentGateway $doku,
+        DokuPaymentReconciler $reconciler,
+        SubscriptionBilling $subscriptionBilling,
+        PhotoOrderBilling $photoBilling
+    ): JsonResponse {
         $signatureValid = $doku->hasValidNotificationSignature($request);
+
         if (! $signatureValid) {
             Log::warning('DOKU QRIS webhook rejected.', [
                 'format' => $this->format($request),
-                'notification_id' => $request->header('X-EXTERNAL-ID') ?? $request->header('Request-Id'),
+                'notification_id' => $request->header('X-EXTERNAL-ID')
+                    ?? $request->header('Request-Id'),
                 'reason' => 'invalid_signature',
             ]);
 
@@ -29,50 +36,109 @@ class DokuWebhookController extends Controller
 
         $payload = $this->normalize($request, $reconciler);
         $orderId = (string) ($payload['order_id'] ?? '');
+
         if ($this->hasMissingMandatoryField($payload)) {
-            Log::warning('DOKU QRIS webhook rejected.', $this->logContext($payload, 'missing_mandatory_field'));
+            Log::warning(
+                'DOKU QRIS webhook rejected.',
+                $this->logContext($payload, 'missing_mandatory_field')
+            );
 
-            return response()->json(['responseCode' => '4005602', 'responseMessage' => 'Missing Mandatory Field'], 400);
+            return response()->json([
+                'responseCode' => '4005602',
+                'responseMessage' => 'Missing Mandatory Field',
+            ], 400);
         }
 
-        $subscriptionOrder = SubscriptionOrder::where('order_id', $orderId)->where('provider', 'doku')
-            ->when($payload['format'] === 'snap', fn ($query) => $query
-                ->where('provider_transaction_id', $payload['transaction_id'])
-                ->where('provider_external_id', $payload['external_id']))
+        $subscriptionOrder = SubscriptionOrder::where('order_id', $orderId)
+            ->where('provider', 'doku')
+            ->when(
+                $payload['format'] === 'snap',
+                fn ($query) => $query
+                    ->where('provider_transaction_id', $payload['transaction_id'])
+                    ->where('provider_external_id', $payload['external_id'])
+            )
             ->first();
+
         if ($subscriptionOrder) {
-            $payload = $this->withStoredReferences($payload, $subscriptionOrder);
-            $result = $subscriptionBilling->processNotification($subscriptionOrder, $payload, $signatureValid);
-            Log::info('DOKU QRIS webhook processed.', $this->logContext($payload, $result, 'subscription'));
+            $payload = $this->withStoredReferences(
+                $payload,
+                $subscriptionOrder
+            );
 
-            return $this->response($result, (string) $payload['transaction_id']);
+            $result = $subscriptionBilling->processNotification(
+                $subscriptionOrder,
+                $payload,
+                $signatureValid
+            );
+
+            Log::info(
+                'DOKU QRIS webhook processed.',
+                $this->logContext($payload, $result, 'subscription')
+            );
+
+            return $this->response(
+                $result,
+                (string) $payload['transaction_id']
+            );
         }
 
-        $photoOrder = PhotoOrder::where('order_id', $orderId)->where('provider', 'doku')
-            ->when($payload['format'] === 'snap', fn ($query) => $query
-                ->where('provider_transaction_id', $payload['transaction_id'])
-                ->where('provider_external_id', $payload['external_id']))
+        $photoOrder = PhotoOrder::where('order_id', $orderId)
+            ->where('provider', 'doku')
+            ->when(
+                $payload['format'] === 'snap',
+                fn ($query) => $query
+                    ->where('provider_transaction_id', $payload['transaction_id'])
+                    ->where('provider_external_id', $payload['external_id'])
+            )
             ->first();
-        if (! $photoOrder) {
-            Log::warning('DOKU QRIS webhook rejected.', $this->logContext($payload, 'transaction_not_found'));
 
-            return response()->json(['responseCode' => '4045601', 'responseMessage' => 'Transaction Not Found'], 404);
+        if (! $photoOrder) {
+            Log::warning(
+                'DOKU QRIS webhook rejected.',
+                $this->logContext($payload, 'transaction_not_found')
+            );
+
+            return response()->json([
+                'responseCode' => '4045601',
+                'responseMessage' => 'Transaction Not Found',
+            ], 404);
         }
 
         $payload = $this->withStoredReferences($payload, $photoOrder);
-        $result = $photoBilling->processNotification($photoOrder, $payload, $signatureValid);
-        Log::info('DOKU QRIS webhook processed.', $this->logContext($payload, $result, 'photo'));
 
-        return $this->response($result, (string) $payload['transaction_id']);
+        $result = $photoBilling->processNotification(
+            $photoOrder,
+            $payload,
+            $signatureValid
+        );
+
+        Log::info(
+            'DOKU QRIS webhook processed.',
+            $this->logContext($payload, $result, 'photo')
+        );
+
+        return $this->response(
+            $result,
+            (string) $payload['transaction_id']
+        );
     }
 
-    private function response(string $result, ?string $approvalCode = null): JsonResponse
-    {
+    private function response(
+        string $result,
+        ?string $approvalCode = null
+    ): JsonResponse {
         if ($result === 'invalid_signature') {
-            return response()->json(['responseCode' => '4015600', 'responseMessage' => 'Unauthorized signature'], 401);
+            return response()->json([
+                'responseCode' => '4015600',
+                'responseMessage' => 'Unauthorized signature',
+            ], 401);
         }
+
         if (str_starts_with($result, 'invalid_')) {
-            return response()->json(['responseCode' => '4005601', 'responseMessage' => 'Invalid Field Format'], 400);
+            return response()->json([
+                'responseCode' => '4005601',
+                'responseMessage' => 'Invalid Field Format',
+            ], 400);
         }
 
         return response()->json(array_filter([
@@ -82,16 +148,26 @@ class DokuWebhookController extends Controller
         ]));
     }
 
-    /** @return array<string, mixed> */
-    private function normalize(Request $request, DokuPaymentReconciler $reconciler): array
-    {
+    /**
+     * @return array<string, mixed>
+     */
+    private function normalize(
+        Request $request,
+        DokuPaymentReconciler $reconciler
+    ): array {
         $payload = $request->json()->all();
+
         if ($this->format($request) === 'qris') {
-            $status = strtoupper((string) data_get($payload, 'transaction.status'));
+            $status = strtoupper(
+                (string) data_get($payload, 'transaction.status')
+            );
 
             return [
                 'format' => 'qris',
-                'order_id' => data_get($payload, 'order.invoice_number'),
+                'order_id' => data_get(
+                    $payload,
+                    'order.invoice_number'
+                ),
                 'transaction_id' => null,
                 'external_id' => null,
                 'notification_id' => $request->header('Request-Id'),
@@ -104,14 +180,30 @@ class DokuWebhookController extends Controller
                 'gross_amount' => data_get($payload, 'order.amount'),
                 'currency' => 'IDR',
                 'payment_type' => 'qris',
-                'transaction_time' => data_get($payload, 'transaction.date'),
-                'service_id' => data_get($payload, 'service.id'),
-                'api_format' => data_get($payload, 'additional_info.origin.apiFormat'),
+                'transaction_time' => data_get(
+                    $payload,
+                    'transaction.date'
+                ),
+                'service_id' => data_get(
+                    $payload,
+                    'service.id'
+                ),
+                'api_format' => data_get(
+                    $payload,
+                    'additional_info.origin.apiFormat'
+                ),
             ];
         }
 
-        $statusCode = (string) ($payload['latestTransactionStatus'] ?? '');
-        if (! in_array($statusCode, ['00', '01', '02', '03', '04', '05', '06', '07'], true)) {
+        $statusCode = (string) (
+            $payload['latestTransactionStatus'] ?? ''
+        );
+
+        if (! in_array(
+            $statusCode,
+            ['00', '01', '02', '03', '04', '05', '06', '07'],
+            true
+        )) {
             Log::warning('DOKU sent an unknown QRIS status.', [
                 'order_id' => $payload['originalPartnerReferenceNo'] ?? null,
                 'status' => $statusCode,
@@ -133,44 +225,105 @@ class DokuWebhookController extends Controller
         ];
     }
 
-    /** @param array<string, mixed> $payload */
+    /**
+     * @param array<string, mixed> $payload
+     */
     private function hasMissingMandatoryField(array $payload): bool
     {
         $fields = $payload['format'] === 'qris'
-            ? ['order_id', 'notification_id', 'status_code', 'gross_amount', 'currency', 'transaction_time', 'service_id', 'api_format']
-            : ['order_id', 'transaction_id', 'external_id', 'notification_id', 'status_code', 'gross_amount', 'currency'];
+            ? [
+                'order_id',
+                'notification_id',
+                'status_code',
+                'gross_amount',
+                'currency',
+                'transaction_time',
+                'service_id',
+                'api_format',
+            ]
+            : [
+                'order_id',
+                'transaction_id',
+                'external_id',
+                'notification_id',
+                'status_code',
+                'gross_amount',
+                'currency',
+            ];
 
-        if (($payload['format'] === 'qris') && ($payload['service_id'] !== 'QRIS' || $payload['api_format'] !== 'SNAP')) {
+        $missing = collect($fields)
+            ->filter(
+                fn (string $field): bool =>
+                    ($payload[$field] ?? null) === null
+                    || $payload[$field] === ''
+            )
+            ->values()
+            ->all();
+
+        $invalid = [];
+
+        if ($payload['format'] === 'qris') {
+            if (($payload['service_id'] ?? null) !== 'QRIS') {
+                $invalid[] = 'service_id';
+            }
+
+            if (($payload['api_format'] ?? null) !== 'SNAP') {
+                $invalid[] = 'api_format';
+            }
+        }
+
+        if ($missing !== [] || $invalid !== []) {
+            Log::warning(
+                'DOKU QRIS webhook validation details.',
+                [
+                    'order_id' => $payload['order_id'] ?? null,
+                    'format' => $payload['format'],
+                    'missing_fields' => $missing,
+                    'invalid_fields' => $invalid,
+                ]
+            );
+
             return true;
         }
 
-        return collect($fields)
-            ->contains(fn (string $field): bool => $payload[$field] === null || $payload[$field] === '');
+        return false;
     }
 
     private function format(Request $request): string
     {
-        return (string) $request->header('Signature') !== '' ? 'qris' : 'snap';
+        return (string) $request->header('Signature') !== ''
+            ? 'qris'
+            : 'snap';
     }
 
-    /** @param array<string, mixed> $payload
+    /**
+     * @param array<string, mixed> $payload
      * @return array<string, mixed>
      */
-    private function withStoredReferences(array $payload, PhotoOrder|SubscriptionOrder $order): array
-    {
+    private function withStoredReferences(
+        array $payload,
+        PhotoOrder|SubscriptionOrder $order
+    ): array {
         if ($payload['format'] === 'qris') {
-            $payload['transaction_id'] = $order->provider_transaction_id;
-            $payload['external_id'] = $order->provider_external_id;
+            $payload['transaction_id'] =
+                $order->provider_transaction_id;
+
+            $payload['external_id'] =
+                $order->provider_external_id;
         }
 
         return $payload;
     }
 
-    /** @param array<string, mixed> $payload
+    /**
+     * @param array<string, mixed> $payload
      * @return array<string, string|null>
      */
-    private function logContext(array $payload, string $result, ?string $orderType = null): array
-    {
+    private function logContext(
+        array $payload,
+        string $result,
+        ?string $orderType = null
+    ): array {
         return [
             'format' => $payload['format'] ?? null,
             'notification_id' => $payload['notification_id'] ?? null,
