@@ -102,7 +102,7 @@
                 try {
                     requestController = new AbortController();
                     const response = await fetch(
-                        @json(route('subscriptions.status', $order)),
+                        @json(route('subscriptions.status', $order, false)),
                         {
                             headers: {
                                 Accept: 'application/json'

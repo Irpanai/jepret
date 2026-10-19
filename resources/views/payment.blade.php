@@ -203,8 +203,7 @@
                 |--------------------------------------------------------------------------
                 */
 
-                const statusUrl = @json(route('checkout.payment.status', ['order' => $order_id]));
-                const terminalStatuses = ['expired', 'failed', 'cancelled'];
+                const statusUrl = @json(route('checkout.payment.status', ['order' => $order_id], false));                const terminalStatuses = ['expired', 'failed', 'cancelled'];
                 let retryDelay = 3000;
                 let paymentPoll;
                 let requestController;
