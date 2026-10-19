@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Throwable;
 
@@ -125,11 +126,23 @@ class PembeliController extends Controller
     {
         $photoOrder = $this->buyerPhotoOrder($request, $order);
 
+        if ($photoOrder->status !== 'pending') {
+            Log::info('Photo payment status poll reached a final state.', [
+                'order_id' => $photoOrder->order_id,
+                'status' => $photoOrder->status,
+                'user_id' => $request->user()->id,
+            ]);
+        }
+
         return response()->json([
             'status' => $photoOrder->status,
             'redirect' => $photoOrder->status === 'paid'
                 ? route('checkout.success', ['order' => $photoOrder->order_id])
                 : null,
+        ])->withHeaders([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     }
 

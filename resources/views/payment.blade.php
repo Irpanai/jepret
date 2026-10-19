@@ -68,7 +68,7 @@
                         ></p>
 
                         <div class="mt-5 inline-flex items-center gap-2 border border-public-line bg-white px-4 py-3 text-xs font-extrabold uppercase text-public-muted">
-                            <span class="size-3 animate-spin rounded-full border-2 border-public-line border-t-public-ink motion-reduce:animate-none" aria-hidden="true"></span>
+                            <span id="payment-spinner" class="size-3 animate-spin rounded-full border-2 border-public-line border-t-public-ink motion-reduce:animate-none" aria-hidden="true"></span>
                             <span
                                 id="payment-state"
                                 aria-live="polite"
@@ -109,6 +109,7 @@
             document.addEventListener('DOMContentLoaded', function () {
 
                 const paymentState = document.getElementById('payment-state');
+                const paymentSpinner = document.getElementById('payment-spinner');
                 const expiryLabel = document.getElementById('payment-expiry');
                 const qrisCanvas = document.getElementById('qris-code');
                 const qrisError = document.getElementById('qris-error');
@@ -208,6 +209,8 @@
                 let paymentPoll;
                 let requestController;
                 let stopped = false;
+                let consecutiveFailures = 0;
+                const maximumFailures = 10;
 
                 const stopPolling = () => {
                     stopped = true;
@@ -238,20 +241,27 @@
                             throw new Error(`Payment status request failed with HTTP ${response.status}`);
                         }
 
-                        const data = await response.json();
-                        paymentState.textContent = data.status === 'pending'
-                            ? 'Menunggu konfirmasi pembayaran...'
-                            : `Pembayaran ${data.status}.`;
-                        retryDelay = 3000;
+                        if (!response.headers.get('content-type')?.includes('application/json')) {
+                            throw new Error('Payment status response was not JSON');
+                        }
 
-                        if (data.status === 'paid' && data.redirect) {
+                        const data = await response.json();
+                        const status = String(data.status ?? '').toLowerCase();
+
+                        paymentState.textContent = status === 'pending'
+                            ? 'Menunggu konfirmasi pembayaran...'
+                            : `Pembayaran ${status}.`;
+                        retryDelay = 3000;
+                        consecutiveFailures = 0;
+
+                        if (status === 'paid' && data.redirect) {
                             stopPolling();
                             window.location.assign(data.redirect);
                             return;
                         }
-                        if (terminalStatuses.includes(data.status)) {
+                        if (terminalStatuses.includes(status)) {
                             stopPolling();
-                            window.location.reload();
+                            paymentSpinner?.classList.add('hidden');
                             return;
                         }
                     } catch (error) {
@@ -261,6 +271,15 @@
 
                         console.error('Payment polling error:', error);
                         paymentState.textContent = 'koneksi terputus, mencoba kembali';
+                        consecutiveFailures += 1;
+
+                        if (consecutiveFailures >= maximumFailures) {
+                            stopPolling();
+                            paymentSpinner?.classList.add('hidden');
+                            paymentState.textContent = 'Status belum dapat diperiksa. Silakan muat ulang halaman.';
+                            return;
+                        }
+
                         retryDelay = Math.min(retryDelay * 2, 30000);
                     } finally {
                         requestController = undefined;
@@ -271,7 +290,15 @@
                     }
                 };
 
-                paymentPoll = window.setTimeout(pollPayment, retryDelay);
+                const resumePolling = () => {
+                    if (!document.hidden && !stopped && !requestController) {
+                        window.clearTimeout(paymentPoll);
+                        paymentPoll = window.setTimeout(pollPayment, 0);
+                    }
+                };
+
+                paymentPoll = window.setTimeout(pollPayment, 0);
+                document.addEventListener('visibilitychange', resumePolling);
                 window.addEventListener('pagehide', stopPolling, { once: true });
 
             });

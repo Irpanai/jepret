@@ -10,6 +10,7 @@ use App\SubscriptionBilling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Throwable;
 
@@ -51,7 +52,22 @@ class SubscriptionCheckoutController extends Controller
     {
         abort_unless($order->user_id === $request->user()->id, 404);
 
-        return response()->json(['status' => $order->status, 'redirect' => $order->status === 'paid' ? route('fotografer.dashboard') : null]);
+        if ($order->status !== 'pending') {
+            Log::info('Subscription payment status poll reached a final state.', [
+                'order_id' => $order->order_id,
+                'status' => $order->status,
+                'user_id' => $request->user()->id,
+            ]);
+        }
+
+        return response()->json([
+            'status' => $order->status,
+            'redirect' => $order->status === 'paid' ? route('fotografer.dashboard') : null,
+        ])->withHeaders([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
     }
 
     public function requestRefund(Request $request, SubscriptionOrder $order): RedirectResponse

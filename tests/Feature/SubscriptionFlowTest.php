@@ -162,6 +162,7 @@ class SubscriptionFlowTest extends TestCase
         $this->actingAs($order->user)
             ->getJson(route('subscriptions.status', $order))
             ->assertOk()
+            ->assertHeader('Cache-Control', 'must-revalidate, no-cache, no-store, private')
             ->assertExactJson(['status' => 'pending', 'redirect' => null]);
 
         $order->update(['status' => 'paid']);
@@ -169,6 +170,7 @@ class SubscriptionFlowTest extends TestCase
         $this->actingAs($order->user)
             ->getJson(route('subscriptions.status', $order))
             ->assertOk()
+            ->assertHeader('Cache-Control', 'must-revalidate, no-cache, no-store, private')
             ->assertExactJson([
                 'status' => 'paid',
                 'redirect' => route('fotografer.dashboard'),
@@ -185,6 +187,9 @@ class SubscriptionFlowTest extends TestCase
             ->assertSee('Menunggu konfirmasi pembayaran...')
             ->assertSee('new AbortController()', false)
             ->assertSee("['expired', 'failed', 'cancelled']", false)
+            ->assertSee('maximumFailures = 10', false)
+            ->assertSee("content-type')?.includes('application/json')", false)
+            ->assertSee("document.addEventListener('visibilitychange', resumePolling)", false)
             ->assertSee("window.addEventListener('pagehide', stopPolling", false);
     }
 

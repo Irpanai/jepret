@@ -188,6 +188,9 @@ class PhotoOrderPaymentTest extends TestCase
             ->assertSee('window.location.assign(data.redirect)', false)
             ->assertSee('Math.min(retryDelay * 2, 30000)', false)
             ->assertSee("['expired', 'failed', 'cancelled']", false)
+            ->assertSee('maximumFailures = 10', false)
+            ->assertSee("content-type')?.includes('application/json')", false)
+            ->assertSee("document.addEventListener('visibilitychange', resumePolling)", false)
             ->assertSee("window.addEventListener('pagehide', stopPolling", false);
     }
 
@@ -202,6 +205,7 @@ class PhotoOrderPaymentTest extends TestCase
         $this->actingAs($buyer)
             ->getJson(route('checkout.payment.status', $order->order_id))
             ->assertOk()
+            ->assertHeader('Cache-Control', 'must-revalidate, no-cache, no-store, private')
             ->assertExactJson(['status' => 'pending', 'redirect' => null]);
 
         $order->update(['status' => 'paid']);
@@ -209,6 +213,7 @@ class PhotoOrderPaymentTest extends TestCase
         $this->actingAs($buyer)
             ->getJson(route('checkout.payment.status', $order->order_id))
             ->assertOk()
+            ->assertHeader('Cache-Control', 'must-revalidate, no-cache, no-store, private')
             ->assertExactJson([
                 'status' => 'paid',
                 'redirect' => route('checkout.success', ['order' => $order->order_id]),
