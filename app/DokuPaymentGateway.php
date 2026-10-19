@@ -62,6 +62,10 @@ class DokuPaymentGateway
 
     public function hasValidNotificationSignature(Request $request): bool
     {
+        if ((string) $request->header('Signature') !== '') {
+            return $this->hasValidQrisNotificationSignature($request);
+        }
+
         $timestamp = (string) $request->header('X-TIMESTAMP');
         $signature = (string) $request->header('X-SIGNATURE');
         $partnerId = (string) $request->header('X-PARTNER-ID');
@@ -91,6 +95,38 @@ class DokuPaymentGateway
             $this->symmetricSignature('POST', $request->getPathInfo(), $token, $body, $timestamp),
             $signature,
         );
+    }
+
+    private function hasValidQrisNotificationSignature(Request $request): bool
+    {
+        $clientId = (string) $request->header('Client-Id');
+        $requestId = (string) $request->header('Request-Id');
+        $timestamp = (string) $request->header('Request-Timestamp');
+        $signature = (string) $request->header('Signature');
+
+        if ($clientId !== config('doku.client_id') || $requestId === '' || $timestamp === '' || $signature === '') {
+            return false;
+        }
+
+        try {
+            if (Carbon::parse($timestamp)->diffInMinutes(now(), absolute: true) > 15) {
+                return false;
+            }
+        } catch (Throwable) {
+            return false;
+        }
+
+        $digest = base64_encode(hash('sha256', $request->getContent(), true));
+        $component = implode("\n", [
+            'Client-Id:'.$clientId,
+            'Request-Id:'.$requestId,
+            'Request-Timestamp:'.$timestamp,
+            'Request-Target:'.$request->getPathInfo(),
+            'Digest:'.$digest,
+        ]);
+        $expected = 'HMACSHA256='.base64_encode(hash_hmac('sha256', $component, (string) config('doku.client_secret'), true));
+
+        return hash_equals($expected, $signature);
     }
 
     /** @return array{reference:string, external_id:string, qr_content:string} */

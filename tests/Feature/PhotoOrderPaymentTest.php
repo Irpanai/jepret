@@ -34,6 +34,46 @@ class PhotoOrderPaymentTest extends TestCase
         $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
     }
 
+    public function test_valid_qris_notification_fulfills_once_when_doku_repeats_the_callback(): void
+    {
+        $this->configureDoku();
+        [$order, $firstPhotographer, $secondPhotographer] = $this->pendingOrder();
+        $payload = $this->qrisPayload($order, 'SUCCESS');
+        $headers = $this->qrisHeaders($payload, 'qris-notification-1');
+
+        $this->postJson(route('payments.doku.notification'), $payload, $headers)->assertOk();
+        $this->postJson(route('payments.doku.notification'), $payload, $headers)->assertOk();
+
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(27000, (int) $secondPhotographer->fresh()->saldo);
+        $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
+    }
+
+    public function test_qris_notification_rejects_an_invalid_signature_and_records_a_valid_failure(): void
+    {
+        $this->configureDoku();
+        [$order, $firstPhotographer] = $this->pendingOrder();
+        $success = $this->qrisPayload($order, 'SUCCESS');
+        $invalidHeaders = $this->qrisHeaders($success, 'qris-notification-invalid');
+        $invalidHeaders['Signature'] = 'HMACSHA256=invalid';
+
+        $this->postJson(route('payments.doku.notification'), $success, $invalidHeaders)->assertUnauthorized();
+        $this->assertSame('pending', $order->fresh()->status);
+
+        $wrongAmount = $this->qrisPayload($order, 'SUCCESS');
+        $wrongAmount['order']['amount'] = 1;
+        $this->postJson(route('payments.doku.notification'), $wrongAmount, $this->qrisHeaders($wrongAmount, 'qris-notification-amount'))->assertBadRequest();
+        $this->assertSame('pending', $order->fresh()->status);
+
+        $failed = $this->qrisPayload($order, 'FAILED');
+        $this->postJson(route('payments.doku.notification'), $failed, $this->qrisHeaders($failed, 'qris-notification-failed'))->assertOk();
+
+        $this->assertSame('failed', $order->fresh()->status);
+        $this->assertSame(0, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(0, Transaction::where('payment_status', 'paid')->count());
+    }
+
     public function test_invalid_signature_and_amount_do_not_pay_or_credit_photographers(): void
     {
         $this->configureDoku();
@@ -302,6 +342,50 @@ class PhotoOrderPaymentTest extends TestCase
     private function configureDoku(): void
     {
         config(['doku.client_id' => 'test-client', 'doku.client_secret' => 'photo-test-key']);
+    }
+
+    /** @return array<string, mixed> */
+    private function qrisPayload(PhotoOrder $order, string $status): array
+    {
+        return [
+            'service' => ['id' => 'QRIS', 'name' => 'QRIS'],
+            'acquirer' => ['id' => 'DOKU', 'name' => 'DOKU'],
+            'channel' => ['id' => 'QRIS_DOKU', 'name' => 'QRIS-DOKU'],
+            'customer' => ['doku_id' => 'customer-1', 'name' => 'Buyer', 'email' => 'buyer@example.com', 'phone' => '628123456789'],
+            'order' => ['invoice_number' => $order->order_id, 'amount' => (float) $order->gross_amount],
+            'emoney_payment' => ['account_id' => 'customer-1', 'approval_code' => 'approval-1'],
+            'transaction' => ['status' => $status, 'date' => now()->utc()->format('Y-m-d\TH:i:s\Z')],
+            'additional_info' => [
+                'postalCode' => '70123',
+                'feeType' => '1',
+                'origin' => ['product' => 'QRIS', 'system' => 'snap-adapter', 'apiFormat' => 'SNAP', 'source' => 'DIRECT'],
+            ],
+        ];
+    }
+
+    /** @param array<string, mixed> $payload
+     * @return array<string, string>
+     */
+    private function qrisHeaders(array $payload, string $requestId): array
+    {
+        $timestamp = now()->utc()->format('Y-m-d\TH:i:s\Z');
+        $body = json_encode($payload, JSON_THROW_ON_ERROR);
+        $digest = base64_encode(hash('sha256', $body, true));
+        $component = implode("\n", [
+            'Client-Id:test-client',
+            'Request-Id:'.$requestId,
+            'Request-Timestamp:'.$timestamp,
+            'Request-Target:/payments/doku/notification',
+            'Digest:'.$digest,
+        ]);
+        $signature = 'HMACSHA256='.base64_encode(hash_hmac('sha256', $component, 'photo-test-key', true));
+
+        return [
+            'Client-Id' => 'test-client',
+            'Request-Id' => $requestId,
+            'Request-Timestamp' => $timestamp,
+            'Signature' => $signature,
+        ];
     }
 
     /** @param array<string, mixed> $payload
