@@ -41,6 +41,7 @@
                 @foreach($pricingPlans as $plan)
                     @php
                         $isCurrent = $user->subscription?->package_id === $plan->id && $user->subscription->isActive();
+                        $isPlanChange = $user->subscription?->isActive() && ! $isCurrent && ! $plan->is_trial && ! $plan->is_custom;
                         $trialUsed = $plan->is_trial && $user->subscription?->trial_used_at !== null;
                         $quotaMb = $plan->storageQuotaMb();
                         $storage = $plan->is_custom ? 'Sesuai kebutuhan' : ($quotaMb >= 1024 ? number_format($quotaMb / 1024, 0).' GB' : number_format($quotaMb, 0).' MB');
@@ -81,8 +82,19 @@
                             @elseif($trialUsed)
                                 <button type="button" disabled class="min-h-12 w-full cursor-not-allowed border border-public-line bg-public-bone px-4 text-xs font-extrabold uppercase text-public-muted">Trial sudah digunakan</button>
                             @else
-                                <form method="POST" action="{{ route('subscriptions.checkout', $plan) }}">
+                                <form method="POST" action="{{ route('subscriptions.checkout', $plan) }}" x-data="subscriptionVoucher({{ $plan->id }}, {{ Js::from($isPlanChange) }})" @submit="confirmPlanChange($event)">
                                     @csrf
+                                    @unless($plan->is_trial)
+                                        <label class="mb-2 block text-xs font-extrabold uppercase text-public-muted">Kode voucher</label>
+                                        <div class="mb-2 flex gap-2"><input x-model="code" class="public-input min-h-11 min-w-0 flex-1 px-3 uppercase" maxlength="50"><button type="button" @click="apply" :disabled="loading" class="min-h-11 border border-public-ink px-3 text-xs font-extrabold uppercase disabled:opacity-50">Pakai</button></div>
+                                        <input type="hidden" name="voucher_code" :value="appliedCode">
+                                        <p x-show="message" x-text="message" :class="discount ? 'text-emerald-700' : 'text-red-700'" class="mb-3 text-xs font-semibold" role="status"></p>
+                                    @endunless
+                                    @if($isPlanChange)
+                                        <p class="mb-3 border-l-2 border-public-ink pl-3 text-xs font-semibold leading-5 text-public-muted">
+                                            Paket baru aktif segera setelah pembayaran dan masa aktifnya ditambahkan dari tanggal berakhir saat ini.
+                                        </p>
+                                    @endif
                                     <button class="inline-flex min-h-12 w-full items-center justify-center border border-public-ink bg-public-ink px-4 text-center text-xs font-extrabold uppercase text-white hover:bg-neutral-800">
                                         {{ $plan->is_trial ? 'Aktifkan Trial' : ($isCurrent ? 'Perpanjang Paket' : 'Pilih Paket') }}
                                     </button>
@@ -99,3 +111,9 @@
         </div>
     </section>
 </x-marketplace-layout>
+
+<script>
+    function subscriptionVoucher(packageId, isPlanChange) {
+        return { code: '', appliedCode: '', discount: 0, loading: false, message: '', confirmPlanChange(event) { if (isPlanChange && ! window.confirm('Paket baru akan langsung aktif setelah pembayaran. Sisa masa aktif Anda tetap tersimpan dan durasi paket baru akan ditambahkan. Lanjutkan?')) event.preventDefault(); }, async apply() { this.loading = true; this.message = ''; try { const response = await fetch(@json(route('vouchers.preview', absolute: false)), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }, body: JSON.stringify({ voucher_code: this.code, scope: 'subscription', package_id: packageId }) }); const data = await response.json(); if (!response.ok) throw new Error(data.errors?.voucher_code?.[0] ?? 'Voucher tidak dapat digunakan.'); this.appliedCode = data.code; this.discount = data.discount; this.message = `${data.code}: hemat Rp${new Intl.NumberFormat('id-ID').format(data.discount)}, bayar Rp${new Intl.NumberFormat('id-ID').format(data.final)}`; } catch (error) { this.appliedCode = ''; this.discount = 0; this.message = error.message; } finally { this.loading = false; } } };
+    }
+</script>

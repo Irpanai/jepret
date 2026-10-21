@@ -12,11 +12,6 @@ class PackageSeeder extends Seeder
      */
     public function run(): void
     {
-        Package::query()
-            ->whereIn('code', ['basic', 'pro'])
-            ->orWhereIn('nama_paket', ['Basic', 'Pro'])
-            ->update(['is_active' => false, 'is_legacy' => true]);
-
         foreach ($this->packages() as $package) {
             Package::updateOrCreate(['code' => $package['code']], $package);
         }

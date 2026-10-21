@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['order_id', 'user_id', 'gross_amount', 'currency', 'provider', 'status', 'provider_status', 'provider_transaction_id', 'provider_external_id', 'payment_method', 'snap_token', 'snap_redirect_url', 'qr_content', 'requires_review', 'provider_paid_at', 'expires_at', 'processed_at'])]
+#[Fillable(['order_id', 'user_id', 'gross_amount', 'original_subtotal', 'voucher_id', 'voucher_code', 'discount_amount', 'final_payable', 'photographer_amount', 'platform_commission', 'platform_revenue', 'currency', 'provider', 'status', 'provider_status', 'provider_transaction_id', 'provider_external_id', 'payment_method', 'snap_token', 'snap_redirect_url', 'qr_content', 'requires_review', 'provider_paid_at', 'expires_at', 'processed_at'])]
 class PhotoOrder extends Model
 {
     /** @use HasFactory<PhotoOrderFactory> */
@@ -33,5 +33,15 @@ class PhotoOrder extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
+    }
+
+    public function voucherRedemptions(): HasMany
+    {
+        return $this->hasMany(VoucherRedemption::class, 'order_id')->where('order_type', $this->getMorphClass());
     }
 }

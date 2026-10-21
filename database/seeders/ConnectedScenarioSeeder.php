@@ -20,8 +20,8 @@ class ConnectedScenarioSeeder extends Seeder
      */
     public function run(): void
     {
-        $basic = Package::updateOrCreate(['nama_paket' => 'Basic'], ['code' => 'basic', 'display_name' => 'Basic', 'harga' => 0, 'kuota_storage_mb' => 5000, 'bisa_custom_watermark' => true, 'bisa_broadcast_lokasi' => false]);
-        $pro = Package::updateOrCreate(['nama_paket' => 'Pro'], ['code' => 'pro', 'display_name' => 'Pro', 'harga' => 99000, 'kuota_storage_mb' => 50000, 'bisa_custom_watermark' => true, 'bisa_broadcast_lokasi' => true]);
+        $basic = Package::updateOrCreate(['nama_paket' => 'Basic'], ['code' => 'basic', 'display_name' => 'Basic', 'harga' => 0, 'kuota_storage_mb' => 5000, 'bisa_custom_watermark' => true, 'bisa_broadcast_lokasi' => false, 'is_active' => false, 'is_legacy' => true]);
+        $pro = Package::updateOrCreate(['nama_paket' => 'Pro'], ['code' => 'pro', 'display_name' => 'Pro', 'harga' => 99000, 'kuota_storage_mb' => 50000, 'bisa_custom_watermark' => true, 'bisa_broadcast_lokasi' => true, 'is_active' => false, 'is_legacy' => true]);
         $admin = User::updateOrCreate(['email' => 'superadmin@jepret.test'], ['name' => 'Super Admin', 'password' => Hash::make('password'), 'role' => 'superadmin', 'is_verified' => true]);
         $creator = User::updateOrCreate(['email' => 'fotografer_pro@jepret.test'], ['name' => 'Creator Pro', 'password' => Hash::make('password'), 'role' => 'fotografer', 'package_id' => $pro->id, 'is_verified' => true, 'verified_at' => now(), 'studio_name' => 'Jepret Studio', 'slug' => 'creator-pro', 'location' => 'Makassar', 'category' => 'Sports', 'saldo' => 180000]);
         $second = User::updateOrCreate(['email' => 'fotografer_basic@jepret.test'], ['name' => 'Creator Basic', 'password' => Hash::make('password'), 'role' => 'fotografer', 'package_id' => $basic->id, 'is_verified' => true, 'slug' => 'creator-basic', 'location' => 'Banjarbaru']);

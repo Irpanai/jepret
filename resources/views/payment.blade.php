@@ -15,6 +15,10 @@
                         Rp{{ number_format($total, 0, ',', '.') }}
                     </h1>
 
+                    @if($photoOrder->discount_amount > 0)
+                        <p class="mt-3 text-sm font-semibold text-white/70">Harga awal Rp{{ number_format($photoOrder->original_subtotal, 0, ',', '.') }} · Voucher {{ $photoOrder->voucher_code }} -Rp{{ number_format($photoOrder->discount_amount, 0, ',', '.') }}</p>
+                    @endif
+
                     <p class="mt-3 break-all text-sm font-semibold text-white/65">
                         Order {{ $order_id }}
                     </p>

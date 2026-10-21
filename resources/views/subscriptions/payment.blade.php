@@ -4,7 +4,10 @@
             <div class="border border-public-line p-6 sm:p-8">
                 <p class="public-kicker">Subscription Photographer</p>
                 <h1 class="mt-3 text-3xl font-extrabold">{{ $order->package_snapshot['name'] }}</h1>
-                <p class="mt-3 text-2xl font-extrabold">Rp{{ number_format($order->gross_amount, 0, ',', '.') }}</p>
+                @if($order->discount_amount > 0)
+                    <div class="mt-4 grid gap-2 border-y border-public-line py-4 text-sm font-semibold"><div class="flex justify-between"><span>Harga awal</span><span>Rp{{ number_format($order->original_subtotal, 0, ',', '.') }}</span></div><div class="flex justify-between text-emerald-700"><span>Voucher {{ $order->voucher_code }}</span><span>-Rp{{ number_format($order->discount_amount, 0, ',', '.') }}</span></div></div>
+                @endif
+                <p class="mt-3 text-2xl font-extrabold">Bayar Rp{{ number_format($order->gross_amount, 0, ',', '.') }}</p>
                 <p class="mt-2 text-sm text-public-muted">Order {{ $order->order_id }}</p>
 
                 @if($order->status === 'pending' && $order->qr_content)

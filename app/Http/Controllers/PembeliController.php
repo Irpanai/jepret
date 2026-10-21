@@ -6,7 +6,9 @@ use App\DokuPaymentGateway;
 use App\Models\Photo;
 use App\Models\PhotoOrder;
 use App\Models\Transaction;
+use App\Models\Voucher;
 use App\PhotoOrderBilling;
+use App\VoucherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -76,6 +78,7 @@ class PembeliController extends Controller
             ->whereIn('id', $ids)
             ->where('status', 'active')
             ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())
+            ->orderBy('id')
             ->get();
 
         if ($photos->count() !== count($ids)) {
@@ -84,8 +87,9 @@ class PembeliController extends Controller
 
         sort($ids);
         $pendingCheckout = session('pending_checkout_order');
+        $voucherCode = $request->filled('voucher_code') ? Voucher::normalizeCode($request->string('voucher_code')->toString()) : null;
 
-        if (is_array($pendingCheckout) && ($pendingCheckout['photo_ids'] ?? []) === $ids) {
+        if (is_array($pendingCheckout) && ($pendingCheckout['photo_ids'] ?? []) === $ids && ($pendingCheckout['voucher_code'] ?? null) === $voucherCode) {
             $pendingOrder = PhotoOrder::where('order_id', $pendingCheckout['order_id'] ?? '')
                 ->where('user_id', $user->id)
                 ->where('status', 'pending')
@@ -96,11 +100,12 @@ class PembeliController extends Controller
             }
         }
 
-        $order = $billing->createOrder($user, $photos);
+        $order = $billing->createOrder($user, $photos, $voucherCode);
 
         session()->put('pending_checkout_order', [
             'order_id' => $order->order_id,
             'photo_ids' => $ids,
+            'voucher_code' => $order->voucher_code,
         ]);
 
         return $this->startPayment($order, $doku);
@@ -119,6 +124,7 @@ class PembeliController extends Controller
             'paymentStatus' => $photoOrder->status,
             'qrContent' => $photoOrder->qr_content,
             'expiresAt' => $photoOrder->expires_at?->toIso8601String(),
+            'photoOrder' => $photoOrder,
         ]);
     }
 
@@ -213,6 +219,10 @@ class PembeliController extends Controller
             $doku->ensurePhotoOrderPayment($order);
         } catch (Throwable $exception) {
             report($exception);
+            $order->update(['status' => 'failed', 'provider_status' => 'gateway_initialization_failed']);
+            $order->transactions()->where('payment_status', 'pending')->update(['status' => 'failed', 'payment_status' => 'failed']);
+            app(VoucherService::class)->release($order);
+            session()->forget('pending_checkout_order');
 
             return redirect()->route('cart.index')->withErrors(['payment' => 'DOKU belum dapat membuat QRIS. Silakan coba kembali.']);
         }

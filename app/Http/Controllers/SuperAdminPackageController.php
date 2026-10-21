@@ -44,8 +44,7 @@ class SuperAdminPackageController extends Controller
         $data = $this->validatedData($request, $package);
 
         if ($package->is_legacy) {
-            $data['is_active'] = false;
-            $data['is_legacy'] = true;
+            $data['is_legacy'] = ! $data['is_active'];
         }
 
         $data['revision'] = $package->revision + 1;
@@ -58,6 +57,10 @@ class SuperAdminPackageController extends Controller
     /** @return array<string, mixed> */
     private function validatedData(Request $request, ?Package $package = null): array
     {
+        $request->merge([
+            'code' => Str::slug($request->input('code') ?: ($package?->code ?? $request->input('display_name', ''))),
+        ]);
+
         $data = $request->validate([
             'code' => ['required', 'alpha_dash', 'max:50', Rule::unique('packages')->ignore($package)],
             'display_name' => ['required', 'string', 'max:100'],

@@ -193,8 +193,9 @@ class SubscriptionFlowTest extends TestCase
             ->assertSee("window.addEventListener('pagehide', stopPolling", false);
     }
 
-    public function test_renewal_adds_duration_while_plan_change_preserves_end_date(): void
+    public function test_renewal_and_plan_change_add_duration_to_the_active_subscription(): void
     {
+        $this->travelTo('2026-10-21 08:00:00');
         $this->seed(PackageSeeder::class);
         $user = User::factory()->pembeli()->create();
         $starter = Package::where('code', 'starter')->firstOrFail();
@@ -204,20 +205,41 @@ class SubscriptionFlowTest extends TestCase
         $activation = $billing->createOrder($user, $starter);
         $activation->update(['status' => 'paid', 'provider_paid_at' => now()]);
         $billing->applyPaidOrder($activation, now());
-        $firstEnd = $user->fresh()->subscription->ends_at;
 
         $renewal = $billing->createOrder($user, $starter);
         $renewal->update(['status' => 'paid', 'provider_paid_at' => now()->addMinute()]);
         $billing->applyPaidOrder($renewal, now()->addMinute());
         $renewedEnd = $user->fresh()->subscription->ends_at;
-        $this->assertTrue($renewedEnd->equalTo($firstEnd->copy()->addDays(30)));
+        $this->assertSame('2026-12-20 08:00:00', $renewedEnd->format('Y-m-d H:i:s'));
 
         $change = $billing->createOrder($user, $creator);
         $change->update(['status' => 'paid', 'provider_paid_at' => now()->addMinutes(2)]);
         $billing->applyPaidOrder($change, now()->addMinutes(2));
         $subscription = $user->fresh()->subscription;
         $this->assertSame($creator->id, $subscription->package_id);
-        $this->assertTrue($subscription->ends_at->equalTo($renewedEnd));
+        $this->assertSame('2027-01-19 08:00:00', $subscription->ends_at->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-10-21 08:00:00', $subscription->starts_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_plan_change_explains_that_the_new_package_starts_immediately_without_losing_time(): void
+    {
+        $this->seed(PackageSeeder::class);
+        $user = User::factory()->create([
+            'role' => 'fotografer',
+            'photographer_onboarded_at' => now(),
+        ]);
+        $starter = Package::where('code', 'starter')->firstOrFail();
+        $creator = Package::where('code', 'creator')->firstOrFail();
+        $billing = app(SubscriptionBilling::class);
+        $activation = $billing->createOrder($user, $starter);
+        $billing->applyPaidOrder($activation, now());
+
+        $this->actingAs($user->fresh())
+            ->get(route('subscriptions.plans'))
+            ->assertOk()
+            ->assertSee('Paket baru aktif segera setelah pembayaran dan masa aktifnya ditambahkan dari tanggal berakhir saat ini.')
+            ->assertSee('confirmPlanChange', false)
+            ->assertSee($creator->display_name);
     }
 
     public function test_expired_subscription_keeps_dashboard_read_only_and_hides_listing(): void

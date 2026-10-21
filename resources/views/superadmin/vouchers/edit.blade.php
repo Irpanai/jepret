@@ -1,0 +1,1 @@
+<x-superadmin-layout><div class="max-w-4xl"><h1>Edit Voucher</h1><p class="helper mt-2">Perubahan tidak mengubah snapshot order yang sudah dibuat.</p><form method="POST" action="{{ route('superadmin.vouchers.update', $voucher) }}" class="mt-6 rounded-2xl border bg-white p-6">@include('superadmin.vouchers._form')</form></div></x-superadmin-layout>

@@ -20,8 +20,8 @@ class PackageCatalogTest extends TestCase
             'code' => 'basic',
             'nama_paket' => 'Basic',
             'display_name' => 'Basic',
-            'is_active' => true,
-            'is_legacy' => false,
+            'is_active' => false,
+            'is_legacy' => true,
         ]);
 
         $this->seed(PackageSeeder::class);
@@ -95,7 +95,32 @@ class PackageCatalogTest extends TestCase
         $this->assertSame(1, AdminAuditLog::where('action', 'package.updated')->count());
     }
 
-    public function test_legacy_package_cannot_be_reactivated_by_superadmin(): void
+    public function test_superadmin_can_create_an_active_package_with_an_audit_log(): void
+    {
+        $admin = User::factory()->superadmin()->create();
+
+        $this->actingAs($admin)->post(route('superadmin.packages.store'), [
+            'display_name' => 'Professional Plus',
+            'description' => 'Paket untuk fotografer profesional.',
+            'features_text' => "50 GB Storage\nBroadcast lokasi",
+            'harga' => 99000,
+            'currency' => 'IDR',
+            'duration_days' => 30,
+            'storage_quota_mb' => 51200,
+            'sort_order' => 40,
+            'is_active' => '1',
+        ])->assertRedirect(route('superadmin.packages.index'))
+            ->assertSessionHasNoErrors();
+
+        $package = Package::where('code', 'professional-plus')->firstOrFail();
+        $this->assertSame('Professional Plus', $package->display_name);
+        $this->assertSame(51200 * 1048576, $package->storage_quota_bytes);
+        $this->assertSame(['50 GB Storage', 'Broadcast lokasi'], $package->features);
+        $this->assertTrue($package->is_active);
+        $this->assertSame(1, AdminAuditLog::where('action', 'package.created')->count());
+    }
+
+    public function test_superadmin_can_reactivate_a_legacy_package(): void
     {
         $admin = User::factory()->superadmin()->create();
         $package = Package::factory()->create([
@@ -105,6 +130,11 @@ class PackageCatalogTest extends TestCase
             'is_active' => false,
             'is_legacy' => true,
         ]);
+
+        $this->actingAs($admin)
+            ->get(route('superadmin.packages.edit', $package))
+            ->assertOk()
+            ->assertSee('Paket legacy. Mengaktifkannya akan mengembalikan paket ini ke katalog publik dan checkout baru.');
 
         $this->actingAs($admin)->put(route('superadmin.packages.update', $package), [
             'code' => 'basic',
@@ -117,8 +147,8 @@ class PackageCatalogTest extends TestCase
             'is_active' => '1',
         ])->assertRedirect(route('superadmin.packages.index'));
 
-        $this->assertFalse($package->fresh()->is_active);
-        $this->assertTrue($package->fresh()->is_legacy);
+        $this->assertTrue($package->fresh()->is_active);
+        $this->assertFalse($package->fresh()->is_legacy);
     }
 
     public function test_non_superadmin_cannot_manage_packages(): void

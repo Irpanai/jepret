@@ -7,6 +7,7 @@ use App\Models\PaymentEvent;
 use App\Models\Subscription;
 use App\Models\SubscriptionOrder;
 use App\Models\User;
+use App\Models\Voucher;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,34 +15,44 @@ use Illuminate\Validation\ValidationException;
 
 class SubscriptionBilling
 {
-    public function createOrder(User $user, Package $package): SubscriptionOrder
+    public function createOrder(User $user, Package $package, ?string $voucherCode = null): SubscriptionOrder
     {
-        return DB::transaction(function () use ($user, $package): SubscriptionOrder {
+        return DB::transaction(function () use ($user, $package, $voucherCode): SubscriptionOrder {
             User::whereKey($user->id)->lockForUpdate()->firstOrFail();
             $subscription = Subscription::where('user_id', $user->id)->lockForUpdate()->first();
             $intent = $subscription?->isActive()
                 ? ($subscription->package_id === $package->id ? 'renewal' : 'plan_change')
                 : 'activation';
 
+            $normalizedCode = filled($voucherCode) ? Voucher::normalizeCode($voucherCode) : null;
             $pending = SubscriptionOrder::where('user_id', $user->id)->where('package_id', $package->id)
                 ->where('intent', $intent)->where('status', 'pending')->where('expires_at', '>', now())->latest()->first();
-            if ($pending) {
+            if ($pending && $pending->voucher_code === $normalizedCode) {
                 return $pending;
             }
 
-            return SubscriptionOrder::create([
+            $order = SubscriptionOrder::create([
                 'order_id' => 'JPR-SUB-'.now()->format('YmdHis').'-'.Str::upper(Str::random(8)),
                 'user_id' => $user->id,
                 'package_id' => $package->id,
                 'intent' => $intent,
                 'package_snapshot' => $this->snapshot($package),
                 'gross_amount' => $package->harga,
+                'original_subtotal' => $package->harga,
+                'discount_amount' => 0,
+                'final_payable' => $package->harga,
                 'currency' => $package->currency,
                 'provider' => 'doku',
                 'status' => 'pending',
                 'source_subscription_version' => $subscription?->version ?? 0,
                 'expires_at' => now()->addMinutes(config('doku.qris_ttl_minutes')),
             ]);
+            if ($normalizedCode) {
+                $voucher = app(VoucherService::class)->reserve($normalizedCode, 'subscription', (int) $package->harga, $user, $order, package: $package);
+                $order->update(['gross_amount' => $voucher['final'], 'voucher_id' => $voucher['voucher']->id, 'voucher_code' => $voucher['voucher']->code, 'discount_amount' => $voucher['discount'], 'final_payable' => $voucher['final']]);
+            }
+
+            return $order;
         });
     }
 
@@ -137,6 +148,7 @@ class SubscriptionBilling
                 $paidAt = $providerTime ?? now();
                 $order->update(['status' => 'paid', 'provider_paid_at' => $paidAt]);
                 $this->applyPaidOrder($order, $paidAt);
+                app(VoucherService::class)->redeem($order);
                 $event->update(['processing_result' => 'paid']);
 
                 return 'paid';
@@ -146,6 +158,9 @@ class SubscriptionBilling
                 'deny', 'failed' => 'failed', 'cancel' => 'cancelled', 'expire' => 'expired', 'refund', 'partial_refund' => 'refunded', default => 'pending',
             };
             $order->update(['status' => $mapped]);
+            if (in_array($mapped, ['failed', 'cancelled'], true)) {
+                app(VoucherService::class)->release($order);
+            }
             $event->update(['processing_result' => $mapped]);
 
             return $mapped;
@@ -177,9 +192,9 @@ class SubscriptionBilling
         $duration = (int) ($order->package_snapshot['duration_days'] ?? 0);
         $active = $subscription?->isActive() ?? false;
         $startsAt = $active ? $subscription->starts_at : $paidAt;
+        $extensionStartsAt = $active && $subscription->ends_at ? $subscription->ends_at : $paidAt;
         $endsAt = match ($order->intent) {
-            'renewal' => ($active ? $subscription->ends_at : $paidAt)->copy()->addDays($duration),
-            'plan_change' => $active ? $subscription->ends_at : $paidAt->copy()->addDays($duration),
+            'renewal', 'plan_change' => $extensionStartsAt->copy()->addDays($duration),
             default => $paidAt->copy()->addDays($duration),
         };
 

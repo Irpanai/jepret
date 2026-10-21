@@ -47,7 +47,7 @@
                         </div>
                     </section>
 
-                    <aside class="h-max border border-public-line bg-public-bone p-5 lg:sticky lg:top-24">
+                    <aside x-data="voucherCheckout({{ $total }})" class="h-max border border-public-line bg-public-bone p-5 lg:sticky lg:top-24">
                         <p class="public-kicker">Order summary</p>
                         <div class="mt-5 grid gap-3 border-y border-public-line py-5 text-sm font-bold">
                             <div class="flex justify-between">
@@ -58,14 +58,29 @@
                                 <span>Biaya layanan</span>
                                 <span>Rp0</span>
                             </div>
+                            <div x-show="discount > 0" class="flex justify-between text-emerald-700">
+                                <span>Voucher <strong x-text="appliedCode"></strong></span>
+                                <span>-Rp<span x-text="format(discount)"></span></span>
+                            </div>
                             <div class="flex justify-between pt-3 text-lg font-extrabold">
                                 <span>Total</span>
-                                <span>Rp{{ number_format($total, 0, ',', '.') }}</span>
+                                <span>Rp<span x-text="format(finalTotal)"></span></span>
                             </div>
+                        </div>
+
+                        <div class="mt-5">
+                            <label for="voucher-code" class="text-xs font-extrabold uppercase text-public-muted">Kode voucher</label>
+                            <div class="mt-2 flex gap-2">
+                                <input id="voucher-code" x-model="code" @blur="error = ''" class="public-input min-h-11 min-w-0 flex-1 px-3 uppercase" maxlength="50" autocomplete="off">
+                                <button type="button" @click="apply" :disabled="loading" class="min-h-11 border border-public-ink bg-white px-4 text-xs font-extrabold uppercase disabled:opacity-50" :aria-busy="loading">Terapkan</button>
+                            </div>
+                            <p x-show="error" x-text="error" class="mt-2 text-sm font-semibold text-red-700" role="alert"></p>
+                            <button x-show="discount > 0" type="button" @click="remove" class="mt-2 min-h-11 text-xs font-extrabold underline">Hapus voucher</button>
                         </div>
 
                         <form action="{{ route('checkout.process') }}" method="POST" class="mt-5">
                             @csrf
+                            <input type="hidden" name="voucher_code" :value="appliedCode">
                             <button type="submit" class="public-button w-full">Buat Order Pembayaran</button>
                         </form>
                         <p class="mt-4 text-xs font-semibold leading-5 text-public-muted">Original hanya terbuka setelah pembayaran lunas.</p>
@@ -75,3 +90,9 @@
         </div>
     </section>
 </x-marketplace-layout>
+
+<script>
+    function voucherCheckout(subtotal) {
+        return { code: '', appliedCode: '', discount: 0, finalTotal: subtotal, loading: false, error: '', format(value) { return new Intl.NumberFormat('id-ID').format(value); }, remove() { this.appliedCode = ''; this.discount = 0; this.finalTotal = subtotal; this.error = ''; }, async apply() { this.loading = true; this.error = ''; try { const response = await fetch(@json(route('vouchers.preview', absolute: false)), { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }, body: JSON.stringify({ voucher_code: this.code, scope: 'photo' }) }); const data = await response.json(); if (!response.ok) throw new Error(data.errors?.voucher_code?.[0] ?? 'Voucher tidak dapat digunakan.'); this.appliedCode = data.code; this.discount = data.discount; this.finalTotal = data.final; } catch (error) { this.remove(); this.error = error.message; } finally { this.loading = false; } } };
+    }
+</script>

@@ -17,6 +17,8 @@ use App\Http\Controllers\SubscriptionCheckoutController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminPackageController;
 use App\Http\Controllers\SuperAdminPhotographerController;
+use App\Http\Controllers\SuperAdminVoucherController;
+use App\Http\Controllers\VoucherPreviewController;
 use App\Models\Camera;
 use App\Models\Package;
 use App\Models\Photo;
@@ -111,6 +113,8 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
     Route::patch('/photographers/{photographer}/status', [SuperAdminPhotographerController::class, 'status'])->name('photographers.status');
     Route::resource('photographers', SuperAdminPhotographerController::class);
     Route::resource('packages', SuperAdminPackageController::class)->except(['show', 'destroy']);
+    Route::resource('vouchers', SuperAdminVoucherController::class)->except('destroy');
+    Route::delete('/vouchers/{voucher}', [SuperAdminVoucherController::class, 'destroy'])->name('vouchers.toggle');
 
     Route::get('/compliance', [SuperAdminController::class, 'compliance'])->name('compliance');
     Route::get('/orders', [SuperAdminController::class, 'ledger'])->name('orders');
@@ -150,6 +154,7 @@ Route::middleware(['auth', 'role:fotografer'])->prefix('fotografer')->name('foto
 });
 
 Route::middleware('auth')->group(function () {
+    Route::post('/vouchers/preview', VoucherPreviewController::class)->middleware('throttle:30,1')->name('vouchers.preview');
     Route::get('/subscription/plans', [PricingController::class, 'subscriptions'])->middleware('role:fotografer')->name('subscriptions.plans');
     Route::post('/subscriptions/packages/{package}/checkout', [SubscriptionCheckoutController::class, 'store'])->middleware('role:fotografer')->name('subscriptions.checkout');
     Route::get('/subscriptions/orders/{order}/payment', [SubscriptionCheckoutController::class, 'show'])->name('subscriptions.payment');

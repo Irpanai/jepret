@@ -1,0 +1,1 @@
+<x-superadmin-layout><div class="max-w-4xl"><h1>Buat Voucher</h1><p class="helper mt-2">Atur diskon dan batas penggunaan.</p><form method="POST" action="{{ route('superadmin.vouchers.store') }}" class="mt-6 rounded-2xl border bg-white p-6">@include('superadmin.vouchers._form')</form></div></x-superadmin-layout>

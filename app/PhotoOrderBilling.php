@@ -17,23 +17,46 @@ class PhotoOrderBilling
     /**
      * @param  Collection<int, Photo>  $photos
      */
-    public function createOrder(User $user, Collection $photos): PhotoOrder
+    public function createOrder(User $user, Collection $photos, ?string $voucherCode = null): PhotoOrder
     {
-        return DB::transaction(function () use ($user, $photos): PhotoOrder {
+        return DB::transaction(function () use ($user, $photos, $voucherCode): PhotoOrder {
             User::whereKey($user->id)->lockForUpdate()->firstOrFail();
             $orderId = 'JPR-PHO-'.now()->format('YmdHis').'-'.Str::upper(Str::random(8));
+            $subtotal = (int) $photos->sum(fn (Photo $photo): int => (int) $photo->harga);
+            $photographerAmount = (int) $photos->sum(fn (Photo $photo): int => Photo::photographerAmount((int) $photo->harga));
+            $platformCommission = $subtotal - $photographerAmount;
             $order = PhotoOrder::create([
                 'order_id' => $orderId,
                 'user_id' => $user->id,
-                'gross_amount' => $photos->sum(fn (Photo $photo): int => (int) $photo->harga),
+                'gross_amount' => $subtotal,
+                'original_subtotal' => $subtotal,
+                'discount_amount' => 0,
+                'final_payable' => $subtotal,
+                'photographer_amount' => $photographerAmount,
+                'platform_commission' => $platformCommission,
+                'platform_revenue' => $platformCommission,
                 'currency' => 'IDR',
                 'provider' => 'doku',
                 'status' => 'pending',
                 'expires_at' => now()->addMinutes(config('doku.qris_ttl_minutes')),
             ]);
 
+            $voucher = null;
+            if (filled($voucherCode)) {
+                $voucher = app(VoucherService::class)->reserve($voucherCode, 'photo', $subtotal, $user, $order, $platformCommission);
+                $order->update([
+                    'gross_amount' => $voucher['final'], 'voucher_id' => $voucher['voucher']->id,
+                    'voucher_code' => $voucher['voucher']->code, 'discount_amount' => $voucher['discount'],
+                    'final_payable' => $voucher['final'], 'platform_revenue' => $platformCommission - $voucher['discount'],
+                ]);
+            }
+
+            $remainingDiscount = $voucher['discount'] ?? 0;
             foreach ($photos as $photo) {
                 $price = (int) $photo->harga;
+                $originalPlatformAmount = Photo::platformAmount($price);
+                $itemDiscount = min($originalPlatformAmount, $remainingDiscount);
+                $remainingDiscount -= $itemDiscount;
                 Transaction::create([
                     'photo_order_id' => $order->id,
                     'order_number' => $orderId,
@@ -42,9 +65,9 @@ class PhotoOrderBilling
                     'fotografer_id' => $photo->fotografer_id,
                     'harga_foto' => $price,
                     'tip_amount' => 0,
-                    'total_bayar' => $price,
+                    'total_bayar' => $price - $itemDiscount,
                     'photographer_amount' => Photo::photographerAmount($price),
-                    'platform_amount' => Photo::platformAmount($price),
+                    'platform_amount' => $originalPlatformAmount - $itemDiscount,
                     'revenue_share_snapshot' => [
                         'photographer_percent' => Photo::PHOTOGRAPHER_SHARE_PERCENT,
                         'platform_percent' => Photo::PLATFORM_SHARE_PERCENT,
@@ -129,6 +152,7 @@ class PhotoOrderBilling
                 $paidAt = $providerTime ?? now();
                 $order->update($providerValues + ['status' => 'paid', 'provider_paid_at' => $paidAt]);
                 $this->applyPaidOrder($order, $paidAt, (string) ($payload['transaction_id'] ?? ''));
+                app(VoucherService::class)->redeem($order);
                 $event->update(['processing_result' => 'paid']);
 
                 return 'paid';
@@ -142,6 +166,9 @@ class PhotoOrderBilling
             };
             $order->update($providerValues + ['status' => $mapped]);
             $order->transactions()->where('payment_status', 'pending')->update(['status' => $mapped, 'payment_status' => $mapped]);
+            if (in_array($mapped, ['failed', 'cancelled'], true)) {
+                app(VoucherService::class)->release($order);
+            }
             $event->update(['processing_result' => $mapped]);
 
             return $mapped;
@@ -167,7 +194,10 @@ class PhotoOrderBilling
                 'provider_paid_at' => $paidAt,
             ]);
 
-            return $this->applyPaidOrder($order, $paidAt, $reference);
+            $paidOrder = $this->applyPaidOrder($order, $paidAt, $reference);
+            app(VoucherService::class)->redeem($order);
+
+            return $paidOrder;
         });
     }
 

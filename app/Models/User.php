@@ -137,4 +137,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Transaction::class, 'fotografer_id');
     }
+
+    public function photoOrders(): HasMany
+    {
+        return $this->hasMany(PhotoOrder::class);
+    }
 }

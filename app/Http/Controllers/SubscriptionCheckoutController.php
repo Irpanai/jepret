@@ -7,6 +7,7 @@ use App\Models\Package;
 use App\Models\SubscriptionOrder;
 use App\Models\SubscriptionRefund;
 use App\SubscriptionBilling;
+use App\VoucherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,11 +26,14 @@ class SubscriptionCheckoutController extends Controller
             return redirect()->route('fotografer.dashboard')->with('success', 'Trial berhasil diaktifkan.');
         }
 
-        $order = $billing->createOrder($request->user(), $package);
+        $voucherCode = $request->filled('voucher_code') ? $request->string('voucher_code')->toString() : null;
+        $order = $billing->createOrder($request->user(), $package, $voucherCode);
         try {
             $doku->ensureSubscriptionPayment($order);
         } catch (Throwable $exception) {
             report($exception);
+            $order->update(['status' => 'failed', 'provider_status' => 'gateway_initialization_failed']);
+            app(VoucherService::class)->release($order);
 
             return back()->withErrors(['payment' => 'DOKU belum dapat membuat QRIS. Silakan coba kembali.']);
         }
