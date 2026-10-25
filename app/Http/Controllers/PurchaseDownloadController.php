@@ -15,14 +15,14 @@ class PurchaseDownloadController extends Controller
 
         $filename = $transaction->photo->original_filename ?: basename($transaction->photo->file_asli);
 
-        return Storage::disk('local')->download($transaction->photo->purchased_path, $filename);
+        return Storage::disk('local')->download($transaction->download_path ?: $transaction->photo->purchased_path, $filename);
     }
 
     public function preview(Request $request, string $order, Transaction $transaction): StreamedResponse
     {
         $this->authorizePurchase($request, $order, $transaction);
 
-        return Storage::disk('local')->response($transaction->photo->purchased_path);
+        return Storage::disk('local')->response($transaction->download_path ?: $transaction->photo->purchased_path);
     }
 
     private function authorizePurchase(Request $request, string $order, Transaction $transaction): void
@@ -34,6 +34,12 @@ class PurchaseDownloadController extends Controller
         abort_unless($belongsToOrder, 403);
         abort_if($transaction->payment_status !== 'paid' || $transaction->status !== 'paid', 403);
         $transaction->loadMissing('photo');
-        abort_if(! $transaction->photo?->purchased_path || ! Storage::disk('local')->exists($transaction->photo->purchased_path), 404);
+        $downloadPath = $transaction->download_path ?: $transaction->photo?->purchased_path;
+        abort_if(! $downloadPath || ! Storage::disk('local')->exists($downloadPath), 404);
+
+        if ($transaction->download_without_watermark && $transaction->download_sha256) {
+            $actualChecksum = hash_file('sha256', Storage::disk('local')->path($downloadPath));
+            abort_unless(is_string($actualChecksum) && hash_equals($transaction->download_sha256, $actualChecksum), 409, 'Integritas file original tidak valid. Hubungi dukungan Jepret.');
+        }
     }
 }

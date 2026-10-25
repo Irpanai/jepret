@@ -50,7 +50,7 @@
                         <p class="mt-4 text-sm font-semibold leading-6 text-public-muted">
                             {{ $photo->event?->nama_event ?? 'Event belum dicatat' }}
                             @if($photoDate)
-                                / {{ $photoDate->format('d M Y') }}
+                                / {{ $photoDate->timezone(config('app.display_timezone'))->format('d M Y') }}
                             @endif
                         </p>
 
@@ -95,7 +95,7 @@
                                 'Event' => $photo->event?->nama_event,
                                 'Lokasi' => $photo->event?->lokasi,
                                 'Kategori' => $photo->category,
-                                'Waktu' => optional($photo->taken_at ?? $photo->created_at)->format('d M Y, H:i'),
+                                'Waktu' => optional(($photo->taken_at ?? $photo->created_at)?->timezone(config('app.display_timezone')))->format('d M Y, H:i'),
                                 'Kamera' => $photo->kamera_body,
                                 'Lensa' => $photo->lensa,
                                 'Resolusi' => $photo->resolusi,

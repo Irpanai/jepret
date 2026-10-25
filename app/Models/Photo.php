@@ -26,7 +26,9 @@ class Photo extends Model
             'taken_at' => 'datetime',
             'file_size_mb' => 'decimal:2',
             'storage_bytes' => 'integer',
+            'original_sha256' => 'string',
             'watermark_settings' => 'array',
+            'sell_without_watermark' => 'boolean',
         ];
     }
 

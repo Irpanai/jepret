@@ -12,6 +12,7 @@ use App\Models\Withdrawal;
 use App\TransactionReporting;
 use App\WithdrawalWorkflow;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,8 +33,23 @@ class SuperAdminController extends Controller
         $pendingWithdrawals = Withdrawal::with('fotografer')->where('status', 'pending')->latest()->limit(5)->get();
         $storage = ['used_mb' => (float) User::where('role', 'fotografer')->sum('storage_terpakai_mb'), 'quota_mb' => (float) User::where('role', 'fotografer')->with('package')->get()->sum(fn ($user) => $user->effectiveQuotaMb())];
         $integrations = ['database' => DB::connection()->getDatabaseName(), 'payment' => config('doku.client_id') ? 'DOKU configured' : 'Simulated / not configured', 'storage' => config('filesystems.default'), 'queue' => config('queue.default'), 'mail' => config('mail.default')];
+        $chartData = [
+            'hari' => $reporting->chartData('hari'),
+            'tanggal' => $reporting->chartData('tanggal'),
+            'bulan' => $reporting->chartData('bulan'),
+        ];
 
-        return view('superadmin.dashboard', compact('metrics', 'daily', 'locations', 'pendingUsers', 'pendingWithdrawals', 'storage', 'integrations'));
+        return view('superadmin.dashboard', compact('metrics', 'daily', 'locations', 'pendingUsers', 'pendingWithdrawals', 'storage', 'integrations', 'chartData'));
+    }
+
+    public function chartData(Request $request, TransactionReporting $reporting): JsonResponse
+    {
+        $period = $request->query('period', 'tanggal');
+        if (! in_array($period, ['hari', 'tanggal', 'bulan'], true)) {
+            $period = 'tanggal';
+        }
+
+        return response()->json($reporting->chartData($period));
     }
 
     public function executiveReport(Request $request, TransactionReporting $reporting): Response
@@ -120,10 +136,28 @@ class SuperAdminController extends Controller
         return back()->with('success', count($data['withdrawal_ids']).' penarikan disetujui.');
     }
 
-    public function storage(): View
+    public function storage(Request $request): View
     {
-        $photographers = User::where('role', 'fotografer')->with('package')->withCount('photos')->withMax('photos', 'created_at')->orderBy('name')->paginate(15);
+        $request->validate(['q' => ['nullable', 'string', 'max:100']]);
+        $search = $request->string('q')->trim()->toString();
+        $photographers = User::where('role', 'fotografer')
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($query) use ($search): void {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->with('package')
+            ->withCount('photos')
+            ->withMax('photos', 'created_at')
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
         $totalStorage = User::where('role', 'fotografer')->sum('storage_terpakai_mb');
+
+        if ($request->ajax()) {
+            return view('superadmin.storage-results', compact('photographers'));
+        }
 
         return view('superadmin.storage', compact('photographers', 'totalStorage'));
     }

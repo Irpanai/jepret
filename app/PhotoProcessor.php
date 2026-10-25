@@ -7,31 +7,80 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Gif\Decoder as GifDecoder;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
+use RuntimeException;
 
 class PhotoProcessor
 {
+    private const GD_FORMATS = [
+        'jpg' => 'JPEG Support',
+        'jpeg' => 'JPEG Support',
+        'png' => 'PNG Support',
+        'webp' => 'WebP Support',
+        'avif' => 'AVIF Support',
+        'gif' => 'GIF Read Support',
+        'bmp' => 'BMP Support',
+    ];
+
     private const SYSTEM_WATERMARK_SCALE = 100;
 
     private const PHOTOGRAPHER_WATERMARK_SCALE = 30;
 
-    /** @return array{original:string,preview:string,purchased:string,bytes:int,original_bytes:int,preview_bytes:int,purchased_bytes:int,media_type:string} */
+    /** @return array<int, string> */
+    public static function supportedExtensions(): array
+    {
+        $gd = gd_info();
+
+        return array_keys(array_filter(self::GD_FORMATS, fn (string $capability): bool => (bool) ($gd[$capability] ?? false)));
+    }
+
+    /** @return array{width:int,height:int,frames:int,pixels:int} */
+    public function inspect(UploadedFile $file): array
+    {
+        $dimensions = @getimagesize($file->getRealPath());
+        if ($dimensions === false) {
+            throw new RuntimeException('Dimensi gambar tidak dapat dibaca.');
+        }
+
+        $width = (int) $dimensions[0];
+        $height = (int) $dimensions[1];
+        $frames = strtolower($file->getClientOriginalExtension()) === 'gif'
+            ? count(GifDecoder::decode($file->getRealPath())->frames())
+            : 1;
+
+        return [
+            'width' => $width,
+            'height' => $height,
+            'frames' => $frames,
+            'pixels' => $width * $height * max(1, $frames),
+        ];
+    }
+
+    /** @return array{original:string,preview:string,purchased:string,bytes:int,original_bytes:int,preview_bytes:int,purchased_bytes:int,media_type:string,original_sha256:string} */
     public function process(UploadedFile $file, string $eventSlug, string $personalWatermarkPath, array $watermarkSettings = []): array
     {
         $uuid = (string) Str::uuid();
         $extension = strtolower($file->getClientOriginalExtension());
-        $mediaType = $extension === 'mov' ? 'video' : 'image';
+        if (! in_array($extension, self::supportedExtensions(), true)) {
+            throw new RuntimeException('Format gambar tidak didukung oleh decoder server.');
+        }
+
+        $sourceChecksum = hash_file('sha256', $file->getRealPath());
         $original = $file->storeAs('photos/original/'.$eventSlug, $uuid.'.'.$extension, 'local');
-        $preview = 'photos/preview/'.$eventSlug.'/'.$uuid.'.'.($mediaType === 'video' ? 'mp4' : 'jpg');
-        $purchased = 'photos/purchased/'.$eventSlug.'/'.$uuid.'.'.($mediaType === 'video' ? 'mp4' : 'jpg');
+        $storedChecksum = hash_file('sha256', Storage::disk('local')->path($original));
+        if (! is_string($sourceChecksum) || ! is_string($storedChecksum) || ! hash_equals($sourceChecksum, $storedChecksum)) {
+            Storage::disk('local')->delete($original);
+            throw new RuntimeException('Integritas file original gagal diverifikasi.');
+        }
+
+        $derivativeExtension = $extension === 'gif' ? 'gif' : 'jpg';
+        $preview = 'photos/preview/'.$eventSlug.'/'.$uuid.'.'.$derivativeExtension;
+        $purchased = 'photos/purchased/'.$eventSlug.'/'.$uuid.'.'.$derivativeExtension;
 
         try {
-            if ($mediaType === 'video') {
-                $this->processVideo(Storage::disk('local')->path($original), $preview, $purchased, $personalWatermarkPath, $watermarkSettings);
-            } else {
-                $this->processImage(Storage::disk('local')->path($original), $preview, $purchased, $personalWatermarkPath, $watermarkSettings);
-            }
+            $this->processImage(Storage::disk('local')->path($original), $preview, $purchased, $personalWatermarkPath, $watermarkSettings);
         } catch (\Throwable $exception) {
             Storage::disk('local')->delete([$original, $preview, $purchased]);
 
@@ -51,13 +100,14 @@ class PhotoProcessor
             'original_bytes' => $originalBytes,
             'preview_bytes' => $previewBytes,
             'purchased_bytes' => $purchasedBytes,
-            'media_type' => $mediaType,
+            'media_type' => 'image',
+            'original_sha256' => $storedChecksum,
         ];
     }
 
     private function processImage(string $source, string $preview, string $purchased, string $personalWatermarkPath, array $watermarkSettings = []): void
     {
-        $manager = new ImageManager(new Driver);
+        $manager = $this->manager();
         $previewImage = $manager->decodePath($source)->blur(2);
         $systemMark = $manager->decodePath(public_path('images/watermarksistemjepret.png'));
         $systemMark->scale(width: max(80, (int) ($previewImage->width() * self::SYSTEM_WATERMARK_SCALE / 100)));
@@ -96,12 +146,12 @@ class PhotoProcessor
     public function reprocess(Photo $photo): void
     {
         if (! $photo->file_asli || ! $photo->file_watermark || ! $photo->purchased_path || ! $photo->personal_watermark_path) {
-            throw new \RuntimeException('Photo paths are incomplete.');
+            throw new RuntimeException('Photo paths are incomplete.');
         }
 
         $disk = Storage::disk('local');
         if (! $disk->exists($photo->file_asli) || ! $disk->exists($photo->personal_watermark_path)) {
-            throw new \RuntimeException('Original photo or photographer watermark is missing.');
+            throw new RuntimeException('Original photo or photographer watermark is missing.');
         }
 
         if ($photo->media_type === 'video') {
@@ -111,6 +161,11 @@ class PhotoProcessor
         }
 
         $this->processImage($disk->path($photo->file_asli), $photo->file_watermark, $photo->purchased_path, $photo->personal_watermark_path, $photo->watermark_settings ?? []);
+    }
+
+    private function manager(): ImageManager
+    {
+        return new ImageManager(new Driver);
     }
 
     /** @return array{x:float, y:float, scale:float, opacity:float} */

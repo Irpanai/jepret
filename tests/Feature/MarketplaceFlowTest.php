@@ -8,6 +8,7 @@ use App\Models\Photo;
 use App\Models\PhotoOrder;
 use App\Models\Transaction;
 use App\Models\User;
+use App\PhotoOrderBilling;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Mockery\MockInterface;
@@ -52,6 +53,7 @@ class MarketplaceFlowTest extends TestCase
         $photo = $this->createMarketplacePhoto($seller, [
             'purchased_path' => 'photos/purchased/photographer-purchase.jpg',
             'original_filename' => 'photographer-purchase.jpg',
+            'sell_without_watermark' => false,
         ]);
         Storage::disk('local')->put($photo->purchased_path, 'purchased-photo');
 
@@ -228,6 +230,81 @@ class MarketplaceFlowTest extends TestCase
             ->get(route('purchases.preview', ['order' => $transaction->order_number, 'transaction' => $transaction]));
         $preview->assertOk();
         $this->assertSame('photographer-watermarked-bytes', $preview->streamedContent());
+    }
+
+    public function test_purchase_snapshots_original_delivery_and_later_photo_changes_do_not_alter_it(): void
+    {
+        Storage::fake('local');
+        $buyer = User::factory()->pembeli()->create();
+        $photo = $this->createMarketplacePhoto(attributes: [
+            'file_asli' => 'photos/original/snapshot.jpg',
+            'purchased_path' => 'photos/purchased/snapshot.jpg',
+            'original_filename' => 'snapshot.jpg',
+            'sell_without_watermark' => true,
+        ]);
+        Storage::disk('local')->put($photo->file_asli, 'original-snapshot');
+        $photo->update(['original_sha256' => hash('sha256', 'original-snapshot')]);
+        $order = app(PhotoOrderBilling::class)->createOrder($buyer, collect([$photo]));
+        $transaction = $order->transactions()->sole();
+        $transaction->update(['status' => 'paid', 'payment_status' => 'paid']);
+
+        $photo->update([
+            'sell_without_watermark' => false,
+            'file_asli' => 'photos/original/replacement.jpg',
+            'purchased_path' => 'photos/purchased/replacement.jpg',
+        ]);
+
+        $this->assertSame('photos/original/snapshot.jpg', $transaction->fresh()->download_path);
+        $this->assertSame(hash('sha256', 'original-snapshot'), $transaction->fresh()->download_sha256);
+        $this->assertTrue($transaction->fresh()->download_without_watermark);
+        $this->actingAs($buyer)
+            ->get(route('purchases.download', ['order' => $order->order_id, 'transaction' => $transaction]))
+            ->assertOk()
+            ->assertStreamedContent('original-snapshot');
+        Storage::disk('local')->put('photos/original/snapshot.jpg', 'tampered');
+        $this->actingAs($buyer)
+            ->get(route('purchases.download', ['order' => $order->order_id, 'transaction' => $transaction]))
+            ->assertStatus(409);
+        $this->actingAs($buyer)->get(route('purchases.show', $order->order_id))
+            ->assertOk()
+            ->assertSee('Download Foto Tanpa Watermark');
+    }
+
+    public function test_purchase_snapshots_watermarked_delivery_when_original_sale_is_inactive(): void
+    {
+        $buyer = User::factory()->pembeli()->create();
+        $photo = $this->createMarketplacePhoto(attributes: [
+            'file_asli' => 'photos/original/watermarked-choice.jpg',
+            'purchased_path' => 'photos/purchased/watermarked-choice.jpg',
+            'sell_without_watermark' => false,
+        ]);
+
+        $transaction = app(PhotoOrderBilling::class)->createOrder($buyer, collect([$photo]))->transactions()->sole();
+
+        $this->assertSame($photo->purchased_path, $transaction->download_path);
+        $this->assertFalse($transaction->download_without_watermark);
+    }
+
+    public function test_checksum_backfill_updates_existing_originals_and_purchase_snapshots(): void
+    {
+        Storage::fake('local');
+        $photo = $this->createMarketplacePhoto(attributes: [
+            'file_asli' => 'photos/original/legacy.jpg',
+            'original_sha256' => null,
+        ]);
+        Storage::disk('local')->put($photo->file_asli, 'legacy-original');
+        $transaction = Transaction::factory()->create([
+            'photo_id' => $photo->id,
+            'download_path' => $photo->file_asli,
+            'download_without_watermark' => true,
+            'download_sha256' => null,
+        ]);
+
+        $this->artisan('photos:backfill-checksums')->assertSuccessful();
+
+        $checksum = hash('sha256', 'legacy-original');
+        $this->assertSame($checksum, $photo->fresh()->original_sha256);
+        $this->assertSame($checksum, $transaction->fresh()->download_sha256);
     }
 
     public function test_paid_order_redirects_to_success_and_is_visible_in_purchases(): void

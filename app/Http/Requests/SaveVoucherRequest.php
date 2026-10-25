@@ -4,7 +4,9 @@ namespace App\Http\Requests;
 
 use App\Models\Voucher;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 class SaveVoucherRequest extends FormRequest
 {
@@ -13,6 +15,7 @@ class SaveVoucherRequest extends FormRequest
         if ($this->has('code')) {
             $this->merge(['code' => Voucher::normalizeCode($this->string('code')->toString())]);
         }
+
     }
 
     public function authorize(): bool
@@ -43,7 +46,14 @@ class SaveVoucherRequest extends FormRequest
 
     public function voucherData(): array
     {
-        return array_merge($this->safe()->except(['is_active', 'applies_to_all_packages', 'package_ids']), [
+        $data = $this->safe()->except(['is_active', 'applies_to_all_packages', 'package_ids']);
+        foreach (['starts_at', 'expires_at'] as $field) {
+            if (filled($data[$field] ?? null)) {
+                $data[$field] = $this->toUtc($data[$field]);
+            }
+        }
+
+        return array_merge($data, [
             'code' => Voucher::normalizeCode($this->string('code')->toString()),
             'is_active' => $this->boolean('is_active'),
             'applies_to_all_subscription_packages' => $this->input('scope') !== 'subscription' || $this->boolean('applies_to_all_packages'),
@@ -58,5 +68,14 @@ class SaveVoucherRequest extends FormRequest
         }
 
         return array_map('intval', $this->validated('package_ids', []));
+    }
+
+    private function toUtc(string $value): string
+    {
+        try {
+            return Carbon::createFromFormat('Y-m-d\TH:i', $value, config('app.display_timezone'))->utc()->format('Y-m-d H:i:s');
+        } catch (Throwable) {
+            return $value;
+        }
     }
 }

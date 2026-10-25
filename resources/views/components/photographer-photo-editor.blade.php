@@ -1,3 +1,5 @@
+@props(['acceptedPhotoExtensions'])
+
 <div class="space-y-5">
     <div>
         <div class="flex items-center justify-between gap-4">
@@ -7,7 +9,7 @@
             </div>
             <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600" x-show="files.length" x-text="`${files.length} file`"></span>
         </div>
-        <input class="mt-4 w-full rounded-xl border border-dashed border-gray-400 p-8 text-sm" type="file" name="photos[]" accept="image/jpeg,image/png,image/webp,video/quicktime" multiple required x-ref="photoInput" @change="selectFiles($event)">
+        <input class="mt-4 w-full rounded-xl border border-dashed border-gray-400 p-8 text-sm" type="file" name="photos[]" accept="{{ collect($acceptedPhotoExtensions)->map(fn ($extension) => '.'.$extension)->implode(',') }}" multiple required x-ref="photoInput" @change="selectFiles($event)">
     </div>
 
     <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center" x-show="!files.length">
@@ -19,14 +21,12 @@
     <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_15rem]" x-cloak>
         <div class="space-y-4">
             <div class="relative mx-auto w-full touch-none select-none overflow-hidden rounded-xl bg-gray-950 leading-none shadow-sm" x-ref="stage" @pointerdown.prevent="startDrag($event)" @pointermove.prevent="moveWatermark($event)" @pointerup="stopDrag()" @pointercancel="stopDrag()">
-                <template x-if="activeFile && !activeFile.isVideo">
+                <template x-if="activeFile">
                     <img class="block h-auto w-full" :src="activeFile.url" alt="Preview foto" draggable="false">
-                </template>
-                <template x-if="activeFile && activeFile.isVideo">
-                    <video class="block h-auto w-full" :src="activeFile.url" muted loop></video>
                 </template>
                 <img x-show="watermarkUrl" class="pointer-events-none absolute h-auto max-w-none -translate-x-1/2 -translate-y-1/2" :class="dragging ? 'drop-shadow-lg' : ''" :src="watermarkUrl" alt="Watermark" :style="`left:${activeFile?.settings.x ?? 50}%;top:${activeFile?.settings.y ?? 85}%;width:${activeFile?.settings.scale ?? 30}%;opacity:${(activeFile?.settings.opacity ?? 100) / 100}`" draggable="false">
                 <div class="pointer-events-none absolute left-3 top-3 rounded-lg bg-black/65 px-3 py-2 text-xs font-semibold leading-none text-white">Klik atau geser untuk mengatur posisi</div>
+                <button class="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-white text-2xl leading-none text-gray-800 shadow-md hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" type="button" :aria-label="`Batalkan upload ${activeFile?.file.name}`" title="Batalkan upload" x-show="activeFile?.status !== 'done'" @pointerdown.stop @click.stop="removeFile(activeIndex)">×</button>
             </div>
 
             <div class="grid gap-4 rounded-xl border bg-white p-4 sm:grid-cols-2">
@@ -56,17 +56,13 @@
         <div class="grid min-w-0 max-h-[42rem] content-start gap-2 overflow-x-hidden overflow-y-auto pr-1">
             <template x-for="(item, index) in files" :key="item.id">
                 <div class="relative min-w-0 overflow-hidden rounded-xl border transition" :class="activeIndex === index ? 'border-black bg-black text-white' : 'border-gray-200 bg-white hover:border-gray-400'">
-                    <button class="flex min-w-0 w-full items-center gap-3 p-2 pr-11 text-left" type="button" @click="activeIndex = index">
-                        <div class="h-14 w-16 shrink-0 overflow-hidden rounded-lg bg-gray-200">
-                            <img class="h-full w-full object-cover" x-show="!item.isVideo" :src="item.url" alt="">
-                            <video class="h-full w-full object-cover" x-show="item.isVideo" :src="item.url"></video>
-                        </div>
+                    <button class="flex min-h-14 min-w-0 w-full items-center p-3 pr-14 text-left" type="button" @click="activeIndex = index">
                         <span class="min-w-0 flex-1">
-                            <span class="block break-all text-xs font-semibold leading-4" x-text="item.title || item.file.name.replace(/\.[^/.]+$/, '')"></span>
-                            <span class="mt-1 block text-[11px] opacity-70" x-text="`${(item.file.size / 1048576).toFixed(2)} MB`"></span>
+                            <span class="block truncate text-sm font-semibold leading-5" :title="item.file.name" x-text="item.file.name"></span>
+                            <span class="mt-1 block text-xs opacity-70" x-text="formatBytes(item.file.size)"></span>
                         </span>
                     </button>
-                    <button class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white text-lg leading-none text-gray-700 shadow hover:bg-red-50 hover:text-red-700" type="button" :aria-label="`Batalkan upload ${item.file.name}`" title="Batalkan upload" @click.stop="removeFile(index)">×</button>
+                    <button class="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-white text-xl leading-none text-gray-700 shadow hover:bg-red-50 hover:text-red-700" type="button" :aria-label="`Batalkan upload ${item.file.name}`" title="Batalkan upload" x-show="item.status !== 'done'" @click.stop="cancelFile(index)">×</button>
                 </div>
             </template>
         </div>

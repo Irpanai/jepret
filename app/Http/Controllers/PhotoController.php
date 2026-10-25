@@ -7,8 +7,12 @@ use App\Models\Event;
 use App\Models\Photo;
 use App\Models\User;
 use App\PhotoProcessor;
+use Closure;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -16,9 +20,14 @@ use Illuminate\Validation\Rules\File;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class PhotoController extends Controller
 {
+    private const MAX_IMAGE_DIMENSION = 30000;
+
+    private const MAX_TOTAL_PIXELS = 100000000;
+
     public function index(Request $request): View
     {
         $filters = $request->validate([
@@ -70,7 +79,14 @@ class PhotoController extends Controller
             ->paginate(18)
             ->withQueryString();
 
-        return view('fotografer.photos.index', compact('events', 'cameras', 'categories', 'photos'));
+        $user = $request->user()->load(['package', 'subscription']);
+        $storageUsage = [
+            'used_bytes' => (int) Photo::where('fotografer_id', $user->id)->sum('storage_bytes'),
+            'quota_bytes' => (int) round($user->effectiveQuotaMb() * 1048576),
+        ];
+        $acceptedPhotoExtensions = PhotoProcessor::supportedExtensions();
+
+        return view('fotografer.photos.index', compact('events', 'cameras', 'categories', 'photos', 'storageUsage', 'acceptedPhotoExtensions'));
     }
 
     public function create(Request $request): View
@@ -81,15 +97,47 @@ class PhotoController extends Controller
         return view('fotografer.photos.create', compact('events', 'cameras'));
     }
 
-    public function store(Request $request, PhotoProcessor $processor): RedirectResponse
+    public function store(Request $request, PhotoProcessor $processor): RedirectResponse|JsonResponse
     {
         abort_unless($request->user()->is_verified, 403, 'Akun photographer harus disetujui sebelum mengunggah foto.');
+        if ($request->filled('taken_at')) {
+            $request->merge(['taken_at' => $this->toUtc($request->string('taken_at')->toString())]);
+        }
+        $supportedExtensions = PhotoProcessor::supportedExtensions();
         $validated = $request->validate([
             'event_id' => ['nullable', 'integer'], 'new_folder' => ['nullable', 'string', 'max:255'],
             'camera_id' => ['nullable', 'integer'], 'title' => ['nullable', 'string', 'max:255'],
             'taken_at' => ['nullable', 'date'], 'daypart' => ['nullable', 'in:morning,afternoon,evening,night'],
             'category' => ['nullable', 'string', 'max:100'], 'harga' => ['required', 'integer', 'min:0'],
-            'photos' => ['required', 'array', 'min:1'], 'photos.*' => ['required', File::types(['jpg', 'jpeg', 'png', 'webp', 'mov'])],
+            'photos' => ['required', 'array', 'min:1'],
+            'photos.*' => [
+                'required',
+                File::types($supportedExtensions)->max('100mb'),
+                'extensions:'.implode(',', $supportedExtensions),
+                function (string $attribute, mixed $value, Closure $fail) use ($processor): void {
+                    if (! $value instanceof UploadedFile) {
+                        return;
+                    }
+
+                    try {
+                        $image = $processor->inspect($value);
+                    } catch (Throwable) {
+                        $fail('File gambar tidak valid atau tidak dapat dibaca.');
+
+                        return;
+                    }
+
+                    if ($image['width'] > self::MAX_IMAGE_DIMENSION || $image['height'] > self::MAX_IMAGE_DIMENSION) {
+                        $fail('Dimensi gambar maksimal adalah 30.000 piksel pada setiap sisi.');
+                    }
+
+                    if ($image['pixels'] > self::MAX_TOTAL_PIXELS) {
+                        $fail('Total piksel gambar, termasuk seluruh frame GIF, maksimal 100 megapiksel.');
+                    }
+                },
+            ],
+            'upload_token' => ['nullable', 'uuid'],
+            'sell_without_watermark' => ['nullable', 'boolean'],
             'watermark' => ['nullable', File::image()->types(['png', 'webp'])->max('5mb')], 'lock_watermark' => ['nullable', 'boolean'],
             'watermark_settings' => ['nullable', 'array'],
             'watermark_settings.*.x' => ['required', 'numeric', 'between:0,100'],
@@ -98,8 +146,19 @@ class PhotoController extends Controller
             'watermark_settings.*.opacity' => ['required', 'numeric', 'between:5,100'],
             'photo_titles' => ['nullable', 'array'],
             'photo_titles.*' => ['nullable', 'string', 'max:255'],
+        ], [
+            'photos.required' => 'Pilih setidaknya satu gambar untuk diunggah.',
+            'photos.*.extensions' => 'Ekstensi gambar tidak didukung oleh server.',
+            'photos.*.mimes' => 'Jenis MIME gambar tidak didukung oleh server.',
+            'photos.*.max' => 'Ukuran setiap gambar maksimal 100 MB.',
         ]);
         $user = $request->user()->load('package');
+        if (isset($validated['upload_token'])) {
+            $existing = Photo::where('fotografer_id', $user->id)->where('upload_token', $validated['upload_token'])->first();
+            if ($existing) {
+                return $this->uploadResponse($request, $existing, true);
+            }
+        }
         $event = $this->resolveEvent($request);
         if ($request->filled('camera_id')) {
             Camera::where('fotografer_id', $user->id)->findOrFail($request->integer('camera_id'));
@@ -110,13 +169,19 @@ class PhotoController extends Controller
             $user->forceFill(['custom_watermark_path' => $watermarkPath, 'photographer_watermark_locked' => $request->boolean('lock_watermark')])->save();
         }
         if (! $watermarkPath || (! $user->photographer_watermark_locked && ! $request->hasFile('watermark'))) {
-            return back()->withErrors(['watermark' => 'Unggah watermark PNG/WEBP untuk batch ini, atau kunci watermark tersimpan.'])->withInput();
+            throw ValidationException::withMessages(['watermark' => 'Unggah watermark PNG/WEBP untuk batch ini, atau kunci watermark tersimpan.']);
         }
         $createdPaths = [];
+        $createdPhoto = null;
         try {
-            DB::transaction(function () use ($request, $validated, $user, $event, $watermarkPath, $processor, &$createdPaths): void {
+            DB::transaction(function () use ($request, $validated, $user, $event, $watermarkPath, $processor, &$createdPaths, &$createdPhoto): void {
                 $lockedUser = User::whereKey($user->id)->lockForUpdate()->firstOrFail()->load(['package', 'subscription']);
                 $usedBytes = (int) Photo::where('fotografer_id', $user->id)->sum('storage_bytes');
+                $quotaBytes = (int) round($lockedUser->effectiveQuotaMb() * 1048576);
+                $incomingBytes = (int) collect($request->file('photos'))->sum(fn ($file) => $file->getSize());
+                if ($usedBytes + $incomingBytes > $quotaBytes) {
+                    throw ValidationException::withMessages(['photos' => 'Storage tidak mencukupi.']);
+                }
                 foreach ($request->file('photos') as $index => $file) {
                     $watermarkSettings = $validated['watermark_settings'][$index] ?? [
                         'x' => 50,
@@ -124,18 +189,26 @@ class PhotoController extends Controller
                         'scale' => 30,
                         'opacity' => 100,
                     ];
-                    $paths = $processor->process($file, Str::slug($event->nama_event), $watermarkPath, $watermarkSettings);
+                    try {
+                        $paths = $processor->process($file, Str::slug($event->nama_event), $watermarkPath, $watermarkSettings);
+                    } catch (Throwable $exception) {
+                        report($exception);
+                        throw ValidationException::withMessages(['photos' => 'Gambar gagal diproses. Pastikan file tidak rusak dan formatnya didukung server.']);
+                    }
                     $createdPaths[] = $paths['original'];
                     $createdPaths[] = $paths['preview'];
                     $createdPaths[] = $paths['purchased'];
-                    if ($usedBytes + $paths['bytes'] > $lockedUser->effectiveQuotaMb() * 1048576) {
+                    if ($usedBytes + $paths['bytes'] > $quotaBytes) {
                         throw ValidationException::withMessages(['photos' => 'Storage tidak mencukupi.']);
                     }
                     $usedBytes += $paths['bytes'];
-                    Photo::create([
+                    $createdPhoto = Photo::create([
+                        'upload_token' => count($request->file('photos')) === 1 ? ($validated['upload_token'] ?? null) : null,
                         'event_id' => $event->id, 'fotografer_id' => $user->id, 'camera_id' => $validated['camera_id'] ?? null,
                         'title' => trim((string) ($validated['photo_titles'][$index] ?? $validated['title'] ?? '')) ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
                         'file_asli' => $paths['original'], 'file_watermark' => $paths['preview'], 'purchased_path' => $paths['purchased'],
+                        'original_sha256' => $paths['original_sha256'],
+                        'sell_without_watermark' => $request->has('sell_without_watermark') ? $request->boolean('sell_without_watermark') : true,
                         'personal_watermark_path' => $watermarkPath, 'media_type' => $paths['media_type'], 'storage_bytes' => $paths['bytes'],
                         'original_bytes' => $paths['original_bytes'], 'preview_bytes' => $paths['preview_bytes'], 'purchased_bytes' => $paths['purchased_bytes'],
                         'watermark_settings' => $watermarkSettings,
@@ -146,9 +219,13 @@ class PhotoController extends Controller
                 }
                 $lockedUser->forceFill(['storage_terpakai_mb' => (int) ceil($usedBytes / 1048576)])->save();
             });
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Storage::disk('local')->delete($createdPaths);
             throw $exception;
+        }
+
+        if ($request->expectsJson() && $createdPhoto) {
+            return $this->uploadResponse($request, $createdPhoto);
         }
 
         return back()->with('success', count($request->file('photos')).' file berhasil diunggah.');
@@ -206,5 +283,26 @@ class PhotoController extends Controller
         }
 
         return Event::where('fotografer_id', $request->user()->id)->findOrFail($request->integer('event_id'));
+    }
+
+    private function toUtc(string $value): string
+    {
+        try {
+            return Carbon::createFromFormat('Y-m-d\TH:i', $value, config('app.display_timezone'))->utc()->format('Y-m-d H:i:s');
+        } catch (Throwable) {
+            return $value;
+        }
+    }
+
+    private function uploadResponse(Request $request, Photo $photo, bool $duplicate = false): JsonResponse
+    {
+        $usedBytes = (int) Photo::where('fotografer_id', $request->user()->id)->sum('storage_bytes');
+
+        return response()->json([
+            'photo_id' => $photo->id,
+            'duplicate' => $duplicate,
+            'used_bytes' => $usedBytes,
+            'stored_bytes' => (int) $photo->storage_bytes,
+        ]);
     }
 }

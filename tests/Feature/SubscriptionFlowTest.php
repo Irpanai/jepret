@@ -185,6 +185,7 @@ class SubscriptionFlowTest extends TestCase
             ->get(route('subscriptions.payment', $order))
             ->assertOk()
             ->assertSee('Menunggu konfirmasi pembayaran...')
+            ->assertSee('let retryDelay = 2500', false)
             ->assertSee('new AbortController()', false)
             ->assertSee("['expired', 'failed', 'cancelled']", false)
             ->assertSee('maximumFailures = 10', false)

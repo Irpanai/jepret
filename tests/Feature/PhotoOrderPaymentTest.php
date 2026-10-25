@@ -184,6 +184,7 @@ class PhotoOrderPaymentTest extends TestCase
             ->get(route('checkout.payment', $order->order_id))
             ->assertOk()
             ->assertSee('Menunggu konfirmasi pembayaran...')
+            ->assertSee('let retryDelay = 2500', false)
             ->assertSee('new AbortController()', false)
             ->assertSee('window.location.assign(data.redirect)', false)
             ->assertSee('Math.min(retryDelay * 2, 30000)', false)

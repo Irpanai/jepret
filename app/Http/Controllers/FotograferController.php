@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\Photo;
+use App\Models\PlatformSetting;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Withdrawal;
@@ -39,8 +40,13 @@ class FotograferController extends Controller
         ];
         $chart = $reporting->daily((clone $base)->where('transactions.created_at', '>=', now()->subDays(29)->startOfDay()));
         $withdrawals = Withdrawal::where('fotografer_id', $user->id)->latest()->limit(5)->get();
+        $chartData = [
+            'hari' => $reporting->chartData('hari', $user->id),
+            'tanggal' => $reporting->chartData('tanggal', $user->id),
+            'bulan' => $reporting->chartData('bulan', $user->id),
+        ];
 
-        return view('fotografer.dashboard', compact('user', 'stats', 'chart', 'sales', 'withdrawals'));
+        return view('fotografer.dashboard', compact('user', 'stats', 'chart', 'sales', 'withdrawals', 'chartData'));
     }
 
     public function dashboardData(Request $request, TransactionReporting $reporting): JsonResponse
@@ -50,10 +56,20 @@ class FotograferController extends Controller
         return response()->json(['latest_id' => (clone $query)->max('transactions.id'), 'paid_count' => (clone $query)->count(), 'balance' => $request->user()->fresh()->saldo]);
     }
 
+    public function chartData(Request $request, TransactionReporting $reporting): JsonResponse
+    {
+        $period = $request->query('period', 'tanggal');
+        if (! in_array($period, ['hari', 'tanggal', 'bulan'], true)) {
+            $period = 'tanggal';
+        }
+
+        return response()->json($reporting->chartData($period, $request->user()->id));
+    }
+
     public function withdraw(Request $request, WithdrawalWorkflow $workflow): RedirectResponse
     {
         $data = $request->validate([
-            'jumlah_tarik' => ['required', 'integer', 'min:1'], 'destination_type' => ['required', 'in:bank,ewallet'],
+            'jumlah_tarik' => ['required', 'integer', 'min:'.PlatformSetting::minimumWithdrawal()], 'destination_type' => ['required', 'in:bank,ewallet'],
             'metode_pembayaran' => ['required', 'string', 'max:100'], 'nomor_tujuan' => ['required', 'string', 'max:100'],
             'account_holder' => ['nullable', 'string', 'max:150'], 'idempotency_key' => ['required', 'uuid'],
         ]);

@@ -13,10 +13,17 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Instrument Sans', ...defaultTheme.fontFamily.sans],
-                serif: ['Instrument Serif', ...defaultTheme.fontFamily.serif],
+                sans: ['Manrope', ...defaultTheme.fontFamily.sans],
+                heading: ['"Inter Tight"', ...defaultTheme.fontFamily.sans],
+                display: ['Newsreader', ...defaultTheme.fontFamily.serif],
+                serif: ['Newsreader', ...defaultTheme.fontFamily.serif],
             },
             colors: {
+                paper: 'var(--paper, #f7f7f5)',
+                ink: 'var(--ink, #111111)',
+                muted: 'var(--muted, #777773)',
+                line: 'var(--line, rgba(17, 17, 17, 0.14))',
+                'on-ink': 'var(--on-ink, #ffffff)',
                 public: {
                     ink: '#101114',
                     paper: '#ffffff',

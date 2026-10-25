@@ -40,6 +40,52 @@ class SuperAdminVoucherManagementTest extends TestCase
         $this->assertSame([$packages[0]->id, $packages[2]->id], $voucher->subscriptionPackages()->orderBy('packages.id')->pluck('packages.id')->all());
     }
 
+    public function test_superadmin_can_create_an_inactive_voucher(): void
+    {
+        $admin = User::factory()->superadmin()->create();
+
+        $this->actingAs($admin)->post(route('superadmin.vouchers.store'), [
+            'code' => 'DRAFT',
+            'name' => 'Draft voucher',
+            'scope' => 'photo',
+            'discount_type' => 'fixed',
+            'discount_value' => 1000,
+            'minimum_order_amount' => 0,
+        ])->assertRedirect(route('superadmin.vouchers.index'));
+
+        $this->assertDatabaseHas('vouchers', ['code' => 'DRAFT', 'is_active' => false]);
+    }
+
+    public function test_voucher_datetime_inputs_are_interpreted_as_wita_and_stored_as_utc(): void
+    {
+        $admin = User::factory()->superadmin()->create();
+
+        $this->actingAs($admin)->post(route('superadmin.vouchers.store'), [
+            'code' => 'WITATIME',
+            'name' => 'WITA Time',
+            'scope' => 'photo',
+            'discount_type' => 'fixed',
+            'discount_value' => 1000,
+            'minimum_order_amount' => 0,
+            'starts_at' => '2026-10-21T19:45',
+            'expires_at' => '2026-10-22T19:45',
+        ])->assertSessionHasNoErrors();
+
+        $voucher = Voucher::where('code', 'WITATIME')->firstOrFail();
+        $this->assertSame('2026-10-21 11:45:00', $voucher->starts_at->utc()->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-10-22 11:45:00', $voucher->expires_at->utc()->format('Y-m-d H:i:s'));
+    }
+
+    public function test_admin_header_contains_a_client_side_wita_clock(): void
+    {
+        $admin = User::factory()->superadmin()->create();
+
+        $this->actingAs($admin)->get(route('superadmin.dashboard'))
+            ->assertOk()
+            ->assertSee("timeZone: 'Asia/Makassar'", false)
+            ->assertSee('Waktu Indonesia Tengah saat ini');
+    }
+
     public function test_superadmin_form_lists_packages_from_database_and_hides_legacy_packages(): void
     {
         $admin = User::factory()->superadmin()->create();

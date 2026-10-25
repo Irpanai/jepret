@@ -81,7 +81,7 @@
             let poll;
             let requestController;
             let stopped = false;
-            let retryDelay = 3000;
+            let retryDelay = 2500;
             let consecutiveFailures = 0;
             const maximumFailures = 10;
 
@@ -130,7 +130,7 @@
                     state.textContent = status === 'pending'
                         ? 'Menunggu konfirmasi pembayaran...'
                         : `Pembayaran ${status}.`;
-                    retryDelay = 3000;
+                    retryDelay = 2500;
                     consecutiveFailures = 0;
 
                     if (status === 'paid' && data.redirect) {

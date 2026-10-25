@@ -84,6 +84,6 @@
             @if($user->is_verified)<a class="button mt-6 inline-block rounded-lg border px-4 py-2" href="{{ route('photographers.show',$user->slug ?: $user->id) }}">Lihat profil publik</a>@else<p class="helper mt-6">Profil publik tersedia setelah akun disetujui Super Admin.</p>@endif
         </section>
     </div>
-    <section><h2>Karya terbaru</h2><div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">@forelse($photos as $photo)<article class="overflow-hidden rounded-xl border bg-white"><img class="aspect-[4/3] w-full object-cover" src="{{ route('media.preview',$photo) }}" alt="{{ $photo->title }}"><div class="p-4"><h3>{{ $photo->title }}</h3><p class="helper">{{ $photo->event?->nama_event }} · {{ ($photo->taken_at ?? $photo->created_at)->format('d M Y') }}</p></div></article>@empty<p class="helper">Belum ada karya.</p>@endforelse</div><div class="mt-4">{{ $photos->links() }}</div></section>
+    <section><h2>Karya terbaru</h2><div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">@forelse($photos as $photo)<article class="overflow-hidden rounded-xl border bg-white"><img class="aspect-[4/3] w-full object-cover" src="{{ route('media.preview',$photo) }}" alt="{{ $photo->title }}"><div class="p-4"><h3>{{ $photo->title }}</h3><p class="helper">{{ $photo->event?->nama_event }} · {{ ($photo->taken_at ?? $photo->created_at)->timezone(config('app.display_timezone'))->format('d M Y') }}</p></div></article>@empty<p class="helper">Belum ada karya.</p>@endforelse</div><div class="mt-4">{{ $photos->links() }}</div></section>
 </div>
 </x-fg-layout>

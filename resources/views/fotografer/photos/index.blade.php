@@ -37,12 +37,17 @@
             method="POST"
             enctype="multipart/form-data"
             action="{{ route('fotografer.photos.store') }}"
-            x-data="photoWatermarkEditor({{ Js::from(auth()->user()->custom_watermark_path ? route('fotografer.watermark.preview') : null) }})"
+            x-data="photoWatermarkEditor({{ Js::from([
+                'watermarkUrl' => auth()->user()->custom_watermark_path ? route('fotografer.watermark.preview') : null,
+                'usedBytes' => $storageUsage['used_bytes'],
+                'quotaBytes' => $storageUsage['quota_bytes'],
+            ]) }})"
+            @submit.prevent="uploadAll($event)"
         >
             @csrf
 
             <div class="space-y-5 lg:col-span-2">
-                <x-photographer-photo-editor />
+                <x-photographer-photo-editor :accepted-photo-extensions="$acceptedPhotoExtensions" />
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
@@ -76,22 +81,43 @@
                         <input id="category" class="mt-1 w-full rounded-lg border-gray-300 text-sm" name="category">
                     </div>
                     <div>
-                        <label for="taken_at">Waktu ambil</label>
+                        <label for="taken_at">Waktu ambil (WITA)</label>
                         <input id="taken_at" class="mt-1 w-full rounded-lg border-gray-300 text-sm" type="datetime-local" name="taken_at">
                     </div>
                 </div>
             </div>
 
             <aside class="space-y-4">
+                <div class="space-y-2 border-b border-gray-200 pb-4" aria-live="polite">
+                    <div class="flex justify-between gap-3 text-sm"><span class="text-gray-500">Batas penyimpanan</span><strong x-text="formatBytes(quotaBytes)"></strong></div>
+                    <div class="flex justify-between gap-3 text-sm"><span class="text-gray-500">Terpakai aktual</span><strong x-text="formatBytes(usedBytes)"></strong></div>
+                    <div class="flex justify-between gap-3 text-sm"><span class="text-gray-500">Tersisa</span><strong x-text="formatBytes(remainingBytes)"></strong></div>
+                    <div class="flex justify-between gap-3 text-sm"><span class="text-gray-500">Dipilih</span><strong><span x-text="files.length"></span> file · <span x-text="formatBytes(selectedBytes)"></span></strong></div>
+                    <div class="flex justify-between gap-3 text-sm"><span class="text-gray-500">Proyeksi sumber</span><strong x-text="formatBytes(projectedBytes)"></strong></div>
+                    <p class="text-xs leading-5 text-gray-500">Pemakaian aktual diperbarui setelah original dan seluruh variannya selesai diproses.</p>
+                </div>
                 <h2>Watermark batch</h2>
                 <p class="helper">PNG/WEBP transparan. Kosongkan bila watermark tersimpan sudah locked.</p>
+                <label class="flex min-h-11 items-center gap-3 rounded-lg border border-gray-200 px-3">
+                    <input type="hidden" name="sell_without_watermark" value="0">
+                    <input type="checkbox" name="sell_without_watermark" value="1" checked>
+                    <span><strong class="block text-sm">Jual Foto Tanpa Watermark — Aktif</strong><span class="block text-xs font-normal text-gray-500">Pembeli menerima file original. Preview publik tetap terlindungi.</span></span>
+                </label>
                 <input class="w-full text-sm" type="file" name="watermark" accept="image/png,image/webp" @change="selectWatermark($event)">
                 <p class="border-l-4 border-amber-500 bg-white p-3 text-sm text-gray-700" x-show="!watermarkUrl">Pilih watermark agar hasilnya terlihat di editor.</p>
                 <label class="flex items-center gap-2">
                     <input type="checkbox" name="lock_watermark" value="1">
                     Simpan dan lock untuk upload berikutnya
                 </label>
-                <button class="w-full rounded-lg bg-black px-5 py-3 text-white">Upload &amp; publish</button>
+                <p class="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700" x-show="exceedsQuota" x-cloak>Penyimpanan Anda habis. Ukuran foto yang dipilih melebihi sisa kapasitas sebesar <span x-text="formatBytes(pendingBytes - remainingBytes)"></span>.</p>
+                <p class="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700" x-show="uploadError" x-text="uploadError" x-cloak role="alert"></p>
+                <button class="w-full rounded-lg bg-black px-5 py-3 text-white disabled:cursor-not-allowed disabled:bg-gray-300" :disabled="uploading || !hasPendingFiles || exceedsQuota">Upload & publish</button>
+                <div class="space-y-2" x-show="uploading || uploadProgress > 0" x-cloak>
+                    <div class="flex items-center justify-between text-xs font-semibold text-gray-600"><span>Progress upload</span><span x-text="`${uploadProgress}%`"></span></div>
+                    <div class="h-2 overflow-hidden rounded-full bg-gray-200" role="progressbar" aria-label="Progress upload foto" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="uploadProgress">
+                        <span class="block h-full rounded-full bg-black transition-[width] duration-200" :style="`width:${uploadProgress}%`"></span>
+                    </div>
+                </div>
             </aside>
         </form>
 

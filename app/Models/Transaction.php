@@ -57,6 +57,7 @@ class Transaction extends Model
             'revenue_share_snapshot' => 'array',
             'paid_at' => 'datetime',
             'expires_at' => 'datetime',
+            'download_without_watermark' => 'boolean',
         ];
     }
 

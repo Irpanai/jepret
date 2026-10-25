@@ -208,7 +208,7 @@
                 */
 
                 const statusUrl = @json(route('checkout.payment.status', ['order' => $order_id], false));                const terminalStatuses = ['expired', 'failed', 'cancelled'];
-                let retryDelay = 3000;
+                let retryDelay = 2500;
                 let paymentPoll;
                 let requestController;
                 let stopped = false;
@@ -254,7 +254,7 @@
                         paymentState.textContent = status === 'pending'
                             ? 'Menunggu konfirmasi pembayaran...'
                             : `Pembayaran ${status}.`;
-                        retryDelay = 3000;
+                        retryDelay = 2500;
                         consecutiveFailures = 0;
 
                         if (status === 'paid' && data.redirect) {

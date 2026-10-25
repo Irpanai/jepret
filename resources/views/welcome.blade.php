@@ -13,189 +13,28 @@
 @endphp
 
 <x-marketplace-layout
-    title="Jepret - Temukan Foto  & Photographer"
-    description="Temukan foto, simpan momen terbaik, dan beli file original dari photographer Jepret dengan preview terlindungi."
+    title="Jepret — Modern Photography Marketplace"
+    description="Temukan foto event, simpan momen terbaik, dan beli file original resolusi penuh dari fotografer terverifikasi dengan preview aman."
     :structured-data="$structuredData"
 >
-    <section class="border-b border-public-line bg-white">
-        <div class="grid min-h-[calc(100vh-6rem)] lg:grid-cols-[minmax(0,3fr)_minmax(420px,2fr)]" data-hero-reveal>
-            <div class="flex min-w-0 flex-col justify-between px-4 py-8 sm:px-8 sm:py-10 lg:px-[max(3rem,calc((100vw-1600px)/2))] lg:py-8 lg:pr-12">
-                <div>
-                    <div class="mt-4 sm:mt-8 lg:mt-10 xl:mt-12">
-                        <p class="public-kicker" data-hero-copy style="--reveal-index: 1">Marketplace fotografi event</p>
-                        <h1 class="mt-5 max-w-5xl text-[clamp(3.2rem,7vw,8rem)] font-extrabold leading-[0.86]">
-                            <span class="hero-reveal-line"><span data-hero-word style="--reveal-index: 0">Temukan</span></span><br>
-                            <span class="hero-reveal-line"><span data-hero-word style="--reveal-index: 1">momennya.</span></span>
-                        </h1>
-                        <div class="mt-7 h-1 w-20 bg-public-ink" data-hero-copy style="--reveal-index: 2"></div>
-                        <p class="mt-6 max-w-lg text-base font-semibold leading-7 text-public-muted" data-hero-copy style="--reveal-index: 3">
-                            Cari foto dari event dan photographer pilihanmu. Preview tetap terlindungi, sementara file original tersimpan privat sampai pembayaran selesai.
-                        </p>
-                        <div class="mt-8 flex flex-wrap items-center gap-4" data-hero-copy style="--reveal-index: 4">
-                            <a href="{{ route('galeri') }}" class="inline-flex min-h-12 items-center justify-center border border-public-ink bg-public-ink px-5 text-xs font-extrabold uppercase text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-neutral-800 hover:shadow-[0_0_24px_rgba(0,0,0,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-public-ink focus-visible:ring-offset-2">
-                                Jelajahi Galeri
-                            </a>
-                            <a href="{{ route('photographers.index') }}" class="inline-flex min-h-12 items-center justify-center border border-public-ink bg-white px-5 text-xs font-extrabold uppercase text-public-ink transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-public-ink hover:text-white hover:shadow-[0_0_24px_rgba(0,0,0,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-public-ink focus-visible:ring-offset-2">
-                                Lihat Photographers
-                            </a>
-                        </div>
-                    </div>
-                </div>
+    {{-- A & B: Hero Section matching reference design with full-width visual and marquee --}}
+    <x-hero :partner-logos="$partnerLogos" />
 
-                <div class="mt-10 border-t border-public-line pt-6" data-hero-copy style="--reveal-index: 5">
-                    <dl class="grid grid-cols-3 gap-3 sm:gap-5">
-                        <div class="flex flex-col gap-2">
-                            <dt class="text-xs font-semibold text-public-muted sm:text-sm">Foto Terjual</dt>
-                            <dd class="order-first text-3xl font-extrabold leading-none text-public-ink sm:text-4xl">200+</dd>
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <dt class="text-xs font-semibold text-public-muted sm:text-sm">Photographers</dt>
-                            <dd class="order-first text-3xl font-extrabold leading-none text-public-ink sm:text-4xl">25+</dd>
-                        </div>
-                        <div class="flex flex-col gap-2">
-                            <dt class="text-xs font-semibold text-public-muted sm:text-sm">Foto Tersedia</dt>
-                            <dd class="order-first text-3xl font-extrabold leading-none text-public-ink sm:text-4xl">500+</dd>
-                        </div>
-                    </dl>
-                    <p class="mt-5 max-w-lg text-xs font-semibold leading-5 text-public-muted">Dipercaya photographer dan komunitas untuk menemukan, menjual, dan menyimpan momen terbaik.</p>
-                </div>
-            </div>
+    {{-- C: Featured Gallery with 8 photos, varied aspect ratios, protected badge, and real cart --}}
+    <x-home.featured-gallery :photos="$galleryPhotos" />
 
-            <a href="{{ route('register', ['role' => 'fotografer']) }}" class="relative min-h-[430px] overflow-hidden bg-public-mist lg:min-h-full" data-hero-media>
-                <img src="{{ asset('images/herophotographer.jpg') }}" alt="Photographer Jepret sedang mengabadikan momen" class="h-full w-full object-cover">
-                <div class="absolute inset-x-0 bottom-0 z-10 bg-public-ink p-5 text-white sm:p-6">
-                    <p class="text-[10px] font-extrabold uppercase text-white/55">Berkarya bersama Jepret</p>
-                    <div class="mt-2 flex items-end justify-between gap-4">
-                        <div>
-                            <p class="max-w-md text-xl font-extrabold leading-tight sm:text-2xl">Ubah setiap jepretan menjadi Cuan!</p>
-                            <p class="mt-2 max-w-md text-xs font-bold leading-5 text-white/60">Bangun portofolio, jangkau lebih banyak buyer, dan kelola penjualan dalam satu ruang.</p>
-                        </div>
-                        <span class="shrink-0 text-xs font-extrabold uppercase">Daftar Photographer →</span>
-                    </div>
-                </div>
-            </a>
-        </div>
-    </section>
+    {{-- D: How It Works (01 Pilih & Keranjang, 02 Checkout, 03 Bayar QRIS, 04 Unduh Original) --}}
+    <x-home.how-it-works />
 
-    <x-home.about />
+    {{-- D2: Photographer features showcase (sticky scroll desktop, stacked mobile) --}}
+    <x-home.photographer-features />
 
+    {{-- E: Featured Photographers from active subscribed photographers in DB --}}
+    <x-home.featured-photographers :photographers="$featuredPhotographers" />
 
-    <section class="bg-white py-16 sm:py-24">
-        <div class="public-container" data-reveal>
-            <div class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p class="public-kicker">Galeri terbaru</p>
-                    <h2 class="public-heading mt-4">Momen pilihan dari berbagai event.</h2>
-                </div>
-                <div class="flex max-w-md flex-col items-start gap-4 sm:items-end">
-                    <a href="{{ route('login') }}" class="public-button public-button-secondary">Lihat Semua</a>
-                </div>
-            </div>
+    {{-- G: Pricing with existing dynamic packages (Trial, Starter, Creator featured, Studio) --}}
+    <x-home.pricing :pricing-plans="$pricingPlans" />
 
-            <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                @forelse($galleryPhotos as $photo)
-                    <x-public.photo-card :photo="$photo" />
-                @empty
-                    <div class="col-span-full border border-public-line bg-public-bone p-8 text-center">
-                        <p class="text-xl font-extrabold text-public-ink">Belum ada foto aktif.</p>
-                        <p class="mt-2 text-sm font-semibold text-public-muted">Foto terbaru dari galeri akan tampil di sini.</p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
-    </section>
-
-    <section id="pricing" class="border-y border-public-line bg-public-bone py-16 sm:py-24">
-        <div class="public-container" data-reveal>
-            @php
-                $pricingPlans = $pricingPlans->map(function ($package) {
-                    $quotaMb = $package->storageQuotaMb();
-
-                    return [
-                        'name' => $package->display_name,
-                        'id' => $package->id,
-                        'code' => $package->code,
-                        'price' => $package->is_custom ? 'Custom' : ($package->harga === 0 ? 'Gratis' : 'Rp'.number_format($package->harga, 0, ',', '.')),
-                        'period' => $package->billing_period,
-                        'storage' => $package->is_custom ? 'Custom Storage' : ($quotaMb >= 1024 ? number_format($quotaMb / 1024, 0).' GB' : number_format($quotaMb, 0).' MB'),
-                        'description' => $package->description,
-                        'features' => $package->features ?? [],
-                        'cta' => $package->is_custom ? 'Hubungi Kami' : ($package->is_trial ? 'Mulai Gratis' : 'Pilih '.$package->display_name),
-                        'is_custom' => $package->is_custom,
-                        'featured' => $package->code === 'creator',
-                    ];
-                });
-            @endphp
-
-            <div class="grid gap-8 border-b border-public-line pb-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
-                <div>
-                    <p class="public-kicker">Pricing Photographer</p>
-                    <h2 class="public-heading mt-4">Pilih ruang untuk setiap karya.</h2>
-                </div>
-                <p class="max-w-xl text-sm font-semibold leading-6 text-public-muted lg:justify-self-end">
-                    Simpan, kelola, dan jual foto melalui Jepret. Pilih kapasitas yang sesuai dengan aktivitas fotografimu.
-                </p>
-            </div>
-
-            <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                @foreach($pricingPlans as $plan)
-                    @php($isFeatured = $plan['featured'] ?? false)
-                    <article class="flex min-w-0 flex-col border p-5 sm:p-6 {{ $isFeatured ? 'border-public-ink bg-public-ink text-white' : 'border-public-line bg-white text-public-ink' }}">
-                        <div class="flex min-h-7 items-start justify-between gap-3">
-                            <h3 class="text-xl font-extrabold">{{ $plan['name'] }}</h3>
-                        </div>
-
-                        <div class="mt-8 flex min-h-12 flex-wrap items-baseline gap-x-1">
-                            <p class="text-3xl font-extrabold sm:text-4xl">{{ $plan['price'] }}</p>
-                            @if($plan['period'])
-                                <span class="text-xs font-bold {{ $isFeatured ? 'text-white/55' : 'text-public-muted' }}">/ {{ $plan['period'] }}</span>
-                            @endif
-                        </div>
-
-                        <p class="mt-3 text-xs font-extrabold uppercase {{ $isFeatured ? 'text-white/55' : 'text-public-muted' }}">{{ $plan['storage'] }}</p>
-                        <p class="mt-5 min-h-[4.5rem] text-sm font-semibold leading-6 {{ $isFeatured ? 'text-white/68' : 'text-public-muted' }}">{{ $plan['description'] }}</p>
-
-                        <div class="mt-6 border-t pt-5 {{ $isFeatured ? 'border-white/20' : 'border-public-line' }}">
-                            <p class="text-xs font-extrabold uppercase {{ $isFeatured ? 'text-white/55' : 'text-public-muted' }}">Termasuk</p>
-                            <ul class="mt-4 grid gap-3">
-                                @foreach($plan['features'] as $feature)
-                                    <li class="grid grid-cols-[18px_minmax(0,1fr)] gap-2 text-sm font-semibold leading-5">
-                                        <span class="grid h-[18px] w-[18px] place-items-center border text-[10px] {{ $isFeatured ? 'border-white/35 text-white' : 'border-public-ink text-public-ink' }}" aria-hidden="true">+</span>
-                                        <span>{{ $feature }}</span>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-
-                        @auth
-                            @if($plan['is_custom'])
-                                <a href="https://wa.me/6285156767900?text={{ urlencode('Halo Jepret, saya tertarik dengan paket Studio Jepret.') }}" class="mt-8 inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}">{{ $plan['cta'] }}</a>
-                            @else
-                                <form class="mt-8" method="POST" action="{{ route('subscriptions.checkout', $plan['id']) }}">@csrf<button class="inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}">{{ $plan['cta'] }}</button></form>
-                            @endif
-                        @else
-                            <a href="{{ $plan['is_custom'] ? 'https://wa.me/6285156767900?text='.urlencode('Halo Jepret, saya tertarik dengan paket Studio Jepret.') : route('register', ['role' => 'fotografer', 'package' => $plan['code']]) }}" class="mt-8 inline-flex min-h-12 w-full items-center justify-center border px-4 text-center text-xs font-extrabold uppercase {{ $isFeatured ? 'border-white bg-white text-public-ink hover:bg-public-bone' : 'border-public-ink bg-public-ink text-white hover:bg-neutral-800' }}">{{ $plan['cta'] }}</a>
-                        @endauth
-                    </article>
-                @endforeach
-            </div>
-
-            <div class="mt-6 flex flex-col gap-4 border-t border-public-line pt-7 sm:flex-row sm:items-center sm:justify-between">
-                <a href="{{ route('register', ['role' => 'fotografer']) }}" class="shrink-0 text-xs font-extrabold uppercase text-public-ink hover:underline">Mulai sebagai Photographer →</a>
-            </div>
-        </div>
-    </section>
-
-    <section class="bg-white py-16 sm:py-24">
-        <div class="public-container grid gap-8 border border-public-line bg-public-bone p-6 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center" data-reveal>
-            <div>
-                <p class="public-kicker">Untuk photographer</p>
-                <h2 class="mt-4 text-4xl font-extrabold leading-none sm:text-6xl">Jepret Momen. Jual Foto. Hasilkan Uang!</h2>
-                <p class="mt-5 max-w-2xl text-sm font-semibold leading-6 text-public-muted">
-                    Kelola event, unggah foto, lindungi preview dengan watermark, lalu jual file original dengan skema revenue 90% photographer dan 10% platform.
-                </p>
-            </div>
-            <a href="{{ route('register', ['role' => 'fotografer']) }}" class="public-button">Mulai sebagai Photographer</a>
-        </div>
-    </section>
+    {{-- H: FAQ Section matching editorial reference design --}}
+    <x-faq />
 </x-marketplace-layout>

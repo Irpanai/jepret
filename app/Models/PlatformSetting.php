@@ -14,7 +14,7 @@ class PlatformSetting extends Model
     protected $guarded = ['id'];
 
     public const DEFAULTS = [
-        'minimum_withdrawal' => 100000,
+        'minimum_withdrawal' => 25000,
         'watermark_path' => 'images/watermarksistemjepret.png',
         'watermark_opacity' => 55,
         'watermark_scale' => 30,

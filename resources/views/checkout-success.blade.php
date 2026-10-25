@@ -5,7 +5,7 @@
                 <header class="grid gap-6 bg-public-ink p-6 text-white sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end">
                     <div>
                         <p class="text-xs font-extrabold uppercase text-white/55">Pembayaran berhasil</p>
-                        <h1 class="mt-3 text-4xl font-extrabold leading-none sm:text-5xl">Original siap diunduh.</h1>
+                        <h1 class="mt-3 text-4xl font-extrabold leading-none sm:text-5xl">File pembelian siap diunduh.</h1>
                         <p class="mt-4 break-all text-sm font-semibold text-white/65">Order {{ $order['order_number'] }}</p>
                     </div>
                     <div class="border-l border-white/20 pl-5">
@@ -25,7 +25,7 @@
                                 <h2 class="text-base font-extrabold text-public-ink">{{ $transaction->photo?->title ?: ($transaction->photo?->event?->nama_event ?? 'Foto Jepret') }}</h2>
                                 <p class="mt-1 text-xs font-bold text-public-muted">{{ $transaction->photo?->fotografer?->name ?? 'Photographer' }}</p>
                             </div>
-                            <a href="{{ route('purchases.download', ['order' => $order['order_number'], 'transaction' => $transaction]) }}" class="public-button">Download File Pembelian</a>
+                            <a href="{{ route('purchases.download', ['order' => $order['order_number'], 'transaction' => $transaction]) }}" class="public-button">{{ $transaction->download_without_watermark ? 'Download Foto Tanpa Watermark' : 'Download File Pembelian' }}</a>
                         </article>
                     @endforeach
                 </div>

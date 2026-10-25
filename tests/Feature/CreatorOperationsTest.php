@@ -15,6 +15,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Gif\Builder;
+use Intervention\Gif\Decoder;
 use Tests\TestCase;
 
 class CreatorOperationsTest extends TestCase
@@ -65,7 +67,7 @@ class CreatorOperationsTest extends TestCase
 
     public function test_withdrawal_uses_platform_minimum_and_prevents_duplicate_balance_mutation(): void
     {
-        PlatformSetting::create(['key' => 'minimum_withdrawal', 'value' => 50000]);
+        PlatformSetting::updateOrCreate(['key' => 'minimum_withdrawal'], ['value' => 50000]);
         $photographer = User::factory()->fotografer()->create(['saldo' => 100000]);
         $key = (string) Str::uuid();
         $payload = ['jumlah_tarik' => 50000, 'destination_type' => 'bank', 'metode_pembayaran' => 'BCA', 'nomor_tujuan' => '123', 'account_holder' => 'Creator', 'idempotency_key' => $key];
@@ -75,6 +77,39 @@ class CreatorOperationsTest extends TestCase
 
         $this->assertSame(1, Withdrawal::count());
         $this->assertSame(50000, $photographer->fresh()->saldo);
+    }
+
+    public function test_withdrawal_rejects_amount_below_25000_and_disables_form_for_insufficient_balance(): void
+    {
+        $photographer = User::factory()->fotografer()->create(['saldo' => 24999]);
+        $payload = ['jumlah_tarik' => 24999, 'destination_type' => 'bank', 'metode_pembayaran' => 'BCA', 'nomor_tujuan' => '123', 'idempotency_key' => (string) Str::uuid()];
+
+        $this->actingAs($photographer)->post(route('fotografer.withdrawals.store'), $payload)
+            ->assertSessionHasErrors('jumlah_tarik');
+        $this->actingAs($photographer)->get(route('fotografer.dashboard'))
+            ->assertOk()
+            ->assertSee('Minimum penarikan Rp25.000.')
+            ->assertSee('Saldo belum mencukupi minimum penarikan.')
+            ->assertSee('disabled', false);
+
+        $this->assertDatabaseCount('withdrawals', 0);
+        $this->assertSame(24999, $photographer->fresh()->saldo);
+    }
+
+    public function test_withdrawal_accepts_exactly_25000(): void
+    {
+        $photographer = User::factory()->fotografer()->create(['saldo' => 25000]);
+
+        $this->actingAs($photographer)->post(route('fotografer.withdrawals.store'), [
+            'jumlah_tarik' => 25000,
+            'destination_type' => 'bank',
+            'metode_pembayaran' => 'BCA',
+            'nomor_tujuan' => '123',
+            'idempotency_key' => (string) Str::uuid(),
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('withdrawals', ['fotografer_id' => $photographer->id, 'jumlah_tarik' => 25000]);
+        $this->assertSame(0, $photographer->fresh()->saldo);
     }
 
     public function test_rejected_withdrawal_restores_balance_exactly_once(): void
@@ -134,15 +169,39 @@ class CreatorOperationsTest extends TestCase
         Storage::fake('local');
         $watermark = UploadedFile::fake()->image('watermark.png', 200, 100)
             ->storeAs('watermarks', 'personal.png', 'local');
+        $upload = UploadedFile::fake()->image('finish.webp', 1200, 800);
+        $sourceChecksum = hash_file('sha256', $upload->getRealPath());
 
         $paths = app(PhotoProcessor::class)->process(
-            UploadedFile::fake()->image('finish.webp', 1200, 800),
+            $upload,
             'test-event',
             $watermark,
         );
 
         Storage::disk('local')->assertExists([$paths['original'], $paths['preview'], $paths['purchased']]);
         $this->assertSame('image', $paths['media_type']);
+        $this->assertSame($sourceChecksum, $paths['original_sha256']);
+        $this->assertSame($sourceChecksum, hash_file('sha256', Storage::disk('local')->path($paths['original'])));
+    }
+
+    public function test_image_processor_preserves_animated_gif_derivatives(): void
+    {
+        Storage::fake('local');
+        $watermark = UploadedFile::fake()->image('watermark.png', 10, 10)
+            ->storeAs('watermarks', 'personal.png', 'local');
+        $animatedGif = Builder::canvas(2, 2)
+            ->addFrame(UploadedFile::fake()->image('first.gif', 2, 2)->getContent(), .1)
+            ->addFrame(UploadedFile::fake()->image('second.gif', 2, 2)->getContent(), .1)
+            ->setLoops(0)
+            ->encode();
+        $upload = UploadedFile::fake()->createWithContent('animated.gif', $animatedGif);
+
+        $paths = app(PhotoProcessor::class)->process($upload, 'animated-event', $watermark);
+
+        $this->assertStringEndsWith('.gif', $paths['preview']);
+        $this->assertStringEndsWith('.gif', $paths['purchased']);
+        $this->assertGreaterThan(1, count(Decoder::decode(Storage::disk('local')->path($paths['preview']))->frames()));
+        $this->assertGreaterThan(1, count(Decoder::decode(Storage::disk('local')->path($paths['purchased']))->frames()));
     }
 
     public function test_photographer_can_upload_without_optional_title(): void
@@ -163,7 +222,34 @@ class CreatorOperationsTest extends TestCase
             'fotografer_id' => $photographer->id,
             'title' => 'finish-line',
             'harga' => 20000,
+            'sell_without_watermark' => true,
         ]);
+    }
+
+    public function test_photo_taken_at_input_is_interpreted_as_wita_and_stored_as_utc(): void
+    {
+        Storage::fake('local');
+        $photographer = User::factory()->fotografer()->create(['is_verified' => true, 'verified_at' => now()]);
+
+        $this->actingAs($photographer)->post(route('fotografer.photos.store'), [
+            'new_folder' => 'WITA Event',
+            'harga' => 20000,
+            'taken_at' => '2026-10-21T19:45',
+            'photos' => [UploadedFile::fake()->image('wita.webp', 1200, 800)],
+            'watermark' => UploadedFile::fake()->image('watermark.png', 200, 100),
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('2026-10-21 11:45:00', Photo::sole()->taken_at->utc()->format('Y-m-d H:i:s'));
+    }
+
+    public function test_photographer_header_contains_a_client_side_wita_clock(): void
+    {
+        $photographer = User::factory()->fotografer()->create();
+
+        $this->actingAs($photographer)->get(route('fotografer.dashboard'))
+            ->assertOk()
+            ->assertSee("timeZone: 'Asia/Makassar'", false)
+            ->assertSee('Waktu Indonesia Tengah saat ini');
     }
 
     public function test_photographer_watermark_editor_settings_are_saved_per_photo(): void
@@ -193,6 +279,85 @@ class CreatorOperationsTest extends TestCase
         $this->assertEquals($firstSettings, $firstPhoto->watermark_settings);
         $this->assertEquals($secondSettings, $secondPhoto->watermark_settings);
         Storage::disk('local')->assertExists([$firstPhoto->purchased_path, $secondPhoto->purchased_path]);
+    }
+
+    public function test_sequential_upload_is_idempotent_and_returns_actual_storage_usage(): void
+    {
+        Storage::fake('local');
+        $photographer = User::factory()->fotografer()->create(['is_verified' => true, 'verified_at' => now()]);
+        $token = (string) Str::uuid();
+        $payload = fn () => [
+            'new_folder' => 'Sequential',
+            'harga' => 20000,
+            'upload_token' => $token,
+            'photos' => [UploadedFile::fake()->image('sequential.webp', 1200, 800)],
+            'watermark' => UploadedFile::fake()->image('watermark.png', 200, 100),
+        ];
+
+        $first = $this->actingAs($photographer)->postJson(route('fotografer.photos.store'), $payload());
+        $second = $this->actingAs($photographer)->postJson(route('fotografer.photos.store'), $payload());
+
+        $first->assertOk()->assertJsonPath('duplicate', false)->assertJsonStructure(['photo_id', 'used_bytes', 'stored_bytes']);
+        $second->assertOk()->assertJsonPath('duplicate', true)->assertJsonPath('photo_id', $first->json('photo_id'));
+        $this->assertDatabaseCount('photos', 1);
+        $this->assertSame((int) Photo::sum('storage_bytes'), $second->json('used_bytes'));
+    }
+
+    public function test_upload_rejects_source_that_cannot_fit_before_creating_photo(): void
+    {
+        Storage::fake('local');
+        $photographer = User::factory()->fotografer()->create([
+            'is_verified' => true,
+            'verified_at' => now(),
+            'storage_quota_override_mb' => 0,
+        ]);
+
+        $this->actingAs($photographer)->postJson(route('fotografer.photos.store'), [
+            'new_folder' => 'No Space',
+            'harga' => 20000,
+            'upload_token' => (string) Str::uuid(),
+            'photos' => [UploadedFile::fake()->image('too-large.webp', 1200, 800)],
+            'watermark' => UploadedFile::fake()->image('watermark.png', 200, 100),
+        ])->assertUnprocessable()->assertJsonValidationErrors('photos');
+
+        $this->assertDatabaseCount('photos', 0);
+    }
+
+    public function test_upload_rejects_video_and_unreadable_image_files(): void
+    {
+        Storage::fake('local');
+        $photographer = User::factory()->fotografer()->create(['is_verified' => true, 'verified_at' => now()]);
+
+        foreach ([
+            UploadedFile::fake()->create('clip.mov', 100, 'video/quicktime'),
+            UploadedFile::fake()->createWithContent('broken.jpg', 'not-an-image'),
+        ] as $file) {
+            $this->actingAs($photographer)->post(route('fotografer.photos.store'), [
+                'new_folder' => 'Rejected file',
+                'harga' => 20000,
+                'photos' => [$file],
+                'watermark' => UploadedFile::fake()->image('watermark.png', 20, 20),
+            ])->assertSessionHasErrors('photos.0');
+        }
+
+        $this->assertDatabaseCount('photos', 0);
+    }
+
+    public function test_upload_page_exposes_storage_projection_and_per_file_controls(): void
+    {
+        $photographer = User::factory()->fotografer()->create(['is_verified' => true, 'verified_at' => now()]);
+
+        $this->actingAs($photographer)->get(route('fotografer.photos.index'))
+            ->assertOk()
+            ->assertSee('Terpakai aktual')
+            ->assertSee('Proyeksi sumber')
+            ->assertSee('uploadAll($event)', false)
+            ->assertSee('Progress upload')
+            ->assertSee('role="progressbar"', false)
+            ->assertSee('accept=".jpg,.jpeg,.png,.webp,.avif,.gif,.bmp"', false)
+            ->assertDontSee('statusLabel(item)', false)
+            ->assertDontSee('Coba lagi')
+            ->assertSee('Batalkan upload');
     }
 
     public function test_photographer_watermark_editor_rejects_out_of_bounds_settings(): void

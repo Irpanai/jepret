@@ -75,11 +75,17 @@ document.addEventListener('submit', async (event) => {
 });
 
 const initializeHomepageMotion = () => {
-    const animatedElements = document.querySelectorAll('[data-reveal], [data-hero-reveal]');
+    const animatedElements = document.querySelectorAll('[data-reveal], [data-hero-reveal], [data-stagger]');
 
     if (animatedElements.length === 0) {
         return;
     }
+
+    document.querySelectorAll('[data-stagger]').forEach((group) => {
+        Array.from(group.children).forEach((child, index) => {
+            child.style.setProperty('--i', String(Math.min(index, 8)));
+        });
+    });
 
     document.documentElement.classList.add('homepage-motion');
 
@@ -105,11 +111,11 @@ const initializeHomepageMotion = () => {
             observer.unobserve(entry.target);
         });
     }, {
-        threshold: 0.14,
-        rootMargin: '0px 0px -8% 0px',
+        threshold: 0.04,
+        rootMargin: '0px 0px 60px 0px',
     });
 
-    document.querySelectorAll('[data-reveal]').forEach((element) => observer.observe(element));
+    document.querySelectorAll('[data-reveal], [data-stagger]').forEach((element) => observer.observe(element));
 };
 
 if (document.readyState === 'loading') {

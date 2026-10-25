@@ -16,14 +16,17 @@ use App\Http\Controllers\PurchaseDownloadController;
 use App\Http\Controllers\SubscriptionCheckoutController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminPackageController;
+use App\Http\Controllers\SuperAdminPartnerLogoController;
 use App\Http\Controllers\SuperAdminPhotographerController;
 use App\Http\Controllers\SuperAdminVoucherController;
 use App\Http\Controllers\VoucherPreviewController;
 use App\Models\Camera;
 use App\Models\Package;
+use App\Models\PartnerLogo;
 use App\Models\Photo;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 Route::get('/', function () {
@@ -37,12 +40,29 @@ Route::get('/', function () {
         ->with(['event', 'fotografer'])
         ->orderByDesc('published_at')
         ->orderByDesc('id')
+        ->limit(8)
+        ->get();
+
+    $featuredPhotographers = User::query()
+        ->where('role', 'fotografer')
+        ->where('is_verified', true)
+        ->where('is_active', true)
+        ->withActiveSubscription()
+        ->whereHas('photos', fn ($query) => $query->where('status', 'active'))
+        ->with('featuredPhoto.event')
+        ->withCount(['photos as active_photos_count' => fn ($query) => $query->where('status', 'active')])
+        ->orderByDesc('active_photos_count')
+        ->orderBy('name')
         ->limit(4)
         ->get();
 
     $pricingPlans = Package::query()->publiclyAvailable()->ordered()->get();
 
-    return view('welcome', compact('galleryPhotos', 'pricingPlans'));
+    $partnerLogos = Schema::hasTable('partner_logos')
+        ? PartnerLogo::query()->active()->ordered()->get()
+        : collect();
+
+    return view('welcome', compact('galleryPhotos', 'featuredPhotographers', 'pricingPlans', 'partnerLogos'));
 })->name('landing');
 
 Route::view('/terms-of-service', 'legal.terms')->name('terms');
@@ -106,6 +126,7 @@ Route::get('/dashboard', function () {
 
 Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [SuperAdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard/chart-data', [SuperAdminController::class, 'chartData'])->name('chart-data');
     Route::get('/dashboard/report', [SuperAdminController::class, 'executiveReport'])->name('report');
     Route::post('/withdrawals/{id}/review', [SuperAdminController::class, 'reviewWithdrawal'])->name('withdrawals.review');
     Route::post('/withdrawals/batch', [SuperAdminController::class, 'batchWithdrawals'])->name('withdrawals.batch');
@@ -113,6 +134,7 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('superadmin')->name('supe
     Route::patch('/photographers/{photographer}/status', [SuperAdminPhotographerController::class, 'status'])->name('photographers.status');
     Route::resource('photographers', SuperAdminPhotographerController::class);
     Route::resource('packages', SuperAdminPackageController::class)->except(['show', 'destroy']);
+    Route::resource('partner-logos', SuperAdminPartnerLogoController::class)->except(['show']);
     Route::resource('vouchers', SuperAdminVoucherController::class)->except('destroy');
     Route::delete('/vouchers/{voucher}', [SuperAdminVoucherController::class, 'destroy'])->name('vouchers.toggle');
 
@@ -134,6 +156,7 @@ Route::middleware(['auth', 'role:fotografer'])->prefix('fotografer')->name('foto
     Route::middleware('subscription.started')->group(function () {
         Route::get('/dashboard', [FotograferController::class, 'dashboard'])->name('dashboard');
         Route::get('/dashboard/data', [FotograferController::class, 'dashboardData'])->name('dashboard.data');
+        Route::get('/dashboard/chart-data', [FotograferController::class, 'chartData'])->name('dashboard.chart-data');
         Route::resource('events', EventController::class)->only(['index', 'show']);
         Route::resource('photos', PhotoController::class)->only(['index']);
         Route::get('/watermark/preview', [PhotoController::class, 'watermarkPreview'])->name('watermark.preview');
