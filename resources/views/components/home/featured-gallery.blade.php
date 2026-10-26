@@ -1,7 +1,8 @@
 @props(['photos'])
 
 @php
-    $categories = $photos->map(function ($p) {
+    $displayPhotos = $photos->count() > 3 ? $photos->shuffle()->take(3)->values() : $photos->values();
+    $categories = $displayPhotos->map(function ($p) {
         return $p->event?->kategori ?: ($p->fotografer?->category ?: null);
     })->filter()->unique()->values();
 @endphp
@@ -29,14 +30,14 @@
         </div>
 
         {{-- Category Filters (Rendered only when categories exist) --}}
-        @if($photos->isNotEmpty() && $categories->isNotEmpty())
+        @if($displayPhotos->isNotEmpty() && $categories->isNotEmpty())
             <div class="mt-8 flex flex-wrap items-center gap-2 border-b border-public-line pb-4" data-reveal>
                 <span class="mr-2 text-[10px] font-extrabold uppercase tracking-wider text-public-muted">Filter:</span>
                 <button type="button" @click="activeCategory = 'all'"
                     :aria-pressed="activeCategory === 'all' ? 'true' : 'false'"
                     class="border px-3 py-1 text-xs font-extrabold uppercase tracking-wider transition-colors duration-150"
                     :class="activeCategory === 'all' ? 'border-public-ink bg-public-ink text-white' : 'border-public-line bg-white text-public-ink hover:border-public-ink'">
-                    Semua ({{ $photos->count() }})
+                    Semua ({{ $displayPhotos->count() }})
                 </button>
                 @foreach($categories as $category)
                     <button type="button" @click="activeCategory = @js($category)"
@@ -50,29 +51,18 @@
         @endif
 
         {{-- Gallery Grid / Contact Sheet --}}
-        @if($photos->isNotEmpty())
+        @if($displayPhotos->isNotEmpty())
             @php
-                $totalPhotos = $photos->count();
-                $aspects = [
-                    0 => ['aspect' => $totalPhotos >= 4 ? 'aspect-[3/4] sm:aspect-[4/5] lg:aspect-[3/4]' : 'aspect-[4/3] sm:aspect-[16/10]', 'span' => $totalPhotos >= 4 ? 'sm:col-span-2 lg:col-span-2 lg:row-span-2' : 'col-span-1'],
-                    1 => ['aspect' => 'aspect-[4/5]', 'span' => 'col-span-1'],
-                    2 => ['aspect' => 'aspect-square', 'span' => 'col-span-1'],
-                    3 => ['aspect' => 'aspect-[16/9] sm:aspect-[16/10]', 'span' => $totalPhotos >= 5 ? 'sm:col-span-2 lg:col-span-2' : 'col-span-1'],
-                    4 => ['aspect' => 'aspect-square', 'span' => 'col-span-1'],
-                    5 => ['aspect' => 'aspect-[4/5]', 'span' => 'col-span-1'],
-                    6 => ['aspect' => 'aspect-[16/9]', 'span' => 'sm:col-span-2 lg:col-span-2'],
-                    7 => ['aspect' => 'aspect-square', 'span' => 'col-span-1'],
-                ];
+                $totalPhotos = $displayPhotos->count();
             @endphp
 
-            <div class="mt-8 grid grid-cols-1 gap-5 {{ $totalPhotos === 1 ? 'max-w-xl' : ($totalPhotos === 2 ? 'sm:grid-cols-2 max-w-4xl' : 'sm:grid-cols-2 lg:grid-cols-4') }}"
+            <div class="mt-8 grid grid-cols-1 gap-6 {{ $totalPhotos === 1 ? 'max-w-xl' : ($totalPhotos === 2 ? 'sm:grid-cols-2 max-w-4xl' : 'sm:grid-cols-2 lg:grid-cols-3') }}"
                 data-stagger style="--stagger-step: 60ms">
-                @foreach($photos as $index => $photo)
+                @foreach($displayPhotos as $photo)
                     @php
-                        $config = $aspects[$index] ?? ['aspect' => 'aspect-[4/5]', 'span' => 'col-span-1'];
                         $categoryTag = $photo->event?->kategori ?: ($photo->fotografer?->category ?: '');
                     @endphp
-                    <x-home.gallery-frame :photo="$photo" :aspect="$config['aspect']" :span="$config['span']"
+                    <x-home.gallery-frame :photo="$photo" aspect="aspect-[4/5]" span="col-span-1"
                         :category-tag="$categoryTag" />
                 @endforeach
             </div>

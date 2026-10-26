@@ -38,9 +38,8 @@ Route::get('/', function () {
         ->where('status', 'active')
         ->whereHas('fotografer', fn($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())
         ->with(['event', 'fotografer'])
-        ->orderByDesc('published_at')
-        ->orderByDesc('id')
-        ->limit(8)
+        ->inRandomOrder()
+        ->limit(3)
         ->get();
 
     $featuredPhotographers = User::query()
