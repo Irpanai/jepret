@@ -20,7 +20,7 @@
                             @endif
                         </div>
                         <div class="min-w-0">
-                            <div class="flex flex-wrap items-center gap-3"><h2 class="break-all font-mono text-sm font-extrabold text-public-ink">{{ $order['order_number'] }}</h2><span class="border border-public-line bg-public-bone px-2 py-1 text-[10px] font-extrabold uppercase text-public-muted">{{ $order['status'] }}</span></div>
+                            <div class="flex flex-wrap items-center gap-3"><h2 class="break-all font-sans text-sm font-extrabold text-public-ink">{{ $order['order_number'] }}</h2><span class="border border-public-line bg-public-bone px-2 py-1 text-[10px] font-extrabold uppercase text-public-muted">{{ $order['status'] }}</span></div>
                             <p class="mt-2 text-sm font-extrabold text-public-ink">{{ $firstItem?->photo?->title ?: ($firstItem?->photo?->event?->nama_event ?? 'Foto Jepret') }}</p>
                             <p class="mt-1 text-xs font-bold text-public-muted">{{ $order['count'] }} foto · {{ optional($order['created_at']?->timezone(config('app.display_timezone')))->format('d M Y, H:i') }} · Rp{{ number_format($order['total'], 0, ',', '.') }}</p>
                         </div>

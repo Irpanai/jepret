@@ -145,13 +145,13 @@
                         {{-- Step Numeral & Kicker --}}
                         <div class="mt-2 flex items-center gap-1.5 sm:mt-3 sm:gap-2">
                             <span
-                                class="font-mono text-xs font-bold tracking-wider transition-colors duration-200 sm:text-xs md:text-sm"
+                                class="font-sans text-xs font-bold tracking-wider transition-colors duration-200 sm:text-xs md:text-sm"
                                 :class="activeTab === {{ $index }} ? 'text-public-ink font-black' : 'text-public-muted/50 group-hover:text-public-muted'">
                                 {{ $step['num'] }}
                             </span>
                             <span class="text-public-line hidden sm:inline" aria-hidden="true">&bull;</span>
                             <span
-                                class="font-mono text-[9px] font-extrabold uppercase tracking-widest transition-colors duration-200 hidden sm:inline sm:text-[10px]"
+                                class="font-sans text-[9px] font-extrabold uppercase tracking-widest transition-colors duration-200 hidden sm:inline sm:text-[10px]"
                                 :class="activeTab === {{ $index }} ? 'text-public-ink' : 'text-public-muted/50 group-hover:text-public-muted'">
                                 {{ $step['label'] }}
                             </span>
@@ -180,10 +180,10 @@
                         x-transition:enter-end="opacity-100 translate-y-0" class="w-full text-left">
                         <div class="mb-1 flex items-center gap-2">
                             <span
-                                class="rounded bg-public-ink/10 px-2 py-0.5 font-mono text-[10px] font-extrabold uppercase tracking-widest text-public-ink">
+                                class="rounded bg-public-ink/10 px-2 py-0.5 font-sans text-[10px] font-extrabold uppercase tracking-widest text-public-ink">
                                 {{ $step['label'] }}
                             </span>
-                            <span class="font-mono text-[10px] font-bold text-public-muted"
+                            <span class="font-sans text-[10px] font-bold text-public-muted"
                                 x-text="'Langkah ' + (activeTab + 1) + ' dari 4'"></span>
                         </div>
                         <h3
@@ -212,7 +212,7 @@
                             <span class="h-2.5 w-2.5 rounded-full bg-[#28c840] shadow-sm"></span>
                         </div>
                         <div
-                            class="ml-2 hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-0.5 font-mono text-[10px] text-white/50 md:inline-flex">
+                            class="ml-2 hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-0.5 font-sans text-[10px] text-white/50 md:inline-flex">
                             <svg class="h-3 w-3 text-white/40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
@@ -227,7 +227,7 @@
                     {{-- Controls: Autoplay status & Navigation arrows --}}
                     <div class="flex items-center gap-2">
                         <button type="button" @click="toggleAutoplay()"
-                            class="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 font-mono text-[9px] font-extrabold uppercase tracking-wider text-white/70 hover:border-white/30 hover:bg-white/10 hover:text-white transition-colors"
+                            class="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 font-sans text-[9px] font-extrabold uppercase tracking-wider text-white/70 hover:border-white/30 hover:bg-white/10 hover:text-white transition-colors"
                             :title="autoplay ? 'Jeda pergantian otomatis' : 'Mulai pergantian otomatis'">
                             <span class="inline-block h-1.5 w-1.5 rounded-full"
                                 :class="autoplay ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'"></span>
@@ -277,7 +277,7 @@
                         class="group/zoom absolute inset-0 flex items-end justify-end p-4 sm:p-5 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 focus:opacity-100 focus:outline-none"
                         title="Klik untuk melihat tangkapan layar ukuran penuh">
                         <span
-                            class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-public-ink/90 px-3.5 py-1.5 font-mono text-[10px] font-extrabold uppercase tracking-widest text-white backdrop-blur-md shadow-lg group-hover/zoom:border-white transition-colors">
+                            class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-public-ink/90 px-3.5 py-1.5 font-sans text-[10px] font-extrabold uppercase tracking-widest text-white backdrop-blur-md shadow-lg group-hover/zoom:border-white transition-colors">
                             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5">
                                 <circle cx="11" cy="11" r="8" />
@@ -294,7 +294,7 @@
                     class="flex flex-col gap-3 border-t border-white/10 bg-neutral-900/95 px-4 py-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-5">
                     <div class="flex items-center gap-3">
                         <span
-                            class="inline-flex h-5 items-center rounded-full border border-white/15 bg-white/10 px-2 font-mono text-[9px] font-extrabold uppercase tracking-widest text-white"
+                            class="inline-flex h-5 items-center rounded-full border border-white/15 bg-white/10 px-2 font-sans text-[9px] font-extrabold uppercase tracking-widest text-white"
                             x-text="'Tahap ' + steps[activeTab].num"></span>
                         <p class="text-xs font-semibold text-white/80" x-text="steps[activeTab].action_highlight"></p>
                     </div>

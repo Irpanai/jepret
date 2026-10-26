@@ -16,7 +16,6 @@ export default {
                 sans: ['Manrope', ...defaultTheme.fontFamily.sans],
                 heading: ['"Inter Tight"', ...defaultTheme.fontFamily.sans],
                 display: ['Newsreader', ...defaultTheme.fontFamily.serif],
-                serif: ['Newsreader', ...defaultTheme.fontFamily.serif],
             },
             colors: {
                 paper: 'var(--paper, #f7f7f5)',

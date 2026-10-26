@@ -73,10 +73,14 @@
                 expiryLabel.textContent = seconds > 0
                     ? `Berlaku ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')} lagi`
                     : 'QRIS telah kedaluwarsa.';
+                if (seconds <= 0 && countdown) {
+                    window.clearInterval(countdown);
+                }
             };
 
+            let countdown = null;
             updateCountdown();
-            const countdown = window.setInterval(updateCountdown, 1000);
+            countdown = window.setInterval(updateCountdown, 1000);
             const terminalStatuses = ['expired', 'failed', 'cancelled'];
             let poll;
             let requestController;

@@ -318,7 +318,7 @@
                             <span>Volume Penjualan Terbayar (90% Bagian Fotografer)</span>
                         </div>
                         <div>
-                            <span>Update: <strong class="font-mono text-gray-700" x-text="lastUpdated"></strong></span>
+                            <span>Update: <strong class="font-sans text-gray-700" x-text="lastUpdated"></strong></span>
                         </div>
                     </div>
                 </div>
@@ -378,8 +378,8 @@
                                     <span class="block text-xs text-gray-500">{{ $sale->photo?->event?->nama_event }}</span>
                                 </td>
                                 <td class="p-4 text-gray-700">{{ $sale->pembeli?->name ?? $sale->pembeli?->email }}</td>
-                                <td class="p-4 text-right font-mono text-gray-600">Rp{{ number_format($sale->harga_foto) }}</td>
-                                <td class="p-4 text-right font-mono font-bold text-gray-900">Rp{{ number_format($sale->jumlah_fotografer) }}</td>
+                                <td class="p-4 text-right font-sans text-gray-600">Rp{{ number_format($sale->harga_foto) }}</td>
+                                <td class="p-4 text-right font-sans font-bold text-gray-900">Rp{{ number_format($sale->jumlah_fotografer) }}</td>
                                 <td class="p-4 text-right text-xs text-gray-500">{{ ($sale->paid_at ?? $sale->created_at)->diffForHumans() }}</td>
                             </tr>
                         @empty
@@ -402,7 +402,7 @@
                 @forelse($withdrawals as $withdrawal)
                     <div class="flex flex-wrap items-center justify-between rounded-lg bg-gray-50 p-4">
                         <div>
-                            <strong class="font-mono text-base text-gray-900">Rp{{ number_format($withdrawal->jumlah_tarik) }}</strong>
+                            <strong class="font-sans text-base text-gray-900">Rp{{ number_format($withdrawal->jumlah_tarik) }}</strong>
                             <p class="helper text-xs text-gray-500">{{ $withdrawal->metode_pembayaran }} · {{ $withdrawal->created_at->timezone(config('app.display_timezone'))->format('d M Y') }}</p>
                             @if($withdrawal->status === 'rejected')
                                 <p class="mt-1 text-sm text-red-700">{{ $withdrawal->admin_notes }}</p>

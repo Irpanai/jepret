@@ -36,7 +36,7 @@ Route::get('/', function () {
 
     $galleryPhotos = Photo::query()
         ->where('status', 'active')
-        ->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())
+        ->whereHas('fotografer', fn($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())
         ->with(['event', 'fotografer'])
         ->orderByDesc('published_at')
         ->orderByDesc('id')
@@ -48,9 +48,9 @@ Route::get('/', function () {
         ->where('is_verified', true)
         ->where('is_active', true)
         ->withActiveSubscription()
-        ->whereHas('photos', fn ($query) => $query->where('status', 'active'))
+        ->whereHas('photos', fn($query) => $query->where('status', 'active'))
         ->with('featuredPhoto.event')
-        ->withCount(['photos as active_photos_count' => fn ($query) => $query->where('status', 'active')])
+        ->withCount(['photos as active_photos_count' => fn($query) => $query->where('status', 'active')])
         ->orderByDesc('active_photos_count')
         ->orderBy('name')
         ->limit(4)
@@ -101,7 +101,7 @@ Route::get('/photographers/{photographer}', [PhotographerController::class, 'sho
 Route::post('/payments/doku/notification', DokuWebhookController::class)->name('payments.doku.notification');
 
 Route::get('/sitemap.xml', function () {
-    $photos = Photo::query()->where('status', 'active')->whereHas('fotografer', fn ($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())->select(['id', 'updated_at'])->get();
+    $photos = Photo::query()->where('status', 'active')->whereHas('fotografer', fn($query) => $query->where('is_verified', true)->where('is_active', true)->withActiveSubscription())->select(['id', 'updated_at'])->get();
     $photographers = User::query()->where('role', 'fotografer')->where('is_verified', true)->where('is_active', true)->withActiveSubscription()->select(['id', 'slug', 'updated_at'])->get();
 
     return response()
@@ -114,7 +114,7 @@ Route::get('/dashboard', function () {
     if ($user->hasRole('superadmin')) {
         return redirect()->route('superadmin.dashboard');
     } elseif ($user->hasRole('fotografer')) {
-        if (! $user->hasCompletedPhotographerOnboarding()) {
+        if (!$user->hasCompletedPhotographerOnboarding()) {
             return redirect()->route('fotografer.onboarding');
         }
 
@@ -208,4 +208,4 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

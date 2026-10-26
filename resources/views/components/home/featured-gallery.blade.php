@@ -33,14 +33,16 @@
             <div class="mt-8 flex flex-wrap items-center gap-2 border-b border-public-line pb-4" data-reveal>
                 <span class="mr-2 text-[10px] font-extrabold uppercase tracking-wider text-public-muted">Filter:</span>
                 <button type="button" @click="activeCategory = 'all'"
-                    class="border px-3 py-1 text-xs font-extrabold uppercase tracking-wider transition-all duration-150"
+                    :aria-pressed="activeCategory === 'all' ? 'true' : 'false'"
+                    class="border px-3 py-1 text-xs font-extrabold uppercase tracking-wider transition-colors duration-150"
                     :class="activeCategory === 'all' ? 'border-public-ink bg-public-ink text-white' : 'border-public-line bg-white text-public-ink hover:border-public-ink'">
                     Semua ({{ $photos->count() }})
                 </button>
                 @foreach($categories as $category)
-                    <button type="button" @click="activeCategory = '{{ $category }}'"
-                        class="border px-3 py-1 text-xs font-extrabold uppercase tracking-wider transition-all duration-150"
-                        :class="activeCategory === '{{ $category }}' ? 'border-public-ink bg-public-ink text-white' : 'border-public-line bg-white text-public-ink hover:border-public-ink'">
+                    <button type="button" @click="activeCategory = @js($category)"
+                        :aria-pressed="activeCategory === @js($category) ? 'true' : 'false'"
+                        class="border px-3 py-1 text-xs font-extrabold uppercase tracking-wider transition-colors duration-150"
+                        :class="activeCategory === @js($category) ? 'border-public-ink bg-public-ink text-white' : 'border-public-line bg-white text-public-ink hover:border-public-ink'">
                         {{ $category }}
                     </button>
                 @endforeach
@@ -76,7 +78,7 @@
             </div>
         @else
             <div class="mt-10 border border-public-line bg-public-bone p-12 text-center" data-reveal>
-                <p class="font-mono text-xs uppercase tracking-widest text-public-muted">EMPTY ARCHIVE STATE</p>
+                <p class="font-sans text-xs uppercase tracking-widest text-public-muted">EMPTY ARCHIVE STATE</p>
                 <p class="mt-3 text-xl font-extrabold text-public-ink">Belum ada foto aktif yang dipublikasikan.</p>
                 <p class="mt-2 text-sm font-semibold text-public-muted">Foto dari photographer terverifikasi akan otomatis
                     muncul di sini setelah diunggah dan disetujui.</p>

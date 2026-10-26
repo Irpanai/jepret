@@ -6,7 +6,7 @@
     <section class="border-b border-public-line bg-public-bone py-16 sm:py-24">
         <div class="public-container" data-reveal>
             <p class="public-kicker">Legal &middot; Terakhir diperbarui 18 September 2026</p>
-            <h1 class="mt-5 max-w-4xl text-[clamp(3rem,8vw,7rem)] font-extrabold leading-[0.88]">Privacy<br><span class="public-serif font-normal italic text-public-muted">Policy.</span></h1>
+            <h1 class="mt-5 max-w-4xl text-[clamp(3rem,8vw,7rem)] font-extrabold leading-[0.88]">Privacy<br><span class="font-display font-normal italic text-public-muted">Policy.</span></h1>
             <p class="mt-7 max-w-2xl text-base font-semibold leading-7 text-public-muted">Cara Jepret mengumpulkan, menggunakan, dan menjaga data saat Anda menggunakan layanan kami.</p>
         </div>
     </section>

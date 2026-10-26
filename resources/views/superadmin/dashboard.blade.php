@@ -298,7 +298,7 @@
                             <span>Volume Transaksi Terbayar</span>
                         </div>
                         <div>
-                            <span>Update: <strong class="font-mono text-gray-700" x-text="lastUpdated"></strong></span>
+                            <span>Update: <strong class="font-sans text-gray-700" x-text="lastUpdated"></strong></span>
                         </div>
                     </div>
                 </div>
@@ -345,7 +345,7 @@
                     @forelse($pendingWithdrawals as $wd)
                         <a class="flex justify-between items-center rounded-lg bg-gray-50 p-4 text-sm transition hover:bg-gray-100" href="{{ route('superadmin.earnings') }}">
                             <span class="font-bold text-gray-900">{{ $wd->fotografer?->name }}</span>
-                            <strong class="font-mono text-sm font-bold text-gray-900">Rp{{ number_format($wd->jumlah_tarik) }}</strong>
+                            <strong class="font-sans text-sm font-bold text-gray-900">Rp{{ number_format($wd->jumlah_tarik) }}</strong>
                         </a>
                     @empty
                         <p class="helper text-sm text-gray-500">Antrean kosong.</p>

@@ -1,16 +1,49 @@
 
 
 import Alpine from 'alpinejs';
-import QRCode from 'qrcode';
-import photoWatermarkEditor from './photo-watermark-editor';
-
 
 window.Alpine = Alpine;
-window.QRCode = QRCode;
 
-Alpine.data('photoWatermarkEditor', photoWatermarkEditor);
+let qrCodePromise = null;
+const loadQRCode = () => {
+    if (!qrCodePromise) {
+        qrCodePromise = import('qrcode').then((mod) => {
+            const QRCode = mod.default ?? mod;
+            window.QRCode = QRCode;
+            return QRCode;
+        });
+    }
+    return qrCodePromise;
+};
 
-Alpine.start();
+window.QRCode = {
+    toCanvas: (...args) => {
+        loadQRCode()
+            .then((QRCode) => QRCode.toCanvas(...args))
+            .catch((error) => {
+                const callback = args[args.length - 1];
+                if (typeof callback === 'function') {
+                    callback(error);
+                }
+            });
+    },
+    toDataURL: (...args) => loadQRCode().then((QRCode) => QRCode.toDataURL(...args)),
+    toString: (...args) => loadQRCode().then((QRCode) => QRCode.toString(...args)),
+};
+
+const bootAlpine = async () => {
+    if (document.querySelector('[x-data^="photoWatermarkEditor"]')) {
+        const { default: photoWatermarkEditor } = await import('./photo-watermark-editor');
+        Alpine.data('photoWatermarkEditor', photoWatermarkEditor);
+    }
+    Alpine.start();
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootAlpine, { once: true });
+} else {
+    bootAlpine();
+}
 
 const updateCartButton = (form, inCart) => {
     const button = form.querySelector('button[type="submit"]');
@@ -108,6 +141,11 @@ const initializeHomepageMotion = () => {
             }
 
             entry.target.classList.add('is-visible');
+            if (entry.target.hasAttribute('data-stagger')) {
+                window.setTimeout(() => {
+                    entry.target.style.setProperty('--stagger-step', '0ms');
+                }, 750);
+            }
             observer.unobserve(entry.target);
         });
     }, {

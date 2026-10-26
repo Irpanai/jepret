@@ -72,7 +72,7 @@
                             aria-controls="photographer-feature-panel-{{ $feature['id'] }}"
                             class="group flex w-full items-center gap-4 py-6 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-public-ink focus-visible:ring-offset-2 sm:gap-6 sm:py-8">
                             <span
-                                class="font-mono text-sm font-bold tracking-wider transition-colors duration-200 lg:text-base"
+                                class="font-sans text-sm font-bold tracking-wider transition-colors duration-200 lg:text-base"
                                 :class="active === {{ $feature['id'] }} ? 'text-public-ink' : 'text-public-muted/60'">
                                 {{ str_pad($feature['id'], 2, '0', STR_PAD_LEFT) }}
                             </span>
@@ -125,7 +125,7 @@
 
                                         {{-- Floating Hint Pill --}}
                                         <div
-                                            class="absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-public-ink/90 px-3.5 py-1.5 font-mono text-xs font-semibold text-white shadow-lg backdrop-blur-sm transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100">
+                                            class="absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-public-ink/90 px-3.5 py-1.5 font-sans text-xs font-semibold text-white shadow-lg backdrop-blur-sm transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100">
                                             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                                 stroke-width="2.5">
                                                 <circle cx="11" cy="11" r="8" />

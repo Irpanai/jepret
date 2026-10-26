@@ -28,7 +28,7 @@
             <div class="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] xl:grid-cols-[minmax(0,1fr)_minmax(360px,480px)]">
                 <div class="min-w-0">
                     <div class="relative overflow-hidden border border-gray-200 bg-gray-100">
-                        <img src="{{ $previewUrl }}" alt="{{ $photo->title ?: 'Preview foto Jepret' }}" class="mx-auto block h-auto max-h-[calc(100svh-12rem)] w-auto max-w-full object-contain">
+                        <img src="{{ $previewUrl }}" alt="{{ $photo->title ?: 'Preview foto Jepret' }}" fetchpriority="high" decoding="async" class="mx-auto block h-auto max-h-[calc(100svh-12rem)] w-auto max-w-full object-contain">
                         <div class="absolute left-4 top-4 bg-white px-3 py-2 text-xs font-extrabold uppercase text-public-ink">
                             Preview terlindungi
                         </div>
@@ -55,7 +55,7 @@
                         </p>
 
                         <div class="mt-6 flex items-center gap-3 border-y border-public-line py-4">
-                            <img src="{{ $photo->fotografer?->profilePhotoUrl() }}" alt="" class="h-12 w-12 object-cover">
+                            <img src="{{ $photo->fotografer?->profilePhotoUrl() }}" alt="" width="48" height="48" loading="lazy" decoding="async" class="h-12 w-12 object-cover">
                             <div class="min-w-0">
                                 <p class="text-xs font-extrabold uppercase text-public-muted">Photographer</p>
                                 <a href="{{ $photo->fotografer ? route('photographers.show', $photo->fotografer->slug ?: $photo->fotografer->id) : '#' }}" class="break-words text-lg font-extrabold text-public-ink hover:underline">

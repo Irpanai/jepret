@@ -11,7 +11,7 @@
                     class="h-full w-full object-cover object-center grayscale contrast-125 transition-transform duration-700 hover:scale-105"
                 >
                 <div class="absolute inset-0 bg-gradient-to-t from-public-ink via-transparent to-transparent opacity-80 lg:hidden"></div>
-                <div class="absolute bottom-4 left-4 border border-white/20 bg-public-ink/90 px-3 py-1.5 font-mono text-[10px] font-extrabold uppercase tracking-widest text-white backdrop-blur-sm">
+                <div class="absolute bottom-4 left-4 border border-white/20 bg-public-ink/90 px-3 py-1.5 font-sans text-[10px] font-extrabold uppercase tracking-widest text-white backdrop-blur-sm">
                     KEMITRAAN KREATOR &middot; 90% BAGI HASIL
                 </div>
             </div>
@@ -19,7 +19,7 @@
             {{-- Editorial Value & CTA Column --}}
             <div class="flex flex-col justify-between lg:col-span-7 lg:pl-6">
                 <div>
-                    <p class="font-mono text-xs font-extrabold uppercase tracking-widest text-white/50">
+                    <p class="font-sans text-xs font-extrabold uppercase tracking-widest text-white/50">
                         PROGRAM KEMITRAAN PHOTOGRAPHER
                     </p>
                     <h2 id="photographer-cta-title" class="landing-heading mt-4 text-white">

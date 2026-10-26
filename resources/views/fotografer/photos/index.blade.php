@@ -115,7 +115,7 @@
                 <div class="space-y-2" x-show="uploading || uploadProgress > 0" x-cloak>
                     <div class="flex items-center justify-between text-xs font-semibold text-gray-600"><span>Progress upload</span><span x-text="`${uploadProgress}%`"></span></div>
                     <div class="h-2 overflow-hidden rounded-full bg-gray-200" role="progressbar" aria-label="Progress upload foto" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="uploadProgress">
-                        <span class="block h-full rounded-full bg-black transition-[width] duration-200" :style="`width:${uploadProgress}%`"></span>
+                        <span class="block h-full w-full origin-left rounded-full bg-black transition-transform duration-200" :style="`transform: scaleX(${Math.max(0, Math.min(100, uploadProgress)) / 100})`"></span>
                     </div>
                 </div>
             </aside>

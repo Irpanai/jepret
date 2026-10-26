@@ -191,12 +191,15 @@
                     } else {
                         expiryLabel.textContent =
                             'QRIS telah kedaluwarsa.';
+                        if (countdown) {
+                            window.clearInterval(countdown);
+                        }
                     }
                 };
 
+                let countdown = null;
                 updateCountdown();
-
-                const countdown = window.setInterval(
+                countdown = window.setInterval(
                     updateCountdown,
                     1000
                 );

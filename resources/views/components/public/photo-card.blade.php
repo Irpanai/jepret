@@ -14,6 +14,7 @@
             src="{{ route('media.preview', $photo) }}"
             alt="{{ $photoTitle }}"
             loading="lazy"
+            decoding="async"
             @if($hasImageDimensions)
                 width="{{ $imageWidth }}"
                 height="{{ $imageHeight }}"
@@ -31,13 +32,16 @@
             <a href="{{ route('marketplace.show', $photo) }}" class="line-clamp-2 text-[13px] font-bold leading-[1.25] text-public-ink hover:underline sm:text-sm">
                 {{ $photoTitle }}
             </a>
-            <p class="public-serif shrink-0 text-sm leading-none text-public-ink sm:text-base">Rp{{ number_format($photo->harga, 0, ',', '.') }}</p>
+            <p class="font-display italic shrink-0 text-sm leading-none text-public-ink sm:text-base">Rp{{ number_format($photo->harga, 0, ',', '.') }}</p>
         </div>
         <div class="flex min-w-0 items-center gap-2 text-[10px] font-medium text-public-muted sm:text-xs">
             <img
                 src="{{ $photo->fotografer?->profilePhotoUrl() }}"
                 alt=""
+                width="20"
+                height="20"
                 loading="lazy"
+                decoding="async"
                 class="h-5 w-5 shrink-0 rounded-full object-cover"
             >
             <span class="truncate">{{ $photographerName }}</span>

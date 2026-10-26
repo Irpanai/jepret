@@ -6,7 +6,7 @@
     <section class="border-b border-public-line bg-public-ink py-16 text-white sm:py-24">
         <div class="public-container" data-reveal>
             <p class="text-xs font-extrabold uppercase text-white/45">Legal &middot; Terakhir diperbarui 18 September 2026</p>
-            <h1 class="mt-5 max-w-4xl text-[clamp(3rem,8vw,7rem)] font-extrabold leading-[0.88]">Terms of<br><span class="public-serif font-normal italic text-white/55">Service.</span></h1>
+            <h1 class="mt-5 max-w-4xl text-[clamp(3rem,8vw,7rem)] font-extrabold leading-[0.88]">Terms of<br><span class="font-display font-normal italic text-white/55">Service.</span></h1>
             <p class="mt-7 max-w-2xl text-base font-semibold leading-7 text-white/60">Ketentuan sederhana tentang penggunaan Jepret oleh buyer, photographer, dan pengunjung.</p>
         </div>
     </section>
