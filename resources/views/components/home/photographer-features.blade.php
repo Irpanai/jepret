@@ -33,7 +33,7 @@
     ];
 @endphp
 
-<section class="border-b border-public-line bg-white py-16 sm:py-24" aria-labelledby="photographer-features-title"
+<section id="fotografer" class="border-b border-public-line bg-white py-16 sm:py-24" aria-labelledby="photographer-features-title"
     x-data="{
         active: 1,
         previewModal: false,

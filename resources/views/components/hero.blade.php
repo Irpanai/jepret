@@ -29,9 +29,12 @@
                 <div class="hero-ctas">
                     <a class="button-primary" href="{{ route('galeri') }}">
                         <span>Jelajahi Foto</span>
-                        <svg class="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4"/></svg>
+                        <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4"/></svg>
                     </a>
-                    <a class="text-link" href="#fotografer">Untuk Fotografer</a>
+                    <a class="button-secondary" href="#fotografer">
+                        <span>Untuk Fotografer</span>
+                        <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4"/></svg>
+                    </a>
                 </div>
             </div>
         </div>
@@ -224,50 +227,72 @@
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 1.75rem;
+            gap: 0.75rem;
         }
 
-        .hero .text-link {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding-bottom: 0.3rem;
-            font-size: 0.75rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.08em !important;
-            color: var(--public-ink, #101114);
-            border-bottom: 1.5px solid var(--public-ink, #101114);
-            transition: gap 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
-        }
-
-        .hero .text-link::after {
-            content: "→";
-            transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
-        .hero .text-link:hover {
-            opacity: 0.78;
-        }
-
-        .hero .text-link:hover::after {
-            transform: translateX(3px);
-        }
-
-        .hero .button-primary {
+        .hero .button-primary,
+        .hero .button-secondary {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 0.6rem;
+            min-height: 2.875rem;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em !important;
+            line-height: 1;
+            border: 1.5px solid var(--public-ink, #101114);
+            transition:
+                background-color 200ms ease,
+                color 200ms ease,
+                border-color 200ms ease,
+                transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 200ms ease;
+        }
+
+        .hero .button-primary {
             background: var(--public-ink, #101114);
             color: #ffffff;
-            border: 1px solid var(--public-ink, #101114);
-            transition: background-color 200ms ease, transform 200ms ease;
         }
 
         .hero .button-primary:hover {
             background: #2b2b2b;
+        }
+
+        .hero .button-secondary {
+            background: #ffffff;
+            color: var(--public-ink, #101114);
+        }
+
+        .hero .button-secondary:hover {
+            background: var(--public-bone, #f5f3ef);
+        }
+
+        .hero-ctas .button-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -10px rgba(16, 17, 20, 0.28);
+        }
+
+        .hero-ctas .button-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 4px 4px 0 0 var(--public-ink, #101114);
+        }
+
+        .hero .button-primary:hover svg,
+        .hero .button-secondary:hover svg {
+            transform: translateX(3px);
+        }
+
+        @media (max-width: 480px) {
+            .hero-ctas {
+                width: 100%;
+            }
+            .hero-ctas .button-primary,
+            .hero-ctas .button-secondary {
+                flex: 1 1 auto;
+            }
         }
 
         .hero-visual {
