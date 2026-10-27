@@ -7,10 +7,10 @@
                     @php($quota = $user->effectiveQuotaMb())
                     <tr>
                         <td class="p-4"><strong>{{ $user->name }}</strong><small class="block text-gray-500">{{ $user->email }}</small></td>
-                        <td class="p-4">{{ $user->package?->display_name ?? $user->package?->nama_paket ?? '—' }}</td>
-                        <td class="p-4">{{ number_format($quota / 1024, 2) }} GB</td>
-                        <td class="p-4">{{ number_format($user->storage_terpakai_mb / 1024, 2) }} GB</td>
-                        <td class="p-4">{{ number_format(max(0, $quota - $user->storage_terpakai_mb) / 1024, 2) }} GB</td>
+                        <td class="p-4">{{ $user->subscription?->packageDisplayName($user->package) ?? $user->package?->display_name ?? $user->package?->nama_paket ?? '—' }}</td>
+                        <td class="p-4">{{ \App\Models\User::formatStorageQuota($quota) }}</td>
+                        <td class="p-4">{{ \App\Models\User::formatStorageQuota((float) $user->storage_terpakai_mb) }}</td>
+                        <td class="p-4">{{ \App\Models\User::formatStorageQuota(max(0, $quota - (float) $user->storage_terpakai_mb)) }}</td>
                         <td class="p-4">{{ $quota ? number_format(min(100, $user->storage_terpakai_mb / $quota * 100), 1) : 0 }}%</td>
                         <td class="p-4">{{ $user->photos_count }}</td>
                         <td class="p-4">{{ $user->photos_max_created_at ? \Carbon\Carbon::parse($user->photos_max_created_at)->timezone(config('app.display_timezone'))->format('d M Y') : '—' }}</td>

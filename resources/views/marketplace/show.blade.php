@@ -93,12 +93,11 @@
                         <dl class="mt-4 grid gap-3 text-sm">
                             @foreach([
                                 'Event' => $photo->event?->nama_event,
-                                'Lokasi' => $photo->event?->lokasi,
+                                'Lokasi' => ($photo->event?->lokasi && $photo->event->lokasi !== 'Online') ? $photo->event->lokasi : ($photo->fotografer?->location ?: 'Belum dicatat'),
                                 'Kategori' => $photo->category,
                                 'Waktu' => optional(($photo->taken_at ?? $photo->created_at)?->timezone(config('app.display_timezone')))->format('d M Y, H:i'),
-                                'Kamera' => $photo->kamera_body,
-                                'Lensa' => $photo->lensa,
-                                'Resolusi' => $photo->resolusi,
+                                'Kamera' => $photo->display_camera,
+                                'Lensa' => $photo->display_lens,
                             ] as $label => $value)
                                 <div class="flex justify-between gap-4 border-b border-public-line pb-2 last:border-b-0 last:pb-0">
                                     <dt class="font-bold text-public-muted">{{ $label }}</dt>

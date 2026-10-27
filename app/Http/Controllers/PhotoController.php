@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -205,9 +206,16 @@ class PhotoController extends Controller
                         throw ValidationException::withMessages(['photos' => 'Storage tidak mencukupi.']);
                     }
                     $usedBytes += $paths['bytes'];
+                    $selectedCamera = ! empty($validated['camera_id'])
+                        ? Camera::where('fotografer_id', $user->id)->find($validated['camera_id'])
+                        : null;
                     $createdPhoto = Photo::create([
                         'upload_token' => count($request->file('photos')) === 1 ? ($validated['upload_token'] ?? null) : null,
-                        'event_id' => $event->id, 'fotografer_id' => $user->id, 'camera_id' => $validated['camera_id'] ?? null,
+                        'event_id' => $event->id,
+                        'fotografer_id' => $user->id,
+                        'camera_id' => $selectedCamera?->id,
+                        'kamera_body' => $selectedCamera?->brand_model ?: $selectedCamera?->name,
+                        'lensa' => $selectedCamera?->lens,
                         'title' => trim((string) ($validated['photo_titles'][$index] ?? $validated['title'] ?? '')) ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
                         'file_asli' => $paths['original'], 'file_watermark' => $paths['preview'], 'purchased_path' => $paths['purchased'],
                         'original_sha256' => $paths['original_sha256'],
@@ -283,9 +291,14 @@ class PhotoController extends Controller
     {
         $newFolder = trim($request->string('new_folder')->toString());
         if ($newFolder !== '') {
+            $eventLocation = trim($request->string('event_location')->toString());
+            if ($eventLocation === '') {
+                $eventLocation = $request->user()->location ?: 'Belum dicatat';
+            }
+
             return Event::firstOrCreate(
                 ['nama_event' => $newFolder, 'fotografer_id' => $request->user()->id],
-                ['tanggal_event' => now(), 'lokasi' => 'Online']
+                ['tanggal_event' => now(), 'lokasi' => $eventLocation]
             );
         }
 

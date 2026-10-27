@@ -285,6 +285,99 @@ class SubscriptionStorageAccumulationTest extends TestCase
     }
 
     /**
+     * 9. Storage bertambah akumulatif ketika fotografer memiliki storage_quota_override_mb dari superadmin.
+     */
+    public function test_storage_accumulates_and_persists_when_photographer_has_superadmin_quota_override(): void
+    {
+        $photographer = $this->createPhotographerWithInitialStorage(self::HALF_GB_BYTES);
+
+        // Superadmin memberikan override 50 MB
+        $photographer->forceFill(['storage_quota_override_mb' => 50.0])->save();
+        $this->assertSame(50 * 1048576, $photographer->effectiveQuotaBytes());
+        $this->assertSame('50 MB', $photographer->formattedQuota());
+
+        $proPackage = $this->createOrGetPackageWithStorage('pro-5gb', 'Paket Pro 5GB', 5120, self::FIVE_GB_BYTES);
+
+        $billing = app(SubscriptionBilling::class);
+        $order = $billing->createOrder($photographer, $proPackage);
+        $order->update(['status' => 'paid', 'provider_paid_at' => now()]);
+        $billing->applyPaidOrder($order, now());
+
+        $photographer->refresh();
+
+        // 50 MB override + 5120 MB (5 GB) = 5170 MB
+        $expectedBytes = (50 * 1048576) + self::FIVE_GB_BYTES;
+        $this->assertEquals(5170.0, (float) $photographer->storage_quota_override_mb);
+        $this->assertSame($expectedBytes, $photographer->effectiveQuotaBytes());
+        $this->assertSame($expectedBytes, (int) $photographer->subscription->entitlement_snapshot['storage_quota_bytes']);
+        $this->assertSame(5170, (int) $photographer->subscription->entitlement_snapshot['kuota_storage_mb']);
+
+        // Check photographer dashboard
+        $dashboardResponse = $this->actingAs($photographer)->get(route('fotografer.dashboard'));
+        $dashboardResponse->assertOk();
+        $dashboardResponse->assertSee($photographer->formattedQuota());
+
+        // Check superadmin storage view
+        $superadmin = User::factory()->superadmin()->create();
+        $storageResponse = $this->actingAs($superadmin)->get(route('superadmin.storage'));
+        $storageResponse->assertOk();
+        $storageResponse->assertSee($photographer->formattedQuota());
+    }
+
+    /**
+     * 10. Fotografer aktif paket berbayar boleh mengklaim Trial (bila belum pernah trial):
+     *     - Masa aktif bertambah +7 hari
+     *     - Storage bertambah +500 MB (akumulatif)
+     *     - Tier paket tetap berbayar (tidak turun ke trial)
+     *     - Trial ditandai telah digunakan (trial_used_at tidak null)
+     */
+    public function test_active_paid_photographer_can_claim_trial_bonus_and_accumulate_duration_and_storage(): void
+    {
+        $photographer = $this->createPhotographerWithInitialStorage(self::FIVE_GB_BYTES);
+        $initialEndsAt = $photographer->subscription->ends_at->copy();
+        $initialStorage = $photographer->effectiveQuotaBytes();
+
+        $trialPackage = Package::where('is_trial', true)->firstOrFail();
+
+        // Fotografer mengklaim trial
+        $response = $this->actingAs($photographer)->post(route('subscriptions.checkout', $trialPackage));
+        $response->assertRedirect(route('fotografer.dashboard'));
+        $response->assertSessionHas('success');
+
+        $photographer->refresh();
+        $subscription = $photographer->subscription;
+
+        // Masa aktif harus bertambah 7 hari dari tanggal berakhir sebelumnya
+        $this->assertTrue($subscription->ends_at->equalTo($initialEndsAt->copy()->addDays(7)));
+
+        // Kapasitas storage harus bertambah 500 MB dari kapasitas sebelumnya
+        $expectedStorageBytes = $initialStorage + (500 * 1048576);
+        $this->assertSame($expectedStorageBytes, $photographer->effectiveQuotaBytes());
+        $this->assertSame($expectedStorageBytes, (int) $subscription->entitlement_snapshot['storage_quota_bytes']);
+
+        // Tier paket tetap mempertahankan nama paket berbayar
+        $this->assertFalse($subscription->package->is_trial);
+
+        // Trial terkunci
+        $this->assertNotNull($subscription->trial_used_at);
+    }
+
+    /**
+     * 11. Trial hanya dapat diambil 1 kali per akun user yang telah mendaftar.
+     */
+    public function test_trial_cannot_be_claimed_more_than_once(): void
+    {
+        $photographer = $this->createPhotographerWithInitialStorage(self::HALF_GB_BYTES);
+        $photographer->subscription->update(['trial_used_at' => now()]);
+
+        $trialPackage = Package::where('is_trial', true)->firstOrFail();
+
+        // Mencoba klaim trial kembali harus ditolak
+        $response = $this->actingAs($photographer)->post(route('subscriptions.checkout', $trialPackage));
+        $response->assertSessionHasErrors(['trial' => 'Trial hanya dapat digunakan satu kali per akun.']);
+    }
+
+    /**
      * Helper to create a photographer with an initial storage amount in bytes.
      */
     private function createPhotographerWithInitialStorage(int $bytes): User

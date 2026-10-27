@@ -39,7 +39,7 @@
                         <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
                             <label class="text-sm font-bold text-gray-900">Event Foto <span class="text-red-500">*</span></label>
                             <div class="inline-flex rounded-lg bg-gray-200/80 p-0.5 text-xs font-semibold">
-                                <button type="button" @click="eventMode = 'existing'; $refs.newFolderInput.value = ''" :class="eventMode === 'existing' ? 'bg-black text-white shadow-sm' : 'text-gray-600 hover:text-black'" class="rounded-md px-3 py-1.5 transition">Pilih Event yang Ada</button>
+                                <button type="button" @click="eventMode = 'existing'; $refs.newFolderInput.value = ''; if ($refs.eventLocationInput) $refs.eventLocationInput.value = ''" :class="eventMode === 'existing' ? 'bg-black text-white shadow-sm' : 'text-gray-600 hover:text-black'" class="rounded-md px-3 py-1.5 transition">Pilih Event yang Ada</button>
                                 <button type="button" @click="eventMode = 'new'; $refs.existingSelect.value = ''" :class="eventMode === 'new' ? 'bg-black text-white shadow-sm' : 'text-gray-600 hover:text-black'" class="rounded-md px-3 py-1.5 transition">+ Buat Event Baru</button>
                             </div>
                         </div>
@@ -56,8 +56,15 @@
                             @endif
                         </div>
 
-                        <div x-show="eventMode === 'new'" x-cloak>
-                            <input id="new_folder" name="new_folder" x-ref="newFolderInput" class="w-full rounded-lg border-gray-300 bg-white text-sm focus:border-black focus:ring-black" placeholder="Contoh: Makassar Half Marathon 2026" value="{{ old('new_folder') }}">
+                        <div x-show="eventMode === 'new'" x-cloak class="space-y-2">
+                            <div>
+                                <label for="new_folder" class="block text-xs font-semibold text-gray-700 mb-1">Nama Event</label>
+                                <input id="new_folder" name="new_folder" x-ref="newFolderInput" class="w-full rounded-lg border-gray-300 bg-white text-sm focus:border-black focus:ring-black" placeholder="Contoh: Makassar Half Marathon 2026" value="{{ old('new_folder') }}">
+                            </div>
+                            <div>
+                                <label for="event_location" class="block text-xs font-semibold text-gray-700 mb-1">Lokasi Event <span class="text-xs font-normal text-gray-500">(Opsional)</span></label>
+                                <input id="event_location" name="event_location" x-ref="eventLocationInput" class="w-full rounded-lg border-gray-300 bg-white text-sm focus:border-black focus:ring-black" placeholder="Contoh: Pantai Losari, Makassar (default: kota profil Anda)" value="{{ old('event_location') }}">
+                            </div>
                             <p class="mt-1 text-xs text-gray-500">Event baru akan otomatis dibuatkan folder untuk foto-foto ini.</p>
                         </div>
                     </div>

@@ -19,7 +19,7 @@ class PricingController extends Controller
     public function subscriptions(Request $request): View
     {
         $pricingPlans = Package::query()->publiclyAvailable()->ordered()->get();
-        $user = $request->user()->loadMissing('subscription');
+        $user = $request->user()->loadMissing(['subscription.package', 'package']);
         $pendingOrder = SubscriptionOrder::query()
             ->whereBelongsTo($user)
             ->where('status', 'pending')

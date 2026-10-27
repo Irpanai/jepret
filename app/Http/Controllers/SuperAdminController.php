@@ -147,7 +147,7 @@ class SuperAdminController extends Controller
                         ->orWhere('email', 'like', "%{$search}%");
                 });
             })
-            ->with('package')
+            ->with(['package', 'subscription.package'])
             ->withCount('photos')
             ->withMax('photos', 'created_at')
             ->orderBy('name')

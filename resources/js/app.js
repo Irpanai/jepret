@@ -173,8 +173,6 @@ const initializeGallery = () => {
     const hero = galleryPage.querySelector('[data-gallery-hero]');
     const filter = galleryPage.querySelector('[data-gallery-filter]');
     const itemContainer = galleryPage.querySelector('[data-gallery-items]');
-    const pagination = galleryPage.querySelector('[data-gallery-pagination]');
-    const sentinel = galleryPage.querySelector('[data-gallery-sentinel]');
 
     document.documentElement.classList.add('gallery-motion');
 
@@ -210,75 +208,30 @@ const initializeGallery = () => {
     }
 
     filter?.addEventListener('submit', () => {
-        ['event', 'location', 'category', 'photographer', 'date', 'daypart', 'sort'].forEach((name) => {
+        const filterNames = ['q', 'event', 'location', 'category', 'photographer', 'date', 'daypart', 'sort'];
+
+        filterNames.forEach((name) => {
             const controls = Array.from(filter.querySelectorAll(`[name="${name}"]`));
-            const visibleControl = controls.find((control) => control.offsetParent !== null) ?? controls[0];
+            if (controls.length === 0) {
+                return;
+            }
+
+            const filledControl = controls.find((control) => control.value && control.value.trim() !== '');
+            const activeControl = filledControl || controls.find((control) => control.offsetParent !== null) || controls[0];
 
             controls.forEach((control) => {
-                control.disabled = control !== visibleControl;
+                if (control !== activeControl) {
+                    control.disabled = true;
+                    return;
+                }
+
+                const value = (control.value || '').trim();
+                if (!value || (name === 'sort' && value === 'latest')) {
+                    control.disabled = true;
+                }
             });
         });
     });
-
-    if (!itemContainer || !pagination || !sentinel || !pagination.dataset.nextPage) {
-        return;
-    }
-
-    document.documentElement.classList.add('gallery-enhanced');
-    const loading = pagination.querySelector('[data-gallery-loading]');
-    const error = pagination.querySelector('[data-gallery-error]');
-    const retry = pagination.querySelector('[data-gallery-retry]');
-    const loadedPhotoIds = new Set(Array.from(itemContainer.querySelectorAll('[data-photo-id]')).map((item) => item.dataset.photoId));
-    let nextPage = pagination.dataset.nextPage;
-    let isLoading = false;
-
-    const loadNextPage = async () => {
-        if (isLoading || !nextPage) {
-            return;
-        }
-
-        isLoading = true;
-        loading?.classList.remove('hidden');
-        error?.classList.add('hidden');
-
-        try {
-            const response = await fetch(nextPage, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-
-            if (!response.ok) {
-                throw new Error(`Gallery request failed with ${response.status}`);
-            }
-
-            const documentFragment = new DOMParser().parseFromString(await response.text(), 'text/html');
-            const newItems = Array.from(documentFragment.querySelectorAll('[data-gallery-item]')).filter((item) => !loadedPhotoIds.has(item.dataset.photoId));
-
-            newItems.forEach((item) => {
-                loadedPhotoIds.add(item.dataset.photoId);
-                itemContainer.append(item);
-            });
-
-            revealItems(newItems);
-            nextPage = documentFragment.querySelector('[data-gallery-pagination]')?.dataset.nextPage ?? '';
-            pagination.dataset.nextPage = nextPage;
-
-            if (!nextPage) {
-                infiniteObserver.disconnect();
-            }
-        } catch (loadError) {
-            error?.classList.remove('hidden');
-        } finally {
-            isLoading = false;
-            loading?.classList.add('hidden');
-        }
-    };
-
-    const infiniteObserver = new IntersectionObserver((entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-            loadNextPage();
-        }
-    }, { rootMargin: '800px 0px' });
-
-    infiniteObserver.observe(sentinel);
-    retry?.addEventListener('click', loadNextPage);
 };
 
 if (document.readyState === 'loading') {

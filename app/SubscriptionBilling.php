@@ -196,10 +196,9 @@ class SubscriptionBilling
             $active = $subscription?->isActive() ?? false;
             $startsAt = $active ? $subscription->starts_at : $paidAt;
             $extensionStartsAt = $active && $subscription->ends_at ? $subscription->ends_at : $paidAt;
-            $endsAt = match ($order->intent) {
-                'renewal', 'plan_change' => $extensionStartsAt->copy()->addDays($duration),
-                default => $paidAt->copy()->addDays($duration),
-            };
+            $endsAt = $active
+                ? $extensionStartsAt->copy()->addDays($duration)
+                : $paidAt->copy()->addDays($duration);
 
             $grantedBytes = (int) ($order->package_snapshot['storage_quota_bytes'] ?? 0);
             if ($grantedBytes === 0 && ! empty($order->package_snapshot['kuota_storage_mb'])) {
@@ -221,13 +220,25 @@ class SubscriptionBilling
 
             $totalStorageBytes = $existingBytes + $grantedBytes;
 
-            $entitlementSnapshot = $order->package_snapshot ?? [];
+            $isTrialClaimWhileActivePaid = $active
+                && $order->intent === 'trial'
+                && $subscription?->package_id !== null
+                && ! ($subscription->package?->is_trial ?? false);
+
+            $effectivePackageId = $isTrialClaimWhileActivePaid
+                ? $subscription->package_id
+                : $order->package_id;
+
+            $entitlementSnapshot = $isTrialClaimWhileActivePaid
+                ? ($subscription->entitlement_snapshot ?? $order->package_snapshot ?? [])
+                : ($order->package_snapshot ?? []);
             $entitlementSnapshot['storage_quota_bytes'] = $totalStorageBytes;
+            $entitlementSnapshot['kuota_storage_mb'] = (int) round($totalStorageBytes / 1048576);
             $entitlementSnapshot['granted_storage_bytes'] = $grantedBytes;
             $entitlementSnapshot['previous_storage_bytes'] = $existingBytes;
 
             $values = [
-                'package_id' => $order->package_id,
+                'package_id' => $effectivePackageId,
                 'status' => 'active',
                 'entitlement_snapshot' => $entitlementSnapshot,
                 'starts_at' => $startsAt,
@@ -242,11 +253,11 @@ class SubscriptionBilling
             }
             Subscription::updateOrCreate(['user_id' => $order->user_id], $values);
 
-            $userUpdates = ['package_id' => $order->package_id];
+            $userUpdates = ['package_id' => $effectivePackageId];
             if ($user->storage_quota_override_mb !== null) {
                 $userUpdates['storage_quota_override_mb'] = $totalStorageBytes / 1048576;
             }
-            $user->update($userUpdates);
+            $user->forceFill($userUpdates)->save();
 
             $order->update(['processed_at' => now()]);
 

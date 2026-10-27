@@ -674,7 +674,7 @@
                         </li>
                     </ul>
                     <p class="bwf-contact-note">
-                        Layanan bantuan aktif setiap hari kerja 09.00 - 18.00 WIB
+                        Layanan bantuan aktif setiap hari 24 jam. Kami akan membalas pertanyaan Anda secepat mungkin.
                     </p>
                 </div>
             </div>

@@ -21,9 +21,15 @@ class SubscriptionCheckoutController extends Controller
     {
         abort_unless($package->is_active && ! $package->is_legacy && ! $package->is_custom, 404);
         if ($package->is_trial) {
-            $billing->activateTrial($request->user(), $package);
+            $user = $request->user()->loadMissing(['subscription.package']);
+            $wasActivePaid = $user->subscription?->isActive() && $user->subscription?->package_id && ! ($user->subscription?->package?->is_trial ?? false);
+            $billing->activateTrial($user, $package);
 
-            return redirect()->route('fotografer.dashboard')->with('success', 'Trial berhasil diaktifkan.');
+            $message = $wasActivePaid
+                ? 'Bonus Trial berhasil diklaim. Masa aktif bertambah 7 hari dan kapasitas storage bertambah 500 MB.'
+                : 'Trial berhasil diaktifkan.';
+
+            return redirect()->route('fotografer.dashboard')->with('success', $message);
         }
 
         $voucherCode = $request->filled('voucher_code') ? $request->string('voucher_code')->toString() : null;

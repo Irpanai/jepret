@@ -78,4 +78,15 @@ class Package extends Model
 
         return $this->storage_quota_bytes / 1048576;
     }
+
+    public function formattedStorageQuota(): string
+    {
+        if ($this->is_custom) {
+            return 'Sesuai kebutuhan';
+        }
+
+        $mb = $this->storageQuotaMb() ?? (float) ($this->kuota_storage_mb ?? 0);
+
+        return User::formatStorageQuota($mb);
+    }
 }

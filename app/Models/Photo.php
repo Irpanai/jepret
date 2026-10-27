@@ -52,6 +52,34 @@ class Photo extends Model
         return $this->hasMany(Transaction::class);
     }
 
+    public function getDisplayCameraAttribute(): ?string
+    {
+        if ($this->camera) {
+            return $this->camera->brand_model ?: $this->camera->name;
+        }
+
+        if (filled($this->kamera_body)) {
+            return $this->kamera_body;
+        }
+
+        $fallbackCamera = $this->fotografer?->cameras?->first();
+
+        return $fallbackCamera?->brand_model ?: $fallbackCamera?->name;
+    }
+
+    public function getDisplayLensAttribute(): ?string
+    {
+        if ($this->camera?->lens) {
+            return $this->camera->lens;
+        }
+
+        if (filled($this->lensa)) {
+            return $this->lensa;
+        }
+
+        return $this->fotografer?->cameras?->first()?->lens;
+    }
+
     public function getNetHargaAttribute(): int
     {
         return self::photographerAmount((int) $this->harga);

@@ -79,33 +79,41 @@
                         </button>
 
                         <select name="event" class="public-input hidden h-11 rounded-md px-3 text-xs lg:block"
-                            aria-label="Event">
+                            aria-label="Event" @change="$el.form.requestSubmit()">
                             <option value="">Event</option>@foreach($events as $event)
-                                <option value="{{ $event->id }}" @selected((string) request('event') === (string) $event->id)>
-                                    {{ $event->nama_event }}
+                                @php
+                                    $eventId = is_scalar($event) ? $event : data_get($event, 'id');
+                                    $eventName = is_scalar($event) ? $event : (data_get($event, 'nama_event') ?: $eventId);
+                                @endphp
+                                <option value="{{ $eventId }}" @selected((string) request('event') === (string) $eventId)>
+                                    {{ $eventName }}
                             </option>@endforeach
                         </select>
                         <select name="location" class="public-input hidden h-11 rounded-md px-3 text-xs lg:block"
-                            aria-label="Lokasi">
+                            aria-label="Lokasi" @change="$el.form.requestSubmit()">
                             <option value="">Lokasi</option>@foreach($locations as $location)
                                 <option value="{{ $location }}" @selected(request('location') === $location)>{{ $location }}
                             </option>@endforeach
                         </select>
                         <select name="category" class="public-input hidden h-11 rounded-md px-3 text-xs lg:block"
-                            aria-label="Kategori">
+                            aria-label="Kategori" @change="$el.form.requestSubmit()">
                             <option value="">Kategori</option>@foreach($categories as $category)
                                 <option value="{{ $category }}" @selected(request('category') === $category)>{{ $category }}
                             </option>@endforeach
                         </select>
                         <select name="photographer" class="public-input hidden h-11 rounded-md px-3 text-xs lg:block"
-                            aria-label="Photographer">
+                            aria-label="Photographer" @change="$el.form.requestSubmit()">
                             <option value="">Photographer</option>@foreach($photographers as $photographer)
-                                <option value="{{ $photographer->id }}" @selected((string) request('photographer') === (string) $photographer->id)>
-                                    {{ $photographer->studio_name ?: $photographer->name }}
+                                @php
+                                    $photographerId = is_scalar($photographer) ? $photographer : data_get($photographer, 'id');
+                                    $photographerName = is_scalar($photographer) ? $photographer : (data_get($photographer, 'studio_name') ?: (data_get($photographer, 'name') ?: $photographerId));
+                                @endphp
+                                <option value="{{ $photographerId }}" @selected((string) request('photographer') === (string) $photographerId)>
+                                    {{ $photographerName }}
                             </option>@endforeach
                         </select>
                         <select name="sort" class="public-input hidden h-11 rounded-md px-3 text-xs lg:block"
-                            aria-label="Urutkan">
+                            aria-label="Urutkan" @change="$el.form.requestSubmit()">
                             <option value="latest" @selected(request('sort', 'latest') === 'latest')>Terbaru</option>
                             <option value="oldest" @selected(request('sort') === 'oldest')>Terlama</option>
                             <option value="price_low" @selected(request('sort') === 'price_low')>Harga Terendah</option>
@@ -116,32 +124,40 @@
 
                     <div id="gallery-mobile-filters" x-cloak x-show="filtersOpen"
                         class="mt-3 grid gap-2 rounded-lg border border-public-line bg-public-bone p-3 lg:hidden">
-                        <select name="event" class="public-input h-11 rounded-md px-3 text-xs">
+                        <select name="event" class="public-input h-11 rounded-md px-3 text-xs" @change="$el.form.requestSubmit()">
                             <option value="">Semua Event</option>@foreach($events as $event)
-                                <option value="{{ $event->id }}" @selected((string) request('event') === (string) $event->id)>
-                                    {{ $event->nama_event }}
+                                @php
+                                    $eventId = is_scalar($event) ? $event : data_get($event, 'id');
+                                    $eventName = is_scalar($event) ? $event : (data_get($event, 'nama_event') ?: $eventId);
+                                @endphp
+                                <option value="{{ $eventId }}" @selected((string) request('event') === (string) $eventId)>
+                                    {{ $eventName }}
                             </option>@endforeach
                         </select>
-                        <select name="location" class="public-input h-11 rounded-md px-3 text-xs">
+                        <select name="location" class="public-input h-11 rounded-md px-3 text-xs" @change="$el.form.requestSubmit()">
                             <option value="">Semua Lokasi</option>@foreach($locations as $location)
                                 <option value="{{ $location }}" @selected(request('location') === $location)>{{ $location }}
                             </option>@endforeach
                         </select>
-                        <select name="category" class="public-input h-11 rounded-md px-3 text-xs">
+                        <select name="category" class="public-input h-11 rounded-md px-3 text-xs" @change="$el.form.requestSubmit()">
                             <option value="">Semua Kategori</option>@foreach($categories as $category)
                                 <option value="{{ $category }}" @selected(request('category') === $category)>{{ $category }}
                             </option>@endforeach
                         </select>
-                        <select name="photographer" class="public-input h-11 rounded-md px-3 text-xs">
+                        <select name="photographer" class="public-input h-11 rounded-md px-3 text-xs" @change="$el.form.requestSubmit()">
                             <option value="">Semua Photographer</option>@foreach($photographers as $photographer)
-                                <option value="{{ $photographer->id }}" @selected((string) request('photographer') === (string) $photographer->id)>
-                                    {{ $photographer->studio_name ?: $photographer->name }}
+                                @php
+                                    $photographerId = is_scalar($photographer) ? $photographer : data_get($photographer, 'id');
+                                    $photographerName = is_scalar($photographer) ? $photographer : (data_get($photographer, 'studio_name') ?: (data_get($photographer, 'name') ?: $photographerId));
+                                @endphp
+                                <option value="{{ $photographerId }}" @selected((string) request('photographer') === (string) $photographerId)>
+                                    {{ $photographerName }}
                             </option>@endforeach
                         </select>
                         <div class="grid grid-cols-2 gap-2">
                             <input type="date" name="date" value="{{ request('date') }}"
-                                class="public-input h-11 rounded-md px-2 text-xs" aria-label="Tanggal">
-                            <select name="daypart" class="public-input h-11 rounded-md px-2 text-xs" aria-label="Waktu">
+                                class="public-input h-11 rounded-md px-2 text-xs" aria-label="Tanggal" @change="$el.form.requestSubmit()">
+                            <select name="daypart" class="public-input h-11 rounded-md px-2 text-xs" aria-label="Waktu" @change="$el.form.requestSubmit()">
                                 <option value="">Semua Waktu</option>
                                 <option value="morning" @selected(request('daypart') === 'morning')>Pagi</option>
                                 <option value="afternoon" @selected(request('daypart') === 'afternoon')>Siang</option>
@@ -149,7 +165,7 @@
                                 <option value="night" @selected(request('daypart') === 'night')>Malam</option>
                             </select>
                         </div>
-                        <select name="sort" class="public-input h-11 rounded-md px-3 text-xs">
+                        <select name="sort" class="public-input h-11 rounded-md px-3 text-xs" @change="$el.form.requestSubmit()">
                             <option value="latest" @selected(request('sort', 'latest') === 'latest')>Terbaru</option>
                             <option value="oldest" @selected(request('sort') === 'oldest')>Terlama</option>
                             <option value="price_low" @selected(request('sort') === 'price_low')>Harga Terendah</option>
@@ -161,9 +177,9 @@
                     <div class="mt-2 hidden items-center justify-between gap-3 lg:flex">
                         <div class="flex items-center gap-2">
                             <input type="date" name="date" value="{{ request('date') }}"
-                                class="public-input h-9 w-auto rounded-md px-2 text-[11px]" aria-label="Tanggal">
+                                class="public-input h-9 w-auto rounded-md px-2 text-[11px]" aria-label="Tanggal" @change="$el.form.requestSubmit()">
                             <select name="daypart" class="public-input h-9 w-auto rounded-md px-2 text-[11px]"
-                                aria-label="Waktu">
+                                aria-label="Waktu" @change="$el.form.requestSubmit()">
                                 <option value="">Semua Waktu</option>
                                 <option value="morning" @selected(request('daypart') === 'morning')>Pagi</option>
                                 <option value="afternoon" @selected(request('daypart') === 'afternoon')>Siang</option>
@@ -186,6 +202,70 @@
 
         <section class="bg-white pb-14 pt-5 sm:pt-7">
             <div class="public-container">
+                @php
+                    $activeChips = [];
+                    if (request()->filled('q')) {
+                        $activeChips[] = ['key' => 'q', 'label' => 'Cari: "' . request('q') . '"'];
+                    }
+                    if (request()->filled('event')) {
+                        $evId = (int) request('event');
+                        $ev = $events->first(fn ($item) => (int) (is_scalar($item) ? $item : data_get($item, 'id')) === $evId);
+                        $evName = $ev ? (is_scalar($ev) ? $ev : (data_get($ev, 'nama_event') ?: ('Event #' . $evId))) : ('Event #' . $evId);
+                        $activeChips[] = ['key' => 'event', 'label' => 'Event: ' . $evName];
+                    }
+                    if (request()->filled('location')) {
+                        $activeChips[] = ['key' => 'location', 'label' => 'Lokasi: ' . request('location')];
+                    }
+                    if (request()->filled('category')) {
+                        $activeChips[] = ['key' => 'category', 'label' => 'Kategori: ' . request('category')];
+                    }
+                    if (request()->filled('photographer')) {
+                        $phId = (int) request('photographer');
+                        $ph = $photographers->first(fn ($item) => (int) (is_scalar($item) ? $item : data_get($item, 'id')) === $phId);
+                        $phName = $ph ? (is_scalar($ph) ? $ph : (data_get($ph, 'studio_name') ?: (data_get($ph, 'name') ?: ('Photographer #' . $phId)))) : ('Photographer #' . $phId);
+                        $activeChips[] = ['key' => 'photographer', 'label' => 'Photographer: ' . $phName];
+                    }
+                    if (request()->filled('date')) {
+                        $dateFormatted = rescue(fn () => \Illuminate\Support\Carbon::parse(request('date'))->translatedFormat('d M Y'), request('date'), false);
+                        $activeChips[] = ['key' => 'date', 'label' => 'Tanggal: ' . $dateFormatted];
+                    }
+                    if (request()->filled('daypart')) {
+                        $daypartLabels = [
+                            'morning' => 'Pagi (05:00 - 11:59)',
+                            'afternoon' => 'Siang (12:00 - 15:59)',
+                            'evening' => 'Sore (16:00 - 18:59)',
+                            'night' => 'Malam (19:00 - 04:59)',
+                        ];
+                        $activeChips[] = ['key' => 'daypart', 'label' => 'Waktu: ' . ($daypartLabels[request('daypart')] ?? request('daypart'))];
+                    }
+                    if (request()->filled('sort') && request('sort') !== 'latest') {
+                        $sortLabels = [
+                            'oldest' => 'Terlama',
+                            'price_low' => 'Harga Terendah',
+                            'price_high' => 'Harga Tertinggi',
+                        ];
+                        $activeChips[] = ['key' => 'sort', 'label' => 'Urutan: ' . ($sortLabels[request('sort')] ?? request('sort'))];
+                    }
+                @endphp
+
+                @if(!empty($activeChips))
+                    <div class="mb-5 flex flex-wrap items-center gap-2 border-b border-public-line pb-4">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-public-muted">Filter Aktif:</span>
+                        @foreach($activeChips as $chip)
+                            <a href="{{ route('galeri', request()->except([$chip['key'], 'page'])) }}"
+                                class="inline-flex items-center gap-1.5 rounded-full border border-public-line bg-public-bone px-3 py-1 text-xs font-semibold text-public-ink transition-colors hover:border-public-ink hover:bg-neutral-200"
+                                title="Hapus filter {{ $chip['label'] }}">
+                                <span>{{ $chip['label'] }}</span>
+                                <span class="text-base font-bold leading-none text-public-muted hover:text-public-ink" aria-hidden="true">&times;</span>
+                            </a>
+                        @endforeach
+                        <a href="{{ route('galeri') }}"
+                            class="ml-2 text-xs font-bold uppercase tracking-wider text-public-muted underline underline-offset-4 hover:text-public-ink">
+                            Reset Semua
+                        </a>
+                    </div>
+                @endif
+
                 <div
                     class="mb-4 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em] text-public-muted sm:text-xs">
                     <p><span data-gallery-count>{{ number_format($photos->total()) }}</span> foto ditemukan</p>
@@ -198,16 +278,15 @@
                 </div>
 
                 @if($photos->isNotEmpty())
-                    <div class="gallery-masonry" data-gallery-items>@foreach($photos as $photo)<x-public.photo-card
-                    :photo="$photo" />@endforeach</div>
-                    <div class="mt-8 text-center" data-gallery-pagination data-next-page="{{ $photos->nextPageUrl() }}">
-                        <p class="hidden text-xs font-semibold text-public-muted" data-gallery-loading>Memuat foto
-                            berikutnya…</p>
-                        <p class="hidden text-xs font-semibold text-public-muted" data-gallery-error>Foto berikutnya gagal
-                            dimuat. <button type="button" class="underline" data-gallery-retry>Coba lagi</button></p>
-                        <div class="gallery-pagination-fallback">{{ $photos->withQueryString()->links() }}</div>
+                    <div class="gallery-masonry" data-gallery-items>
+                        @foreach($photos as $photo)
+                            <x-public.photo-card :photo="$photo" />
+                        @endforeach
                     </div>
-                    <div class="h-px" data-gallery-sentinel aria-hidden="true"></div>
+
+                    <div class="mt-12 border-t border-public-line pt-6">
+                        {{ $photos->withQueryString()->links() }}
+                    </div>
                 @else
                     <div class="py-20 text-center">
                         <h2 class="font-display italic text-3xl text-public-ink">Belum ada foto yang cocok.</h2>

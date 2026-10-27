@@ -46,6 +46,7 @@
     <div>
         <label for="storage_quota_mb">Storage (MB)</label>
         <input id="storage_quota_mb" class="mt-1 w-full rounded-lg border-gray-300" type="number" min="0" step="0.01" name="storage_quota_mb" value="{{ $storageMb }}" @error('storage_quota_mb') aria-invalid="true" aria-describedby="storage_quota_mb_error" @enderror>
+        <p class="mt-1 text-xs text-gray-500">Kapasitas kuota dalam MB (contoh: 5120 untuk 5 GB, 500 untuk 0,5 GB, 20480 untuk 20 GB).</p>
         @error('storage_quota_mb')<p id="storage_quota_mb_error" class="mt-1 text-sm font-medium text-red-700">{{ $message }}</p>@enderror
     </div>
     <div>
