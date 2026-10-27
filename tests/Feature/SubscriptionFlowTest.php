@@ -299,6 +299,172 @@ class SubscriptionFlowTest extends TestCase
         $this->assertTrue($user->fresh()->subscription->isActive());
     }
 
+    public function test_dashboard_displays_active_subscription_countdown_with_days_and_wita_expiry(): void
+    {
+        $this->travelTo('2026-10-26 05:17:45');
+        $this->seed(PackageSeeder::class);
+        $creator = Package::where('code', 'creator')->firstOrFail();
+        $photographer = User::factory()->fotografer()->create(['package_id' => $creator->id]);
+        $photographer->subscription->update([
+            'package_id' => $creator->id,
+            'status' => 'active',
+            'entitlement_snapshot' => [
+                'code' => 'creator',
+                'name' => 'Creator',
+                'duration_days' => 30,
+                'storage_quota_bytes' => $creator->storage_quota_bytes,
+                'revision' => 1,
+            ],
+            'starts_at' => '2026-10-08 14:00:00',
+            'ends_at' => '2026-11-07 14:00:00',
+        ]);
+
+        $this->actingAs($photographer)->get(route('fotografer.dashboard'))
+            ->assertOk()
+            ->assertSee('Paket Creator')
+            ->assertSee('Aktif')
+            ->assertSee('Sisa masa aktif')
+            ->assertSee('12 Hari : 08 Jam : 42 Menit : 15 Detik')
+            ->assertSee('7 November 2026, 22:00 WITA')
+            ->assertSee('Kelola Paket')
+            ->assertSee('Lihat Paket')
+            ->assertSee('data-subscription-state="active"', false)
+            ->assertDontSee('Paket Kedaluwarsa');
+
+        $this->travel(5)->minutes();
+
+        $this->actingAs($photographer->fresh())->get(route('fotografer.dashboard'))
+            ->assertOk()
+            ->assertSee('12 Hari : 08 Jam : 37 Menit : 15 Detik');
+    }
+
+    public function test_dashboard_displays_expiring_soon_subscription_when_less_than_24_hours_remain(): void
+    {
+        $this->travelTo('2026-11-07 05:35:50');
+        $this->seed(PackageSeeder::class);
+        $creator = Package::where('code', 'creator')->firstOrFail();
+        $photographer = User::factory()->fotografer()->create(['package_id' => $creator->id]);
+        $photographer->subscription->update([
+            'package_id' => $creator->id,
+            'status' => 'active',
+            'entitlement_snapshot' => [
+                'code' => 'creator',
+                'name' => 'Creator',
+                'duration_days' => 30,
+                'storage_quota_bytes' => $creator->storage_quota_bytes,
+                'revision' => 1,
+            ],
+            'starts_at' => '2026-10-08 14:00:00',
+            'ends_at' => '2026-11-07 14:00:00',
+        ]);
+
+        $this->actingAs($photographer)->get(route('fotografer.dashboard'))
+            ->assertOk()
+            ->assertSee('Paket Creator')
+            ->assertSee('Segera Berakhir')
+            ->assertSee('08 Jam : 24 Menit : 10 Detik')
+            ->assertSee('Masa aktif paket akan segera berakhir. Perpanjang paket agar akses layanan tetap tersedia.')
+            ->assertSee('7 November 2026, 22:00 WITA')
+            ->assertSee('Perpanjang Sekarang')
+            ->assertSee('Perpanjang Paket')
+            ->assertSee('data-subscription-state="expiring_soon"', false)
+            ->assertDontSee('Paket Kedaluwarsa');
+    }
+
+    public function test_dashboard_displays_expired_subscription_and_blocks_protected_actions_when_time_elapses(): void
+    {
+        $this->travelTo('2026-11-07 14:00:00');
+        $this->seed(PackageSeeder::class);
+        $creator = Package::where('code', 'creator')->firstOrFail();
+        $photographer = User::factory()->fotografer()->create(['package_id' => $creator->id, 'is_verified' => true]);
+        $photographer->subscription->update([
+            'package_id' => $creator->id,
+            'status' => 'active',
+            'entitlement_snapshot' => [
+                'code' => 'creator',
+                'name' => 'Creator',
+                'duration_days' => 30,
+                'storage_quota_bytes' => $creator->storage_quota_bytes,
+                'revision' => 1,
+            ],
+            'starts_at' => '2026-10-08 14:00:00',
+            'ends_at' => '2026-11-07 14:00:00',
+        ]);
+
+        $this->assertFalse($photographer->subscription->fresh()->isActive());
+        $this->assertSame(0, $photographer->subscription->fresh()->remainingSeconds());
+
+        $this->actingAs($photographer)->get(route('fotografer.dashboard'))
+            ->assertOk()
+            ->assertSee('Paket Creator')
+            ->assertSee('Kedaluwarsa')
+            ->assertSee('Paket Kedaluwarsa')
+            ->assertSee('Masa aktif paket telah berakhir. Pilih paket untuk mengaktifkan kembali fitur berlangganan.')
+            ->assertSee('7 November 2026, 22:00 WITA')
+            ->assertSee('Perpanjang Paket')
+            ->assertSee('Pilih Paket')
+            ->assertSee('data-subscription-state="expired"', false);
+
+        $this->actingAs($photographer)->get(route('fotografer.photos.create'))
+            ->assertForbidden();
+    }
+
+    public function test_subscription_boundary_transitions_at_exact_24_hours_and_zero_seconds(): void
+    {
+        $this->travelTo('2026-10-26 06:00:00');
+        $photographer = User::factory()->fotografer()->create();
+        $subscription = $photographer->subscription;
+
+        $subscription->update(['status' => 'active', 'ends_at' => now()->addSeconds(86400)]);
+        $this->assertSame('active', $subscription->fresh()->lifecycleState());
+        $this->assertFalse($subscription->fresh()->isExpiringSoon());
+        $this->assertSame('01 Hari : 00 Jam : 00 Menit : 00 Detik', Subscription::breakdownSeconds($subscription->fresh()->remainingSeconds())['formatted']);
+
+        $subscription->update(['status' => 'active', 'ends_at' => now()->addSeconds(86399)]);
+        $this->assertSame('expiring_soon', $subscription->fresh()->lifecycleState());
+        $this->assertTrue($subscription->fresh()->isExpiringSoon());
+        $this->assertSame('23 Jam : 59 Menit : 59 Detik', Subscription::breakdownSeconds($subscription->fresh()->remainingSeconds())['formatted']);
+
+        $subscription->update(['status' => 'active', 'ends_at' => now()->addSecond()]);
+        $this->assertSame('expiring_soon', $subscription->fresh()->lifecycleState());
+        $this->assertTrue($subscription->fresh()->isActive());
+        $this->assertSame('00 Jam : 00 Menit : 01 Detik', Subscription::breakdownSeconds($subscription->fresh()->remainingSeconds())['formatted']);
+
+        $subscription->update(['status' => 'active', 'ends_at' => now()]);
+        $this->assertSame('expired', $subscription->fresh()->lifecycleState());
+        $this->assertFalse($subscription->fresh()->isActive());
+        $this->assertSame(0, $subscription->fresh()->remainingSeconds());
+
+        $unsubscribedUser = User::factory()->create(['role' => 'fotografer', 'photographer_onboarded_at' => now()]);
+        $summary = $unsubscribedUser->subscriptionDashboardSummary();
+        $this->assertSame('unsubscribed', $summary['state']);
+        $this->assertSame('Belum Berlangganan', $summary['badge_label']);
+    }
+
+    public function test_pending_doku_order_and_status_poll_never_extend_subscription_ends_at(): void
+    {
+        $this->travelTo('2026-10-26 06:00:00');
+        $this->seed(PackageSeeder::class);
+        $starter = Package::where('code', 'starter')->firstOrFail();
+        $photographer = User::factory()->fotografer()->create(['package_id' => $starter->id]);
+        $originalEndsAt = now()->addDays(5)->startOfSecond();
+        $photographer->subscription->update([
+            'package_id' => $starter->id,
+            'status' => 'active',
+            'ends_at' => $originalEndsAt,
+        ]);
+
+        $order = app(SubscriptionBilling::class)->createOrder($photographer, $starter);
+        $order->update(['qr_content' => 'pending-qris-content']);
+
+        $this->actingAs($photographer)->get(route('subscriptions.payment', $order))->assertOk();
+        $this->actingAs($photographer)->getJson(route('subscriptions.status', $order))
+            ->assertOk()
+            ->assertJsonPath('status', 'pending');
+
+        $this->assertTrue($photographer->subscription->fresh()->ends_at->equalTo($originalEndsAt));
+    }
+
     /** @return array<string, mixed> */
     private function payload(SubscriptionOrder $order, string $status, string $settlementTime): array
     {

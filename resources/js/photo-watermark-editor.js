@@ -115,6 +115,15 @@ export default (configuration = {}) => ({
             return;
         }
 
+        const form = event.currentTarget;
+        const eventId = form.querySelector('[name="event_id"]')?.value?.trim() ?? '';
+        const newFolder = form.querySelector('[name="new_folder"]')?.value?.trim() ?? '';
+
+        if (!eventId && !newFolder) {
+            this.uploadError = 'Pilih event yang sudah ada atau masukkan nama event baru sebelum mengunggah.';
+            return;
+        }
+
         this.uploading = true;
         this.uploadError = null;
 
@@ -123,11 +132,22 @@ export default (configuration = {}) => ({
                 continue;
             }
 
-            await this.uploadItem(event.currentTarget, item);
+            await this.uploadItem(form, item);
 
             if (item.status === 'error') {
                 break;
             }
+        }
+
+        const hasErrors = this.files.some((item) => item.status === 'error');
+        const allDone = this.files.length > 0 && this.files.every((item) => item.status === 'done');
+
+        if (allDone && !hasErrors) {
+            sessionStorage.setItem('flash_success', `${this.files.length} foto berhasil diunggah.`);
+            setTimeout(() => {
+                window.location.reload();
+            }, 600);
+            return;
         }
 
         this.uploading = false;

@@ -82,7 +82,7 @@ class PhotoController extends Controller
         $user = $request->user()->load(['package', 'subscription']);
         $storageUsage = [
             'used_bytes' => (int) Photo::where('fotografer_id', $user->id)->sum('storage_bytes'),
-            'quota_bytes' => (int) round($user->effectiveQuotaMb() * 1048576),
+            'quota_bytes' => $user->effectiveQuotaBytes(),
         ];
         $acceptedPhotoExtensions = PhotoProcessor::supportedExtensions();
 
@@ -105,7 +105,8 @@ class PhotoController extends Controller
         }
         $supportedExtensions = PhotoProcessor::supportedExtensions();
         $validated = $request->validate([
-            'event_id' => ['nullable', 'integer'], 'new_folder' => ['nullable', 'string', 'max:255'],
+            'event_id' => ['nullable', 'required_without:new_folder', 'integer'],
+            'new_folder' => ['nullable', 'required_without:event_id', 'string', 'max:255'],
             'camera_id' => ['nullable', 'integer'], 'title' => ['nullable', 'string', 'max:255'],
             'taken_at' => ['nullable', 'date'], 'daypart' => ['nullable', 'in:morning,afternoon,evening,night'],
             'category' => ['nullable', 'string', 'max:100'], 'harga' => ['required', 'integer', 'min:0'],
@@ -147,12 +148,14 @@ class PhotoController extends Controller
             'photo_titles' => ['nullable', 'array'],
             'photo_titles.*' => ['nullable', 'string', 'max:255'],
         ], [
+            'event_id.required_without' => 'Pilih event yang sudah ada atau masukkan nama event baru.',
+            'new_folder.required_without' => 'Pilih event yang sudah ada atau masukkan nama event baru.',
             'photos.required' => 'Pilih setidaknya satu gambar untuk diunggah.',
             'photos.*.extensions' => 'Ekstensi gambar tidak didukung oleh server.',
             'photos.*.mimes' => 'Jenis MIME gambar tidak didukung oleh server.',
             'photos.*.max' => 'Ukuran setiap gambar maksimal 100 MB.',
         ]);
-        $user = $request->user()->load('package');
+        $user = $request->user()->load(['package', 'subscription']);
         if (isset($validated['upload_token'])) {
             $existing = Photo::where('fotografer_id', $user->id)->where('upload_token', $validated['upload_token'])->first();
             if ($existing) {
@@ -177,7 +180,7 @@ class PhotoController extends Controller
             DB::transaction(function () use ($request, $validated, $user, $event, $watermarkPath, $processor, &$createdPaths, &$createdPhoto): void {
                 $lockedUser = User::whereKey($user->id)->lockForUpdate()->firstOrFail()->load(['package', 'subscription']);
                 $usedBytes = (int) Photo::where('fotografer_id', $user->id)->sum('storage_bytes');
-                $quotaBytes = (int) round($lockedUser->effectiveQuotaMb() * 1048576);
+                $quotaBytes = $lockedUser->effectiveQuotaBytes();
                 $incomingBytes = (int) collect($request->file('photos'))->sum(fn ($file) => $file->getSize());
                 if ($usedBytes + $incomingBytes > $quotaBytes) {
                     throw ValidationException::withMessages(['photos' => 'Storage tidak mencukupi.']);
@@ -278,11 +281,25 @@ class PhotoController extends Controller
 
     private function resolveEvent(Request $request): Event
     {
-        if ($request->filled('new_folder')) {
-            return Event::firstOrCreate(['nama_event' => trim($request->string('new_folder')->toString()), 'fotografer_id' => $request->user()->id], ['tanggal_event' => now(), 'lokasi' => 'Online']);
+        $newFolder = trim($request->string('new_folder')->toString());
+        if ($newFolder !== '') {
+            return Event::firstOrCreate(
+                ['nama_event' => $newFolder, 'fotografer_id' => $request->user()->id],
+                ['tanggal_event' => now(), 'lokasi' => 'Online']
+            );
         }
 
-        return Event::where('fotografer_id', $request->user()->id)->findOrFail($request->integer('event_id'));
+        $eventId = $request->integer('event_id');
+        if ($eventId <= 0) {
+            throw ValidationException::withMessages(['event_id' => 'Pilih event yang valid atau buat event baru.']);
+        }
+
+        $event = Event::where('fotografer_id', $request->user()->id)->find($eventId);
+        if (! $event) {
+            throw ValidationException::withMessages(['event_id' => 'Event yang dipilih tidak ditemukan.']);
+        }
+
+        return $event;
     }
 
     private function toUtc(string $value): string

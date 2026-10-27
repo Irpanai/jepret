@@ -27,7 +27,8 @@ class FotograferController extends Controller
             return redirect()->route('fotografer.onboarding');
         }
 
-        $user = $request->user()->load(['package', 'subscription']);
+        $user = $request->user()->load(['package', 'subscription.package']);
+        $subscriptionSummary = $user->subscriptionDashboardSummary();
         $base = $reporting->query($request, $user->id);
         $paid = (clone $base)->paid();
         $sales = (clone $paid)->latest('paid_at')->paginate(5, ['*'], 'sales_page')->withQueryString();
@@ -37,6 +38,7 @@ class FotograferController extends Controller
             'earnings' => (int) ((clone $paid)->toBase()->selectRaw('COALESCE(SUM('.Transaction::photographerSql().'),0) AS total')->value('total')),
             'sold' => $sold, 'visits' => $visits, 'conversion' => $visits > 0 ? round($sold / $visits * 100, 1) : 0,
             'balance' => (int) $user->saldo, 'used_mb' => (float) $user->storage_terpakai_mb, 'quota_mb' => $user->effectiveQuotaMb(),
+            'quota_formatted' => $user->formattedQuota(),
         ];
         $chart = $reporting->daily((clone $base)->where('transactions.created_at', '>=', now()->subDays(29)->startOfDay()));
         $withdrawals = Withdrawal::where('fotografer_id', $user->id)->latest()->limit(5)->get();
@@ -46,7 +48,7 @@ class FotograferController extends Controller
             'bulan' => $reporting->chartData('bulan', $user->id),
         ];
 
-        return view('fotografer.dashboard', compact('user', 'stats', 'chart', 'sales', 'withdrawals', 'chartData'));
+        return view('fotografer.dashboard', compact('user', 'stats', 'chart', 'sales', 'withdrawals', 'chartData', 'subscriptionSummary'));
     }
 
     public function dashboardData(Request $request, TransactionReporting $reporting): JsonResponse
@@ -93,14 +95,14 @@ class FotograferController extends Controller
 
     public function storage(Request $request): View
     {
-        $user = $request->user()->load('package');
+        $user = $request->user()->load(['package', 'subscription']);
         $events = Event::where('fotografer_id', $user->id)->with(['photos:id,event_id,title,file_watermark,file_size_mb,storage_bytes'])->withCount('photos')->get();
         $folders = $events->map(fn ($event) => ['id' => $event->id, 'name' => $event->nama_event, 'count' => $event->photos_count, 'size' => round($event->photos->sum('storage_bytes') / 1048576, 2).' MB', 'photos' => $event->photos->map(fn ($photo) => ['id' => $photo->id, 'name' => $photo->title, 'size' => $photo->file_size_mb.' MB', 'url' => route('media.preview', $photo)])]);
         $storageTerpakai = $user->storage_terpakai_mb;
         $kuota = $user->effectiveQuotaMb();
         $package = $user->package;
 
-        return view('fotografer.storage', compact('events', 'folders', 'storageTerpakai', 'kuota', 'package'));
+        return view('fotografer.storage', compact('user', 'events', 'folders', 'storageTerpakai', 'kuota', 'package'));
     }
 
     public function portfolio(Request $request): View

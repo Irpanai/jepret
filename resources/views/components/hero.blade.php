@@ -29,7 +29,8 @@
                 <div class="hero-ctas">
                     <a class="button-primary" href="{{ route('galeri') }}">
                         <span>Jelajahi Foto</span>
-                        <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4"/></svg>
+                        <svg class="h-4 w-4 transition-transform duration-200" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" ari
+                        a-hidden="true"><path d="M2 8h11M9 4l4 4-4 4"/></svg>
                     </a>
                     <a class="button-secondary" href="#fotografer">
                         <span>Untuk Fotografer</span>

@@ -33,6 +33,181 @@
             <div class="rounded-lg bg-red-50 p-4 text-sm text-red-800">{{ $errors->first() }}</div>
         @endif
 
+        @php($subscriptionSummary = $subscriptionSummary ?? $user->subscriptionDashboardSummary())
+        <section
+            aria-label="Status Paket Berlangganan"
+            data-subscription-state="{{ $subscriptionSummary['state'] }}"
+            data-ends-at="{{ $subscriptionSummary['ends_at_iso'] ?? '' }}"
+            class="rounded-2xl border bg-white p-5 sm:p-6 shadow-sm {{ $subscriptionSummary['state'] === 'expiring_soon' ? 'border-amber-300' : ($subscriptionSummary['state'] === 'expired' ? 'border-red-200' : 'border-gray-200') }}"
+            x-data="{
+                initialState: @js($subscriptionSummary['state']),
+                hasUnlimitedDuration: @js($subscriptionSummary['has_unlimited_duration']),
+                endsAtMs: @js($subscriptionSummary['ends_at_timestamp_ms']),
+                serverNowMs: @js($subscriptionSummary['server_now_timestamp_ms']),
+                serverOffsetMs: 0,
+                remainingSeconds: @js($subscriptionSummary['remaining_seconds']),
+                timerId: null,
+                get showDays() {
+                    return this.remainingSeconds >= 86400;
+                },
+                get days() {
+                    return String(Math.floor(this.remainingSeconds / 86400)).padStart(2, '0');
+                },
+                get hours() {
+                    return String(Math.floor((this.remainingSeconds % 86400) / 3600)).padStart(2, '0');
+                },
+                get minutes() {
+                    return String(Math.floor((this.remainingSeconds % 3600) / 60)).padStart(2, '0');
+                },
+                get seconds() {
+                    return String(Math.floor(this.remainingSeconds % 60)).padStart(2, '0');
+                },
+                get formattedCountdown() {
+                    if (this.showDays) {
+                        return `${this.days} Hari : ${this.hours} Jam : ${this.minutes} Menit : ${this.seconds} Detik`;
+                    }
+
+                    return `${this.hours} Jam : ${this.minutes} Menit : ${this.seconds} Detik`;
+                },
+                tick() {
+                    if (this.hasUnlimitedDuration || this.endsAtMs === null) {
+                        return;
+                    }
+
+                    const currentServerTimeMs = Date.now() + this.serverOffsetMs;
+                    const nextSeconds = Math.max(0, Math.floor((this.endsAtMs - currentServerTimeMs) / 1000));
+                    this.remainingSeconds = nextSeconds;
+
+                    if (this.initialState === 'active' && nextSeconds > 0 && nextSeconds < 86400) {
+                        this.stopTimer();
+                        window.location.reload();
+                        return;
+                    }
+
+                    if ((this.initialState === 'active' || this.initialState === 'expiring_soon') && nextSeconds <= 0) {
+                        this.stopTimer();
+                        window.location.reload();
+                    }
+                },
+                stopTimer() {
+                    if (this.timerId !== null) {
+                        window.clearInterval(this.timerId);
+                        this.timerId = null;
+                    }
+                },
+                init() {
+                    this.serverOffsetMs = this.serverNowMs - Date.now();
+                    if (this.hasUnlimitedDuration || this.endsAtMs === null || this.remainingSeconds <= 0) {
+                        return;
+                    }
+
+                    this.tick();
+                    this.timerId = window.setInterval(() => this.tick(), 1000);
+                    window.addEventListener('pagehide', () => this.stopTimer(), { once: true });
+                }
+            }"
+        >
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div class="min-w-0 space-y-2">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <h2 class="text-lg sm:text-xl font-extrabold text-gray-900">{{ $subscriptionSummary['package_name'] }}</h2>
+                        @if($subscriptionSummary['state'] === 'active')
+                            <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-emerald-800">
+                                <span class="relative flex h-2 w-2" aria-hidden="true">
+                                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                                </span>
+                                <span>{{ $subscriptionSummary['badge_label'] }}</span>
+                            </span>
+                        @elseif($subscriptionSummary['state'] === 'expiring_soon')
+                            <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-amber-800">
+                                <span class="relative flex h-2 w-2" aria-hidden="true">
+                                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+                                    <span class="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+                                </span>
+                                <span>{{ $subscriptionSummary['badge_label'] }}</span>
+                            </span>
+                        @elseif($subscriptionSummary['state'] === 'expired')
+                            <span class="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-red-800">
+                                <span class="inline-flex h-2 w-2 rounded-full bg-red-500" aria-hidden="true"></span>
+                                <span>{{ $subscriptionSummary['badge_label'] }}</span>
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-gray-700">
+                                <span class="inline-flex h-2 w-2 rounded-full bg-gray-400" aria-hidden="true"></span>
+                                <span>{{ $subscriptionSummary['badge_label'] }}</span>
+                            </span>
+                        @endif
+                    </div>
+
+                    @if($subscriptionSummary['state'] === 'active')
+                        <p class="text-xs font-bold uppercase tracking-wider text-gray-500">{{ $subscriptionSummary['status_heading'] }}</p>
+                        @if($subscriptionSummary['has_unlimited_duration'])
+                            <p class="font-heading text-xl sm:text-2xl font-black tracking-tight text-gray-900">Aktif tanpa batas waktu</p>
+                        @else
+                            <p class="font-heading text-xl sm:text-2xl font-black tracking-tight text-gray-900 tabular-nums" data-testid="subscription-countdown" x-text="formattedCountdown">{{ $subscriptionSummary['countdown']['formatted'] }}</p>
+                        @endif
+                        @if($subscriptionSummary['ends_at_wita'])
+                            <p class="helper text-xs sm:text-sm text-gray-500">Berakhir pada: <strong class="font-semibold text-gray-900">{{ $subscriptionSummary['ends_at_wita'] }}</strong></p>
+                        @endif
+                    @elseif($subscriptionSummary['state'] === 'expiring_soon')
+                        <p class="text-xs font-bold uppercase tracking-wider text-amber-700">{{ $subscriptionSummary['status_heading'] }}</p>
+                        <p class="font-heading text-xl sm:text-2xl font-black tracking-tight text-gray-900 tabular-nums" data-testid="subscription-countdown" x-text="formattedCountdown">{{ $subscriptionSummary['countdown']['formatted'] }}</p>
+                        <p class="text-sm font-semibold text-amber-800">Masa aktif paket akan segera berakhir. Perpanjang paket agar akses layanan tetap tersedia.</p>
+                        @if($subscriptionSummary['ends_at_wita'])
+                            <p class="helper text-xs sm:text-sm text-gray-500">Berakhir pada: <strong class="font-semibold text-gray-900">{{ $subscriptionSummary['ends_at_wita'] }}</strong></p>
+                        @endif
+                    @elseif($subscriptionSummary['state'] === 'expired')
+                        <p class="text-xs font-bold uppercase tracking-wider text-red-700">{{ $subscriptionSummary['status_heading'] }}</p>
+                        <p class="text-sm font-semibold text-gray-900">Masa aktif paket telah berakhir. Pilih paket untuk mengaktifkan kembali fitur berlangganan.</p>
+                        @if($subscriptionSummary['ends_at_wita'])
+                            <p class="helper text-xs sm:text-sm text-gray-500">Berakhir pada: <strong class="font-semibold text-gray-900">{{ $subscriptionSummary['ends_at_wita'] }}</strong></p>
+                        @endif
+                    @else
+                        <p class="text-xs font-bold uppercase tracking-wider text-gray-500">{{ $subscriptionSummary['status_heading'] }}</p>
+                        <p class="text-sm font-semibold text-gray-900">Anda belum memiliki paket berlangganan aktif. Pilih paket untuk mengaktifkan fitur berlangganan.</p>
+                    @endif
+
+                    <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-gray-600 border-t border-gray-100 pt-3" data-testid="storage-summary">
+                        <span>Kapasitas Storage: <strong class="font-extrabold text-gray-900" data-testid="storage-capacity">{{ $subscriptionSummary['storage_quota_formatted'] ?? $user->formattedQuota() }}</strong></span>
+                        <span class="text-gray-300">•</span>
+                        <span>Terpakai: <span class="font-medium text-gray-700">{{ $user->formattedUsedStorage() }}</span></span>
+                        <span class="text-gray-300">•</span>
+                        <span>Sisa: <span class="font-medium text-gray-700">{{ $user->formattedRemainingStorage() }}</span></span>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2.5 lg:shrink-0">
+                    @if($subscriptionSummary['state'] === 'active')
+                        <a href="{{ route('subscriptions.plans') }}" class="button inline-flex items-center justify-center rounded-lg bg-black px-5 py-3 text-sm font-bold text-white transition hover:bg-neutral-800">
+                            Kelola Paket
+                        </a>
+                        <a href="{{ route('subscriptions.plans') }}" class="button inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold text-gray-900 transition hover:bg-gray-50">
+                            Lihat Paket
+                        </a>
+                    @elseif($subscriptionSummary['state'] === 'expiring_soon')
+                        <a href="{{ route('subscriptions.plans') }}" class="button inline-flex items-center justify-center rounded-lg bg-black px-5 py-3 text-sm font-bold text-white transition hover:bg-neutral-800">
+                            Perpanjang Sekarang
+                        </a>
+                        <a href="{{ route('subscriptions.plans') }}" class="button inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold text-gray-900 transition hover:bg-gray-50">
+                            Perpanjang Paket
+                        </a>
+                    @elseif($subscriptionSummary['state'] === 'expired')
+                        <a href="{{ route('subscriptions.plans') }}" class="button inline-flex items-center justify-center rounded-lg bg-black px-5 py-3 text-sm font-bold text-white transition hover:bg-neutral-800">
+                            Perpanjang Paket
+                        </a>
+                        <a href="{{ route('subscriptions.plans') }}" class="button inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold text-gray-900 transition hover:bg-gray-50">
+                            Pilih Paket
+                        </a>
+                    @else
+                        <a href="{{ route('subscriptions.plans') }}" class="button inline-flex items-center justify-center rounded-lg bg-black px-5 py-3 text-sm font-bold text-white transition hover:bg-neutral-800">
+                            Pilih Paket
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </section>
+
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             @foreach([
                 ['PENDAPATAN BERSIH', 'Rp' . number_format($stats['earnings'], 0, ',', '.'), 'Akumulasi transaksi paid (90%)'],

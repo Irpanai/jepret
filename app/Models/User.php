@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -78,9 +79,86 @@ class User extends Authenticatable
         return $this->hasOne(Subscription::class);
     }
 
-    public function hasActiveSubscription(): bool
+    public function hasActiveSubscription(?CarbonInterface $now = null): bool
     {
-        return $this->subscription?->isActive() ?? false;
+        return $this->subscription?->isActive($now) ?? false;
+    }
+
+    /**
+     * @return array{
+     *     state: string,
+     *     package_name: string,
+     *     badge_label: string,
+     *     status_heading: string,
+     *     remaining_seconds: int,
+     *     countdown: array{days: int, hours: int, minutes: int, seconds: int, show_days: bool, formatted: string},
+     *     has_unlimited_duration: bool,
+     *     ends_at_wita: ?string,
+     *     ends_at_iso: ?string,
+     *     ends_at_timestamp_ms: ?int,
+     *     server_now_timestamp_ms: int,
+     *     storage_quota_mb: float,
+     *     storage_quota_bytes: int,
+     *     storage_quota_formatted: string,
+     *     storage_used_mb: float,
+     *     storage_remaining_mb: float
+     * }
+     */
+    public function subscriptionDashboardSummary(?CarbonInterface $now = null): array
+    {
+        $reference = $now ?? now();
+        $subscription = $this->subscription;
+
+        if ($subscription === null) {
+            return [
+                'state' => 'unsubscribed',
+                'package_name' => 'Belum Berlangganan',
+                'badge_label' => 'Belum Berlangganan',
+                'status_heading' => 'Belum Berlangganan',
+                'remaining_seconds' => 0,
+                'countdown' => Subscription::breakdownSeconds(0),
+                'has_unlimited_duration' => false,
+                'ends_at_wita' => null,
+                'ends_at_iso' => null,
+                'ends_at_timestamp_ms' => null,
+                'server_now_timestamp_ms' => $reference->getTimestamp() * 1000,
+                'storage_quota_mb' => $this->effectiveQuotaMb(),
+                'storage_quota_bytes' => $this->effectiveQuotaBytes(),
+                'storage_quota_formatted' => $this->formattedQuota(),
+                'storage_used_mb' => (float) $this->storage_terpakai_mb,
+                'storage_remaining_mb' => max(0, $this->effectiveQuotaMb() - (float) $this->storage_terpakai_mb),
+            ];
+        }
+
+        $state = $subscription->lifecycleState($reference);
+        $remainingSeconds = $subscription->remainingSeconds($reference);
+        $countdown = Subscription::breakdownSeconds($remainingSeconds);
+
+        return [
+            'state' => $state,
+            'package_name' => $subscription->packageDisplayName($this->package),
+            'badge_label' => match ($state) {
+                'active' => 'Aktif',
+                'expiring_soon' => 'Segera Berakhir',
+                default => 'Kedaluwarsa',
+            },
+            'status_heading' => match ($state) {
+                'expired' => 'Paket Kedaluwarsa',
+                default => 'Sisa masa aktif',
+            },
+            'remaining_seconds' => $remainingSeconds,
+            'countdown' => $countdown,
+            'has_unlimited_duration' => $subscription->isActive($reference) && $subscription->ends_at === null,
+            'ends_at_wita' => $subscription->formattedEndsAtWita(),
+            'ends_at_iso' => $subscription->endsAtWita()?->toIso8601String(),
+            'ends_at_timestamp_ms' => $subscription->ends_at !== null ? $subscription->ends_at->getTimestamp() * 1000 : null,
+            'server_now_timestamp_ms' => $reference->getTimestamp() * 1000,
+            'storage_quota_mb' => $this->effectiveQuotaMb(),
+            'storage_quota_bytes' => $this->effectiveQuotaBytes(),
+            'storage_quota_formatted' => $this->formattedQuota(),
+            'storage_used_mb' => (float) $this->storage_terpakai_mb,
+            'storage_remaining_mb' => max(0, $this->effectiveQuotaMb() - (float) $this->storage_terpakai_mb),
+        ];
     }
 
     public function scopeWithActiveSubscription(Builder $query): void
@@ -90,11 +168,73 @@ class User extends Authenticatable
             ->where(fn (Builder $dates) => $dates->whereNull('ends_at')->orWhere('ends_at', '>', now())));
     }
 
+    public function effectiveQuotaBytes(): int
+    {
+        if ($this->storage_quota_override_mb !== null) {
+            return (int) round(((float) $this->storage_quota_override_mb) * 1048576);
+        }
+
+        $subscriptionQuotaBytes = $this->subscription?->entitlement_snapshot['storage_quota_bytes'] ?? null;
+        if ($subscriptionQuotaBytes !== null) {
+            return (int) $subscriptionQuotaBytes;
+        }
+
+        $subscriptionQuotaMb = $this->subscription?->entitlement_snapshot['kuota_storage_mb'] ?? null;
+        if ($subscriptionQuotaMb !== null) {
+            return (int) round(((float) $subscriptionQuotaMb) * 1048576);
+        }
+
+        if ($this->package?->storage_quota_bytes !== null) {
+            return (int) $this->package->storage_quota_bytes;
+        }
+
+        if ($this->package?->kuota_storage_mb) {
+            return (int) round(((float) $this->package->kuota_storage_mb) * 1048576);
+        }
+
+        return 5000 * 1048576;
+    }
+
     public function effectiveQuotaMb(): float
     {
-        $subscriptionQuotaBytes = $this->subscription?->entitlement_snapshot['storage_quota_bytes'] ?? null;
+        return $this->effectiveQuotaBytes() / 1048576;
+    }
 
-        return (float) ($this->storage_quota_override_mb ?? ($subscriptionQuotaBytes !== null ? $subscriptionQuotaBytes / 1048576 : null) ?? $this->package?->storageQuotaMb() ?? $this->package?->kuota_storage_mb ?? 5000);
+    public static function formatStorageQuota(int|float $quotaMb): string
+    {
+        $gb = $quotaMb / 1024;
+        if ($gb >= 0.5) {
+            $formatted = fmod($gb, 1) === 0.0
+                ? number_format($gb, 0, ',', '.')
+                : rtrim(rtrim(number_format($gb, 2, ',', '.'), '0'), ',');
+
+            return $formatted.' GB';
+        }
+
+        if ($quotaMb > 0) {
+            $formatted = fmod($quotaMb, 1) === 0.0
+                ? number_format($quotaMb, 0, ',', '.')
+                : rtrim(rtrim(number_format($quotaMb, 2, ',', '.'), '0'), ',');
+
+            return $formatted.' MB';
+        }
+
+        return '0 MB';
+    }
+
+    public function formattedQuota(): string
+    {
+        return self::formatStorageQuota($this->effectiveQuotaMb());
+    }
+
+    public function formattedUsedStorage(): string
+    {
+        return self::formatStorageQuota((float) $this->storage_terpakai_mb);
+    }
+
+    public function formattedRemainingStorage(): string
+    {
+        return self::formatStorageQuota(max(0, $this->effectiveQuotaMb() - (float) $this->storage_terpakai_mb));
     }
 
     public function verificationState(): string

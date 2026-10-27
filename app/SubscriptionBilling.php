@@ -169,54 +169,110 @@ class SubscriptionBilling
 
     public function applyPaidOrder(SubscriptionOrder $order, Carbon $paidAt): SubscriptionOrder
     {
-        if ($order->processed_at) {
+        return DB::transaction(function () use ($order, $paidAt): SubscriptionOrder {
+            $order = SubscriptionOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if ($order->processed_at) {
+                return $order;
+            }
+
+            $user = User::whereKey($order->user_id)->lockForUpdate()->firstOrFail();
+            $subscription = Subscription::where('user_id', $order->user_id)->lockForUpdate()->first();
+            $isOlderPlanChange = $subscription?->last_payment_at && (
+                $paidAt->lt($subscription->last_payment_at)
+                || ($paidAt->equalTo($subscription->last_payment_at) && strcmp($order->order_id, (string) $subscription->last_order_id) < 0)
+            );
+            if ($isOlderPlanChange && $order->intent !== 'renewal') {
+                $order->update(['processed_at' => now(), 'requires_review' => true]);
+
+                return $order;
+            }
+            if ($order->intent === 'renewal' && $subscription && $subscription->package_id !== $order->package_id) {
+                $order->update(['processed_at' => now(), 'requires_review' => true]);
+
+                return $order;
+            }
+
+            $duration = (int) ($order->package_snapshot['duration_days'] ?? 0);
+            $active = $subscription?->isActive() ?? false;
+            $startsAt = $active ? $subscription->starts_at : $paidAt;
+            $extensionStartsAt = $active && $subscription->ends_at ? $subscription->ends_at : $paidAt;
+            $endsAt = match ($order->intent) {
+                'renewal', 'plan_change' => $extensionStartsAt->copy()->addDays($duration),
+                default => $paidAt->copy()->addDays($duration),
+            };
+
+            $grantedBytes = (int) ($order->package_snapshot['storage_quota_bytes'] ?? 0);
+            if ($grantedBytes === 0 && ! empty($order->package_snapshot['kuota_storage_mb'])) {
+                $grantedBytes = (int) round(((float) $order->package_snapshot['kuota_storage_mb']) * 1048576);
+            } elseif ($grantedBytes === 0 && $order->package) {
+                $grantedBytes = (int) ($order->package->storage_quota_bytes ?? ((int) ($order->package->kuota_storage_mb ?? 0) * 1048576));
+            }
+
+            $existingBytes = 0;
+            if ($user->storage_quota_override_mb !== null) {
+                $existingBytes = (int) round(((float) $user->storage_quota_override_mb) * 1048576);
+            } elseif ($subscription !== null && isset($subscription->entitlement_snapshot['storage_quota_bytes'])) {
+                $existingBytes = (int) $subscription->entitlement_snapshot['storage_quota_bytes'];
+            } elseif ($subscription !== null && isset($subscription->entitlement_snapshot['kuota_storage_mb'])) {
+                $existingBytes = (int) round(((float) $subscription->entitlement_snapshot['kuota_storage_mb']) * 1048576);
+            } elseif ($user->package_id) {
+                $existingBytes = (int) ($user->package?->storage_quota_bytes ?? ((int) ($user->package?->kuota_storage_mb ?? 0) * 1048576));
+            }
+
+            $totalStorageBytes = $existingBytes + $grantedBytes;
+
+            $entitlementSnapshot = $order->package_snapshot ?? [];
+            $entitlementSnapshot['storage_quota_bytes'] = $totalStorageBytes;
+            $entitlementSnapshot['granted_storage_bytes'] = $grantedBytes;
+            $entitlementSnapshot['previous_storage_bytes'] = $existingBytes;
+
+            $values = [
+                'package_id' => $order->package_id,
+                'status' => 'active',
+                'entitlement_snapshot' => $entitlementSnapshot,
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'last_payment_at' => $paidAt,
+                'last_order_id' => $order->order_id,
+                'version' => ($subscription?->version ?? 0) + 1,
+                'is_legacy_transition' => false,
+            ];
+            if ($order->intent === 'trial') {
+                $values['trial_used_at'] = $paidAt;
+            }
+            Subscription::updateOrCreate(['user_id' => $order->user_id], $values);
+
+            $userUpdates = ['package_id' => $order->package_id];
+            if ($user->storage_quota_override_mb !== null) {
+                $userUpdates['storage_quota_override_mb'] = $totalStorageBytes / 1048576;
+            }
+            $user->update($userUpdates);
+
+            $order->update(['processed_at' => now()]);
+
             return $order;
-        }
-
-        $subscription = Subscription::where('user_id', $order->user_id)->lockForUpdate()->first();
-        $isOlderPlanChange = $subscription?->last_payment_at && (
-            $paidAt->lt($subscription->last_payment_at)
-            || ($paidAt->equalTo($subscription->last_payment_at) && strcmp($order->order_id, (string) $subscription->last_order_id) < 0)
-        );
-        if ($isOlderPlanChange && $order->intent !== 'renewal') {
-            $order->update(['processed_at' => now(), 'requires_review' => true]);
-
-            return $order;
-        }
-        if ($order->intent === 'renewal' && $subscription && $subscription->package_id !== $order->package_id) {
-            $order->update(['processed_at' => now(), 'requires_review' => true]);
-
-            return $order;
-        }
-
-        $duration = (int) ($order->package_snapshot['duration_days'] ?? 0);
-        $active = $subscription?->isActive() ?? false;
-        $startsAt = $active ? $subscription->starts_at : $paidAt;
-        $extensionStartsAt = $active && $subscription->ends_at ? $subscription->ends_at : $paidAt;
-        $endsAt = match ($order->intent) {
-            'renewal', 'plan_change' => $extensionStartsAt->copy()->addDays($duration),
-            default => $paidAt->copy()->addDays($duration),
-        };
-
-        $values = [
-            'package_id' => $order->package_id, 'status' => 'active', 'entitlement_snapshot' => $order->package_snapshot,
-            'starts_at' => $startsAt, 'ends_at' => $endsAt, 'last_payment_at' => $paidAt, 'last_order_id' => $order->order_id,
-            'version' => ($subscription?->version ?? 0) + 1, 'is_legacy_transition' => false,
-        ];
-        if ($order->intent === 'trial') {
-            $values['trial_used_at'] = $paidAt;
-        }
-        Subscription::updateOrCreate(['user_id' => $order->user_id], $values);
-        User::whereKey($order->user_id)->update(['package_id' => $order->package_id]);
-        $order->update(['processed_at' => now()]);
-
-        return $order;
+        });
     }
 
     /** @return array<string, mixed> */
     private function snapshot(Package $package): array
     {
-        return ['code' => $package->code, 'name' => $package->display_name, 'revision' => $package->revision, 'price' => $package->harga, 'currency' => $package->currency, 'duration_days' => $package->duration_days, 'storage_quota_bytes' => $package->storage_quota_bytes, 'features' => $package->features];
+        $storageBytes = $package->storage_quota_bytes;
+        if ($storageBytes === null && ! $package->is_custom) {
+            $storageBytes = (int) round(((float) ($package->kuota_storage_mb ?? 0)) * 1048576);
+        }
+
+        return [
+            'code' => $package->code,
+            'name' => $package->display_name,
+            'revision' => $package->revision,
+            'price' => $package->harga,
+            'currency' => $package->currency,
+            'duration_days' => $package->duration_days,
+            'kuota_storage_mb' => $package->kuota_storage_mb,
+            'storage_quota_bytes' => $storageBytes,
+            'features' => $package->features,
+        ];
     }
 
     /** @param array<string, mixed> $payload */
