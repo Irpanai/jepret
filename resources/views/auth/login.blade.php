@@ -21,7 +21,7 @@
             <form method="POST" action="{{ route('login') }}" class="grid gap-5">@csrf
                 <div><label for="email" class="text-xs font-extrabold uppercase text-public-muted">Email</label><input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" class="public-input mt-2 min-h-12 px-3"><x-input-error :messages="$errors->get('email')" class="mt-2" /></div>
                 <div>
-                    <div class="flex justify-between gap-4"><label for="password" class="text-xs font-extrabold uppercase text-public-muted">Password</label><a href="{{ route('password.request') }}" class="text-xs font-bold text-public-muted hover:text-public-ink">Lupa password?</a></div>
+                    <div><label for="password" class="text-xs font-extrabold uppercase text-public-muted">Password</label></div>
                     <div class="relative mt-2">
                         <input id="password" :type="showPassword ? 'text' : 'password'" name="password" required autocomplete="current-password" class="password-visibility-input public-input min-h-12 px-3 pr-12">
                         <button type="button" @click="showPassword = ! showPassword" class="absolute inset-y-0 right-0 grid w-12 place-items-center text-public-muted hover:text-public-ink" :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'" :title="showPassword ? 'Sembunyikan password' : 'Tampilkan password'">
