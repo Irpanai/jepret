@@ -33,7 +33,9 @@
             <div class="rounded-lg bg-red-50 p-4 text-sm text-red-800">{{ $errors->first() }}</div>
         @endif
 
-        @php($subscriptionSummary = $subscriptionSummary ?? $user->subscriptionDashboardSummary())
+        @php
+            $subscriptionSummary = $subscriptionSummary ?? $user->subscriptionDashboardSummary();
+        @endphp
         <section
             aria-label="Status Paket Berlangganan"
             data-subscription-state="{{ $subscriptionSummary['state'] }}"
@@ -209,8 +211,13 @@
         </section>
 
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm" data-testid="net-earnings-card">
+                <p class="text-xs font-bold tracking-wider text-gray-500">PENDAPATAN BERSIH</p>
+                <p class="metric mt-4 text-2xl font-black text-gray-900">Rp{{ number_format($stats['earnings'], 0, ',', '.') }}</p>
+                <p class="helper mt-2 text-xs text-gray-500">Pendapatan paid (90%) dikurangi penarikan berhasil</p>
+                <p class="mt-1 text-[11px] text-gray-400">Total penjualan Rp{{ number_format($stats['gross_earnings'], 0, ',', '.') }} · Ditarik Rp{{ number_format($stats['withdrawn'], 0, ',', '.') }}</p>
+            </section>
             @foreach([
-                ['PENDAPATAN BERSIH', 'Rp' . number_format($stats['earnings'], 0, ',', '.'), 'Akumulasi transaksi paid (90%)'],
                 ['FOTO TERJUAL', number_format($stats['sold']), 'Pembelian paid'],
                 ['TOTAL KUNJUNGAN', number_format($stats['visits']), 'Tampilan detail foto'],
                 ['RASIO KONVERSI BELI', $stats['conversion'] . '%', 'Pembelian dibagi kunjungan']
@@ -500,7 +507,9 @@
             </section>
 
             {{-- Saldo Siap Tarik & Pengajuan Penarikan --}}
-            @php($minimumWithdrawal = \App\Models\PlatformSetting::minimumWithdrawal())
+            @php
+                $minimumWithdrawal = \App\Models\PlatformSetting::minimumWithdrawal();
+            @endphp
             <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
                 <p class="text-sm font-bold text-gray-500">SALDO SIAP TARIK</p>
                 <p class="metric mt-3 text-2xl font-black text-gray-900">Rp{{ number_format($stats['balance'], 0, ',', '.') }}</p>
@@ -570,27 +579,83 @@
             </div>
         </section>
 
-        {{-- Penarikan Terbaru --}}
-        <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 class="text-lg font-bold text-gray-900">Penarikan terbaru</h2>
-            <div class="mt-4 grid gap-3">
-                @forelse($withdrawals as $withdrawal)
-                    <div class="flex flex-wrap items-center justify-between rounded-lg bg-gray-50 p-4">
-                        <div>
-                            <strong class="font-sans text-base text-gray-900">Rp{{ number_format($withdrawal->jumlah_tarik) }}</strong>
-                            <p class="helper text-xs text-gray-500">{{ $withdrawal->metode_pembayaran }} · {{ $withdrawal->created_at->timezone(config('app.display_timezone'))->format('d M Y') }}</p>
-                            @if($withdrawal->status === 'rejected')
-                                <p class="mt-1 text-sm text-red-700">{{ $withdrawal->admin_notes }}</p>
-                            @endif
-                        </div>
-                        <span class="rounded-full border px-3 py-1 text-xs font-bold uppercase {{ $withdrawal->status === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : ($withdrawal->status === 'pending' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-red-200 bg-red-50 text-red-800') }}">
-                            {{ $withdrawal->status }}
-                        </span>
+        {{-- Riwayat Penarikan --}}
+        @php
+            $withdrawalStatusStyles = [
+                'success' => ['Berhasil', 'border-emerald-200 bg-emerald-50 text-emerald-800'],
+                'pending' => ['Menunggu', 'border-amber-200 bg-amber-50 text-amber-800'],
+                'held' => ['Ditahan', 'border-blue-200 bg-blue-50 text-blue-800'],
+                'rejected' => ['Ditolak', 'border-red-200 bg-red-50 text-red-800'],
+            ];
+        @endphp
+        <section id="riwayat-penarikan" class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm" data-testid="withdrawal-history">
+            <div class="border-b border-gray-100 p-5">
+                <h2 class="text-lg font-bold text-gray-900">Riwayat Penarikan</h2>
+                <p class="helper mt-1 text-xs text-gray-500">Saldo dipotong saat pengajuan. Penarikan yang ditolak dikembalikan ke saldo.</p>
+                <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                    <div class="rounded-lg bg-emerald-50 p-4">
+                        <p class="text-xs font-bold uppercase tracking-wider text-emerald-700">Total berhasil</p>
+                        <p class="mt-1 text-lg font-black text-emerald-900">Rp{{ number_format($withdrawalSummary['success_amount'], 0, ',', '.') }}</p>
+                        <p class="text-xs text-emerald-700">{{ $withdrawalSummary['success_count'] }} penarikan</p>
                     </div>
-                @empty
-                    <p class="helper text-sm text-gray-500">Belum ada penarikan.</p>
-                @endforelse
+                    <div class="rounded-lg bg-amber-50 p-4">
+                        <p class="text-xs font-bold uppercase tracking-wider text-amber-700">Sedang diproses</p>
+                        <p class="mt-1 text-lg font-black text-amber-900">Rp{{ number_format($withdrawalSummary['processing_amount'], 0, ',', '.') }}</p>
+                        <p class="text-xs text-amber-700">{{ $withdrawalSummary['processing_count'] }} penarikan</p>
+                    </div>
+                    <div class="rounded-lg bg-red-50 p-4">
+                        <p class="text-xs font-bold uppercase tracking-wider text-red-700">Ditolak</p>
+                        <p class="mt-1 text-lg font-black text-red-900">Rp{{ number_format($withdrawalSummary['rejected_amount'], 0, ',', '.') }}</p>
+                        <p class="text-xs text-red-700">{{ $withdrawalSummary['rejected_count'] }} penarikan</p>
+                    </div>
+                </div>
             </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 text-xs font-bold uppercase text-gray-500">
+                        <tr>
+                            <th class="p-4 text-left">ID</th>
+                            <th class="p-4 text-left">Diajukan</th>
+                            <th class="p-4 text-left">Tujuan</th>
+                            <th class="p-4 text-right">Nominal</th>
+                            <th class="p-4 text-left">Status</th>
+                            <th class="p-4 text-left">Diproses</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 text-sm">
+                        @forelse($withdrawals as $withdrawal)
+                            @php
+                                [$statusLabel, $statusClass] = $withdrawalStatusStyles[$withdrawal->status] ?? [ucfirst($withdrawal->status), 'border-gray-200 bg-gray-50 text-gray-700'];
+                            @endphp
+                            <tr class="align-top transition hover:bg-gray-50/50">
+                                <td class="p-4 font-mono text-xs font-bold text-gray-900">#WD-{{ $withdrawal->id }}</td>
+                                <td class="p-4 text-xs text-gray-600">{{ $withdrawal->created_at->timezone(config('app.display_timezone'))->format('d M Y H:i') }}</td>
+                                <td class="p-4">
+                                    <span class="font-semibold text-gray-900">{{ $withdrawal->metode_pembayaran }}</span>
+                                    <span class="block text-xs text-gray-500">{{ $withdrawal->destination_type === 'ewallet' ? 'E-Wallet' : 'Bank' }} · ****{{ substr((string) $withdrawal->nomor_tujuan, -4) }}</span>
+                                </td>
+                                <td class="p-4 text-right font-sans font-bold text-gray-900">Rp{{ number_format($withdrawal->jumlah_tarik, 0, ',', '.') }}</td>
+                                <td class="p-4">
+                                    <span class="inline-block rounded-full border px-3 py-1 text-xs font-bold uppercase {{ $statusClass }}">{{ $statusLabel }}</span>
+                                    @if($withdrawal->admin_notes)
+                                        <p class="mt-1 max-w-xs text-xs {{ $withdrawal->status === 'rejected' ? 'text-red-700' : 'text-gray-500' }}">{{ $withdrawal->admin_notes }}</p>
+                                    @endif
+                                </td>
+                                <td class="p-4 text-xs text-gray-500">{{ $withdrawal->processed_at?->timezone(config('app.display_timezone'))->format('d M Y H:i') ?? '—' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td class="p-8 text-center text-gray-500" colspan="6">Belum ada penarikan.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @if($withdrawals->hasPages())
+                <div class="border-t border-gray-100 p-4">
+                    {{ $withdrawals->fragment('riwayat-penarikan')->links() }}
+                </div>
+            @endif
         </section>
     </div>
 </x-fg-layout>

@@ -82,6 +82,9 @@ class SuperAdminController extends Controller
     public function reviewPhotographer(Request $request, User $user): RedirectResponse
     {
         abort_unless($user->role === 'fotografer', 404);
+        if ($request->isMethod('get')) {
+            return redirect()->route('superadmin.compliance', ['q' => $user->name ?: $user->email]);
+        }
         if ($user->is_verified) {
             return back()->withErrors(['decision' => 'Photographer ini sudah approved dan tidak memerlukan approval ulang.']);
         }
@@ -112,9 +115,28 @@ class SuperAdminController extends Controller
 
     public function withdrawal(Request $request): View
     {
-        $request->validate(['status' => ['nullable', 'in:all,pending,held,success,rejected']]);
+        $request->validate([
+            'status' => ['nullable', 'in:all,pending,held,success,rejected'],
+            'q' => ['nullable', 'string', 'max:100'],
+        ]);
         $status = $request->input('status', 'all');
-        $withdrawals = Withdrawal::with('fotografer')->when($status !== 'all', fn ($query) => $query->where('status', $status))->latest()->paginate(15)->withQueryString();
+        $search = $request->string('q')->trim()->toString();
+
+        $withdrawals = Withdrawal::with('fotografer')
+            ->when($status !== 'all', fn ($query) => $query->where('status', $status))
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($q) use ($search): void {
+                    if (is_numeric($search)) {
+                        $q->where('id', (int) $search);
+                    }
+                    $q->orWhere('nomor_tujuan', 'like', "%{$search}%")
+                        ->orWhere('metode_pembayaran', 'like', "%{$search}%")
+                        ->orWhereHas('fotografer', fn ($fq) => $fq->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
+                });
+            })
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
         $metrics = ['pending_count' => Withdrawal::where('status', 'pending')->count(), 'pending_amount' => Withdrawal::where('status', 'pending')->sum('jumlah_tarik'), 'held' => Withdrawal::where('status', 'held')->count(), 'success_amount' => Withdrawal::where('status', 'success')->sum('jumlah_tarik')];
 
         return view('superadmin.withdrawal', compact('withdrawals', 'metrics', 'status'));
@@ -122,6 +144,10 @@ class SuperAdminController extends Controller
 
     public function reviewWithdrawal(Request $request, WithdrawalWorkflow $workflow, int $id): RedirectResponse
     {
+        if ($request->isMethod('get')) {
+            return redirect()->route('superadmin.earnings', ['q' => $id]);
+        }
+
         $data = $request->validate(['status' => ['required', 'in:held,success,rejected'], 'reason' => ['nullable', 'required_if:status,rejected', 'string', 'max:1000']]);
         $workflow->review($request->user(), $id, $data['status'], $data['reason'] ?? null);
 

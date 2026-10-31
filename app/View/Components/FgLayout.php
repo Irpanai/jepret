@@ -2,6 +2,8 @@
 
 namespace App\View\Components;
 
+use App\PhotographerNotificationFeed;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\Component;
 use Illuminate\View\View;
 
@@ -12,6 +14,10 @@ class FgLayout extends Component
      */
     public function render(): View
     {
-        return view('layouts.fg');
+        $notifications = Auth::check() && Auth::user()->role === 'fotografer'
+            ? PhotographerNotificationFeed::forUser(Auth::user())
+            : [];
+
+        return view('layouts.fg', compact('notifications'));
     }
 }

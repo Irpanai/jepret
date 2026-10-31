@@ -596,7 +596,6 @@
                     </div>
 
                     <div class="bwf-credits">
-                        <p>Protected previews &middot; Private originals &middot; Secure downloads</p>
                     </div>
                 </div>
 

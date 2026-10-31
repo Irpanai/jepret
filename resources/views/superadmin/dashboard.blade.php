@@ -343,7 +343,7 @@
                 <h2 class="text-lg font-bold text-gray-900">Antrean penarikan</h2>
                 <div class="mt-4 space-y-3">
                     @forelse($pendingWithdrawals as $wd)
-                        <a class="flex justify-between items-center rounded-lg bg-gray-50 p-4 text-sm transition hover:bg-gray-100" href="{{ route('superadmin.earnings') }}">
+                        <a class="flex justify-between items-center rounded-lg bg-gray-50 p-4 text-sm transition hover:bg-gray-100" href="{{ route('superadmin.earnings', ['q' => $wd->id]) }}">
                             <span class="font-bold text-gray-900">{{ $wd->fotografer?->name }}</span>
                             <strong class="font-sans text-sm font-bold text-gray-900">Rp{{ number_format($wd->jumlah_tarik) }}</strong>
                         </a>

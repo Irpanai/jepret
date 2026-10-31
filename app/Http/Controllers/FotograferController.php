@@ -34,21 +34,54 @@ class FotograferController extends Controller
         $sales = (clone $paid)->latest('paid_at')->paginate(5, ['*'], 'sales_page')->withQueryString();
         $visits = (int) Photo::where('fotografer_id', $user->id)->sum('views_count');
         $sold = (clone $paid)->count();
+        $grossEarnings = (int) ((clone $paid)->toBase()->selectRaw('COALESCE(SUM('.Transaction::photographerSql().'),0) AS total')->value('total'));
+        $withdrawalSummary = $this->withdrawalSummary($user);
         $stats = [
-            'earnings' => (int) ((clone $paid)->toBase()->selectRaw('COALESCE(SUM('.Transaction::photographerSql().'),0) AS total')->value('total')),
+            'earnings' => max(0, $grossEarnings - $withdrawalSummary['success_amount']),
+            'gross_earnings' => $grossEarnings,
+            'withdrawn' => $withdrawalSummary['success_amount'],
             'sold' => $sold, 'visits' => $visits, 'conversion' => $visits > 0 ? round($sold / $visits * 100, 1) : 0,
             'balance' => (int) $user->saldo, 'used_mb' => (float) $user->storage_terpakai_mb, 'quota_mb' => $user->effectiveQuotaMb(),
             'quota_formatted' => $user->formattedQuota(),
         ];
         $chart = $reporting->daily((clone $base)->where('transactions.created_at', '>=', now()->subDays(29)->startOfDay()));
-        $withdrawals = Withdrawal::where('fotografer_id', $user->id)->latest()->limit(5)->get();
+        $withdrawals = Withdrawal::where('fotografer_id', $user->id)->latest()->latest('id')->paginate(5, ['*'], 'withdrawals_page')->withQueryString();
         $chartData = [
             'hari' => $reporting->chartData('hari', $user->id),
             'tanggal' => $reporting->chartData('tanggal', $user->id),
             'bulan' => $reporting->chartData('bulan', $user->id),
         ];
 
-        return view('fotografer.dashboard', compact('user', 'stats', 'chart', 'sales', 'withdrawals', 'chartData', 'subscriptionSummary'));
+        return view('fotografer.dashboard', compact('user', 'stats', 'chart', 'sales', 'withdrawals', 'withdrawalSummary', 'chartData', 'subscriptionSummary'));
+    }
+
+    /**
+     * Summarize a photographer's withdrawals by lifecycle status.
+     *
+     * @return array{success_amount: int, success_count: int, processing_amount: int, processing_count: int, rejected_amount: int, rejected_count: int}
+     */
+    private function withdrawalSummary(User $user): array
+    {
+        $summary = Withdrawal::query()
+            ->where('fotografer_id', $user->id)
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN status = 'success' THEN jumlah_tarik ELSE 0 END), 0) AS success_amount,
+                COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), 0) AS success_count,
+                COALESCE(SUM(CASE WHEN status IN ('pending', 'held') THEN jumlah_tarik ELSE 0 END), 0) AS processing_amount,
+                COALESCE(SUM(CASE WHEN status IN ('pending', 'held') THEN 1 ELSE 0 END), 0) AS processing_count,
+                COALESCE(SUM(CASE WHEN status = 'rejected' THEN jumlah_tarik ELSE 0 END), 0) AS rejected_amount,
+                COALESCE(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected_count
+            ")
+            ->first();
+
+        return [
+            'success_amount' => (int) ($summary->success_amount ?? 0),
+            'success_count' => (int) ($summary->success_count ?? 0),
+            'processing_amount' => (int) ($summary->processing_amount ?? 0),
+            'processing_count' => (int) ($summary->processing_count ?? 0),
+            'rejected_amount' => (int) ($summary->rejected_amount ?? 0),
+            'rejected_count' => (int) ($summary->rejected_count ?? 0),
+        ];
     }
 
     public function dashboardData(Request $request, TransactionReporting $reporting): JsonResponse
