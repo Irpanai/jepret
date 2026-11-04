@@ -271,7 +271,7 @@
                         </figure>
 
                         <p class="mt-7 text-base font-medium leading-relaxed text-public-muted">
-                            Publikasikan hasil liputan event dalam galeri profesional tanpa perlu mengirim file satu per satu. Jepret membantu fotografer mengunggah foto, mengelola koleksi per event, memasang watermark kustom otomatis pada preview publik, serta menjual file original dengan pembagian pendapatan 90% untuk fotografer.
+                            Publikasikan hasil liputan event dalam galeri profesional tanpa perlu mengirim file satu per satu. Jepret membantu fotografer mengunggah foto, mengelola koleksi per event, memasang watermark kustom otomatis pada preview publik, serta menjual file original dengan pembagian pendapatan 85% untuk fotografer.
                         </p>
 
                         <dl class="mt-6 divide-y divide-public-line border-y border-public-line text-xs">
@@ -285,7 +285,7 @@
                             </div>
                             <div class="flex items-center justify-between py-3">
                                 <dt class="font-bold uppercase tracking-wider text-public-muted">Monetisasi Transparan</dt>
-                                <dd class="font-extrabold text-public-ink">90% Revenue Share &amp; Tarik Dana</dd>
+                                <dd class="font-extrabold text-public-ink">85% Revenue Share &amp; Tarik Dana</dd>
                             </div>
                         </dl>
 

@@ -249,7 +249,7 @@ class TransactionReporting
         return response()->streamDownload(function () use ($query): void {
             $stream = fopen('php://output', 'w');
             fwrite($stream, "\xEF\xBB\xBF");
-            fputcsv($stream, ['Transaction ID', 'Order', 'Created', 'Paid', 'Buyer', 'Buyer email', 'Photographer', 'Photo', 'Event', 'Location', 'Photo price', 'Tip', 'Photographer 90%', 'Platform 10%', 'Payment fee', 'Method', 'Status'], ',', '"', '');
+            fputcsv($stream, ['Transaction ID', 'Order', 'Created', 'Paid', 'Buyer', 'Buyer email', 'Photographer', 'Photo', 'Event', 'Location', 'Photo price', 'Tip', 'Photographer 85%', 'Platform 15%', 'Payment fee', 'Method', 'Status'], ',', '"', '');
             foreach ((clone $query)->orderBy('transactions.id')->lazy(200) as $transaction) {
                 $row = [$transaction->id, $transaction->order_number, $transaction->created_at?->timezone(config('app.display_timezone')), $transaction->paid_at?->timezone(config('app.display_timezone')), $transaction->pembeli?->name, $transaction->pembeli?->email, $transaction->fotografer?->name, $transaction->photo?->title, $transaction->photo?->event?->nama_event, $transaction->photo?->event?->lokasi, $transaction->harga_foto, $transaction->tip_amount, $transaction->jumlah_fotografer, $transaction->jumlah_platform, $transaction->payment_fee_amount, $transaction->payment_method, $transaction->payment_status];
                 fputcsv($stream, array_map(function ($value) {

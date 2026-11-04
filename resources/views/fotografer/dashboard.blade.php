@@ -214,7 +214,7 @@
             <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm" data-testid="net-earnings-card">
                 <p class="text-xs font-bold tracking-wider text-gray-500">PENDAPATAN BERSIH</p>
                 <p class="metric mt-4 text-2xl font-black text-gray-900">Rp{{ number_format($stats['earnings'], 0, ',', '.') }}</p>
-                <p class="helper mt-2 text-xs text-gray-500">Pendapatan paid (90%) dikurangi penarikan berhasil</p>
+                <p class="helper mt-2 text-xs text-gray-500">Pendapatan paid (85%) dikurangi penarikan berhasil</p>
                 <p class="mt-1 text-[11px] text-gray-400">Total penjualan Rp{{ number_format($stats['gross_earnings'], 0, ',', '.') }} · Ditarik Rp{{ number_format($stats['withdrawn'], 0, ',', '.') }}</p>
             </section>
             @foreach([
@@ -497,7 +497,7 @@
                     <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-[11px] text-gray-500">
                         <div class="flex items-center gap-1.5">
                             <span class="inline-block h-2 w-2 rounded-full bg-black"></span>
-                            <span>Volume Penjualan Terbayar (90% Bagian Fotografer)</span>
+                            <span>Volume Penjualan Terbayar (85% Bagian Fotografer)</span>
                         </div>
                         <div>
                             <span>Update: <strong class="font-sans text-gray-700" x-text="lastUpdated"></strong></span>

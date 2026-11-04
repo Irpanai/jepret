@@ -40,19 +40,19 @@
                         </div>
                         <div class="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-3 sm:gap-4">
                             <dt class="font-extrabold text-white">Bagi Hasil Adil</dt>
-                            <dd class="text-xs font-semibold text-white/70 sm:col-span-2">Skema pendapatan transparan 90% untuk fotografer dan 10% untuk operasional platform.</dd>
+                            <dd class="text-xs font-semibold text-white/70 sm:col-span-2">Skema pendapatan transparan 85% untuk fotografer dan 15% untuk operasional platform.</dd>
                         </div>
                     </dl>
 
                     {{-- 90/10 Split Visualizer --}}
                     <div class="mt-8 border border-white/20 bg-white/5 p-4 sm:p-5">
                         <div class="flex items-center justify-between text-xs font-extrabold uppercase tracking-wider">
-                            <span class="text-white">90% Pendapatan Fotografer</span>
-                            <span class="text-white/50">10% Platform</span>
+                            <span class="text-white">85% Pendapatan Fotografer</span>
+                            <span class="text-white/50">15% Platform</span>
                         </div>
-                        <div class="mt-3 flex h-3.5 w-full overflow-hidden border border-white/30 bg-white/10" role="progressbar" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100" aria-label="Bagi hasil penjualan 90 persen fotografer">
-                            <div class="h-full bg-white transition-all duration-700" style="width: 90%"></div>
-                            <div class="h-full bg-transparent" style="width: 10%"></div>
+                        <div class="mt-3 flex h-3.5 w-full overflow-hidden border border-white/30 bg-white/10" role="progressbar" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100" aria-label="Bagi hasil penjualan 85 persen fotografer">
+                            <div class="h-full bg-white transition-all duration-700" style="width: 85%"></div>
+                            <div class="h-full bg-transparent" style="width: 15%"></div>
                         </div>
                         <p class="mt-2 text-[11px] font-semibold text-white/60">
                             Tanpa potongan tersembunyi. Penarikan dana (withdrawal) dapat diajukan langsung dari dashboard fotografer kapan saja.

@@ -21,17 +21,17 @@ class VoucherServiceTest extends TestCase
         $percentage = Voucher::factory()->create(['code' => 'PERCENT', 'discount_type' => 'percentage', 'discount_value' => 20, 'maximum_discount' => 4000]);
         $service = app(VoucherService::class);
 
-        $this->assertSame(3000, $service->preview(' fixed ', 'photo', 50000, $user, 5000)['discount']);
-        $this->assertSame(4000, $service->preview('percent', 'photo', 50000, $user, 5000)['discount']);
+        $this->assertSame(3000, $service->preview(' fixed ', 'photo', 50000, $user, 7500)['discount']);
+        $this->assertSame(4000, $service->preview('percent', 'photo', 50000, $user, 7500)['discount']);
     }
 
     public function test_rejects_photo_discount_above_platform_commission_and_zero_payment(): void
     {
         $user = User::factory()->pembeli()->create();
-        Voucher::factory()->create(['code' => 'TOO-MUCH', 'scope' => 'photo', 'discount_value' => 5001]);
+        Voucher::factory()->create(['code' => 'TOO-MUCH', 'scope' => 'photo', 'discount_value' => 7501]);
 
         $this->expectException(ValidationException::class);
-        app(VoucherService::class)->preview('too-much', 'photo', 50000, $user, 5000);
+        app(VoucherService::class)->preview('too-much', 'photo', 50000, $user, 7500);
     }
 
     public function test_reservation_enforces_global_and_per_user_limits_and_can_be_released(): void
@@ -40,11 +40,11 @@ class VoucherServiceTest extends TestCase
         $voucher = Voucher::factory()->create(['code' => 'LIMITED', 'usage_limit' => 1, 'per_user_limit' => 1]);
         $order = PhotoOrder::factory()->for($user)->create();
         $service = app(VoucherService::class);
-        $service->reserve('LIMITED', 'photo', 20000, $user, $order, 2000);
+        $service->reserve('LIMITED', 'photo', 20000, $user, $order, 3000);
         $service->release($order);
         $second = PhotoOrder::factory()->for($user)->create();
 
-        $result = $service->reserve('LIMITED', 'photo', 20000, $user, $second, 2000);
+        $result = $service->reserve('LIMITED', 'photo', 20000, $user, $second, 3000);
 
         $this->assertSame(1000, $result['discount']);
         $this->assertDatabaseHas('voucher_redemptions', ['order_id' => $second->id, 'status' => 'reserved']);
@@ -56,9 +56,9 @@ class VoucherServiceTest extends TestCase
         $secondUser = User::factory()->pembeli()->create();
         Voucher::factory()->create(['code' => 'FINAL', 'usage_limit' => 1]);
         $service = app(VoucherService::class);
-        $service->reserve('FINAL', 'photo', 20000, $firstUser, PhotoOrder::factory()->for($firstUser)->create(), 2000);
+        $service->reserve('FINAL', 'photo', 20000, $firstUser, PhotoOrder::factory()->for($firstUser)->create(), 3000);
 
         $this->expectException(ValidationException::class);
-        $service->reserve('FINAL', 'photo', 20000, $secondUser, PhotoOrder::factory()->for($secondUser)->create(), 2000);
+        $service->reserve('FINAL', 'photo', 20000, $secondUser, PhotoOrder::factory()->for($secondUser)->create(), 3000);
     }
 }

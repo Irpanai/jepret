@@ -28,8 +28,8 @@ class PhotoOrderPaymentTest extends TestCase
 
         $this->assertSame('paid', $order->fresh()->status);
         $this->assertNotNull($order->fresh()->processed_at);
-        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
-        $this->assertSame(27000, (int) $secondPhotographer->fresh()->saldo);
+        $this->assertSame(17000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(25500, (int) $secondPhotographer->fresh()->saldo);
         $this->assertSame(2, Transaction::where('payment_status', 'paid')->count());
         $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
     }
@@ -45,8 +45,8 @@ class PhotoOrderPaymentTest extends TestCase
         $this->postJson(route('payments.doku.notification'), $payload, $headers)->assertOk();
 
         $this->assertSame('paid', $order->fresh()->status);
-        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
-        $this->assertSame(27000, (int) $secondPhotographer->fresh()->saldo);
+        $this->assertSame(17000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(25500, (int) $secondPhotographer->fresh()->saldo);
         $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
     }
 
@@ -120,7 +120,7 @@ class PhotoOrderPaymentTest extends TestCase
         $this->postJson(route('payments.doku.notification'), $cancelled, $this->headers($cancelled))->assertOk();
 
         $this->assertSame('paid', $order->fresh()->status);
-        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(17000, (int) $firstPhotographer->fresh()->saldo);
     }
 
     public function test_expiry_scheduler_cannot_revert_a_paid_order(): void
@@ -134,7 +134,7 @@ class PhotoOrderPaymentTest extends TestCase
         $this->artisan('payments:expire')->assertSuccessful();
 
         $this->assertSame('paid', $order->fresh()->status);
-        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(17000, (int) $firstPhotographer->fresh()->saldo);
         $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
     }
 
@@ -149,7 +149,7 @@ class PhotoOrderPaymentTest extends TestCase
         $this->postJson(route('payments.doku.notification'), $payload, $this->headers($payload))->assertOk();
 
         $this->assertSame('paid', $order->fresh()->status);
-        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(17000, (int) $firstPhotographer->fresh()->saldo);
         $this->assertSame(2, Transaction::where('payment_status', 'paid')->count());
     }
 
@@ -254,14 +254,14 @@ class PhotoOrderPaymentTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame('paid', $order->fresh()->status);
-        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
-        $this->assertSame(27000, (int) $secondPhotographer->fresh()->saldo);
+        $this->assertSame(17000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(25500, (int) $secondPhotographer->fresh()->saldo);
         $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
 
         $firstTransaction = $order->transactions()->orderBy('id')->firstOrFail();
         $this->assertSame(20000, (int) $firstTransaction->total_bayar);
-        $this->assertSame(18000, (int) $firstTransaction->photographer_amount);
-        $this->assertSame(2000, (int) $firstTransaction->platform_amount);
+        $this->assertSame(17000, (int) $firstTransaction->photographer_amount);
+        $this->assertSame(3000, (int) $firstTransaction->platform_amount);
         $firstTransaction->photo->update([
             'purchased_path' => 'photos/purchased/reconciled-photo.jpg',
             'original_filename' => 'reconciled-photo.jpg',
@@ -272,7 +272,7 @@ class PhotoOrderPaymentTest extends TestCase
             ->assertDownload($firstTransaction->photo->original_filename);
 
         $this->artisan('payments:reconcile', ['invoice' => $order->order_id])->assertSuccessful();
-        $this->assertSame(18000, (int) $firstPhotographer->fresh()->saldo);
+        $this->assertSame(17000, (int) $firstPhotographer->fresh()->saldo);
         $this->assertSame(1, PaymentEvent::where('photo_order_id', $order->id)->count());
     }
 
@@ -309,8 +309,8 @@ class PhotoOrderPaymentTest extends TestCase
             'fotografer_id' => $firstPhotographer->id,
             'harga_foto' => 20000,
             'total_bayar' => 20000,
-            'photographer_amount' => 18000,
-            'platform_amount' => 2000,
+            'photographer_amount' => 17000,
+            'platform_amount' => 3000,
             'status' => 'pending',
             'payment_status' => 'pending',
         ]);
@@ -322,8 +322,8 @@ class PhotoOrderPaymentTest extends TestCase
             'fotografer_id' => $secondPhotographer->id,
             'harga_foto' => 30000,
             'total_bayar' => 30000,
-            'photographer_amount' => 27000,
-            'platform_amount' => 3000,
+            'photographer_amount' => 25500,
+            'platform_amount' => 4500,
             'status' => 'pending',
             'payment_status' => 'pending',
         ]);

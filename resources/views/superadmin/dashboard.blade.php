@@ -15,8 +15,8 @@
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             @foreach([
                 ['GMV', 'Rp' . number_format($metrics['gmv'])],
-                ['Platform 10%', 'Rp' . number_format($metrics['platform'])],
-                ['Fotografer 90%', 'Rp' . number_format($metrics['photographer'])],
+                ['Platform 15%', 'Rp' . number_format($metrics['platform'])],
+                ['Fotografer 85%', 'Rp' . number_format($metrics['photographer'])],
                 ['Transaksi paid', number_format($metrics['paid_count'])],
                 ['Storage', number_format($storage['used_mb'] / 1024, 2) . ' GB']
             ] as $card)

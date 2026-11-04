@@ -13,9 +13,9 @@ class Photo extends Model
     /** @use HasFactory<PhotoFactory> */
     use HasFactory;
 
-    public const PHOTOGRAPHER_SHARE_PERCENT = 90;
+    public const PHOTOGRAPHER_SHARE_PERCENT = 85;
 
-    public const PLATFORM_SHARE_PERCENT = 10;
+    public const PLATFORM_SHARE_PERCENT = 15;
 
     protected $guarded = ['id'];
 

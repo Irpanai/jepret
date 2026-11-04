@@ -30,11 +30,11 @@ class CreatorOperationsTest extends TestCase
         $buyer = User::factory()->pembeli()->create();
         $ownPhoto = $this->photo($photographer, ['views_count' => 10]);
         $otherPhoto = $this->photo($other, ['views_count' => 90]);
-        $this->transaction($buyer, $ownPhoto, ['photographer_amount' => 18000, 'platform_amount' => 2000]);
-        $this->transaction($buyer, $otherPhoto, ['photographer_amount' => 90000, 'platform_amount' => 10000]);
+        $this->transaction($buyer, $ownPhoto, ['photographer_amount' => 17000, 'platform_amount' => 3000]);
+        $this->transaction($buyer, $otherPhoto, ['photographer_amount' => 85000, 'platform_amount' => 15000]);
 
         $this->actingAs($photographer)->get(route('fotografer.dashboard'))
-            ->assertOk()->assertSee('Rp18.000')->assertSee('10')->assertSee('10%')->assertDontSee('Rp90.000');
+            ->assertOk()->assertSee('Rp17.000')->assertSee('10')->assertSee('15%')->assertDontSee('Rp85.000');
     }
 
     public function test_photographer_can_search_and_filter_only_their_photo_catalog(): void
@@ -474,6 +474,6 @@ class CreatorOperationsTest extends TestCase
 
     private function transaction(User $buyer, Photo $photo, array $attributes = []): Transaction
     {
-        return Transaction::factory()->create($attributes + ['order_number' => 'ORDER-'.Str::random(8), 'pembeli_id' => $buyer->id, 'photo_id' => $photo->id, 'fotografer_id' => $photo->fotografer_id, 'harga_foto' => 20000, 'total_bayar' => 20000, 'photographer_amount' => 18000, 'platform_amount' => 2000, 'revenue_share_snapshot' => ['photographer_percent' => 90, 'platform_percent' => 10], 'status' => 'paid', 'payment_status' => 'paid', 'paid_at' => now()]);
+        return Transaction::factory()->create($attributes + ['order_number' => 'ORDER-'.Str::random(8), 'pembeli_id' => $buyer->id, 'photo_id' => $photo->id, 'fotografer_id' => $photo->fotografer_id, 'harga_foto' => 20000, 'total_bayar' => 20000, 'photographer_amount' => 17000, 'platform_amount' => 3000, 'revenue_share_snapshot' => ['photographer_percent' => 85, 'platform_percent' => 15], 'status' => 'paid', 'payment_status' => 'paid', 'paid_at' => now()]);
     }
 }

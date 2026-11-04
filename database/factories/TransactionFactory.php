@@ -33,7 +33,10 @@ class TransactionFactory extends Factory
             'payment_status' => 'pending',
             'photographer_amount' => $photographerAmount,
             'platform_amount' => Photo::platformAmount($harga),
-            'revenue_share_snapshot' => ['photographer_percent' => 90, 'platform_percent' => 10],
+            'revenue_share_snapshot' => [
+                'photographer_percent' => Photo::PHOTOGRAPHER_SHARE_PERCENT,
+                'platform_percent' => Photo::PLATFORM_SHARE_PERCENT,
+            ],
         ];
     }
 }

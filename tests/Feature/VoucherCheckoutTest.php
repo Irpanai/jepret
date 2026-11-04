@@ -37,11 +37,11 @@ class VoucherCheckoutTest extends TestCase
         $order = $buyer->photoOrders()->first();
         $response->assertRedirect(route('checkout.payment', ['order' => $order->order_id]));
         $this->assertSame(47000, (int) $order->gross_amount);
-        $this->assertSame(45000, (int) $order->photographer_amount);
-        $this->assertSame(2000, (int) $order->platform_revenue);
+        $this->assertSame(42500, (int) $order->photographer_amount);
+        $this->assertSame(4500, (int) $order->platform_revenue);
         $this->assertSame(47000, (int) Transaction::where('photo_order_id', $order->id)->sum('total_bayar'));
-        $this->assertSame(45000, (int) Transaction::where('photo_order_id', $order->id)->sum('photographer_amount'));
-        $this->assertSame(2000, (int) Transaction::where('photo_order_id', $order->id)->sum('platform_amount'));
+        $this->assertSame(42500, (int) Transaction::where('photo_order_id', $order->id)->sum('photographer_amount'));
+        $this->assertSame(4500, (int) Transaction::where('photo_order_id', $order->id)->sum('platform_amount'));
     }
 
     public function test_preview_rejects_wrong_scope(): void

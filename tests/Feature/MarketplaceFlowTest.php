@@ -108,7 +108,7 @@ class MarketplaceFlowTest extends TestCase
         $this->assertSame([$photo->id => $photo->id], session('cart'));
     }
 
-    public function test_checkout_creates_pending_transactions_with_90_10_snapshot(): void
+    public function test_checkout_creates_pending_transactions_with_85_15_snapshot(): void
     {
         $this->fakeDoku();
         $buyer = User::factory()->pembeli()->create();
@@ -123,10 +123,10 @@ class MarketplaceFlowTest extends TestCase
 
         $response->assertRedirect(route('checkout.payment', ['order' => $transaction->order_number], absolute: false));
         $this->assertSame('pending', $transaction->status);
-        $this->assertSame(22500, $transaction->photographer_amount);
-        $this->assertSame(2500, $transaction->platform_amount);
-        $this->assertSame(90, $transaction->revenue_share_snapshot['photographer_percent']);
-        $this->assertSame(10, $transaction->revenue_share_snapshot['platform_percent']);
+        $this->assertSame(21250, $transaction->photographer_amount);
+        $this->assertSame(3750, $transaction->platform_amount);
+        $this->assertSame(85, $transaction->revenue_share_snapshot['photographer_percent']);
+        $this->assertSame(15, $transaction->revenue_share_snapshot['platform_percent']);
         $this->assertNotNull($transaction->photo_order_id);
         $this->assertSame('test-qris-content', $transaction->photoOrder->qr_content);
 

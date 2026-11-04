@@ -27,7 +27,7 @@
         [
             'id' => 5,
             'title' => 'Pembukuan Transparan & Tarik Dana Instan',
-            'desc' => 'Pantau ledger (buku besar) transaksi secara mendetail. Setiap pesanan lunas akan tercatat otomatis lengkap dengan nama pembeli, harga awal, dan nominal pendapatan bersih (90%). Nikmati kemudahan mencairkan saldo ke rekening bank dengan penarikan minimum hanya Rp25.000.',
+            'desc' => 'Pantau ledger (buku besar) transaksi secara mendetail. Setiap pesanan lunas akan tercatat otomatis lengkap dengan nama pembeli, harga awal, dan nominal pendapatan bersih (85%). Nikmati kemudahan mencairkan saldo ke rekening bank dengan penarikan minimum hanya Rp25.000.',
             'image' => asset('images/modulsection/fotografer5.png'),
         ],
     ];

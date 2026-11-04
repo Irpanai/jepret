@@ -24,8 +24,8 @@ class Transaction extends Model
     private static function legacyPhotographerAmountSql(): string
     {
         return DB::connection()->getDriverName() === 'sqlite'
-            ? 'CAST(harga_foto * 0.9 AS INTEGER)'
-            : 'FLOOR(harga_foto * 0.9)';
+            ? 'CAST(harga_foto * 0.85 AS INTEGER)'
+            : 'FLOOR(harga_foto * 0.85)';
     }
 
     public function scopePaid(Builder $query): void

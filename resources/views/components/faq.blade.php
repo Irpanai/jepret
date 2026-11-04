@@ -21,7 +21,7 @@
             'label' => 'Untuk fotografer',
             'items' => [
                 ['question' => 'Bagaimana cara mulai menjual foto di Jepret?', 'answer' => 'Daftar sebagai fotografer, lengkapi profil publik Anda, lalu unggah puluhan foto hasil shoot sekaligus. Anda bebas mengatur nama event, lokasi, jam pengambilan, dan harga jual.'],
-                ['question' => 'Berapa pendapatan yang saya terima?', 'answer' => 'Setiap pesanan yang lunas dicatat otomatis dengan nominal pendapatan bersih 90% untuk Anda, lengkap dengan nama pembeli dan harga awal.'],
+                ['question' => 'Berapa pendapatan yang saya terima?', 'answer' => 'Setiap pesanan yang lunas dicatat otomatis dengan nominal pendapatan bersih 85% untuk Anda, lengkap dengan nama pembeli dan harga awal.'],
                 ['question' => 'Berapa minimum penarikan dana?', 'answer' => 'Saldo bisa dicairkan langsung ke rekening bank dengan batas penarikan minimum Rp25.000.'],
                 ['question' => 'Bisakah memakai watermark dengan logo sendiri?', 'answer' => 'Bisa. Fitur watermark batch memakai logo transparan milik Anda, dan ukuran serta tingkat transparansinya (opacity) bisa diatur penuh.'],
                 ['question' => 'Apakah saya bisa memantau penjualan?', 'answer' => 'Bisa. Dasbor menampilkan total kunjungan foto, rasio konversi pembelian, grafik penjualan, dan akumulasi pendapatan bersih. Ledger transaksi juga bisa diunduh sebagai CSV kapan saja.'],
