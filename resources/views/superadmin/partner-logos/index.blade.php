@@ -36,7 +36,7 @@
                                 <td class="p-4 font-sans font-bold">{{ $logo->sort_order }}</td>
                                 <td class="p-4">
                                     <div class="flex h-12 w-28 items-center justify-center rounded-lg border border-gray-200 bg-white p-2">
-                                        <img src="{{ $logo->logoUrl() }}" alt="{{ $logo->name }}" class="max-h-full max-w-full object-contain filter grayscale contrast-125">
+                                        <img src="{{ $logo->logoUrl() }}" alt="{{ $logo->name }}" class="max-h-full max-w-full object-contain">
                                     </div>
                                 </td>
                                 <td class="p-4">

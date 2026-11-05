@@ -30,7 +30,7 @@
             <div class="space-y-2">
                 <label class="block text-sm font-bold text-gray-900">Logo Saat Ini</label>
                 <div class="flex h-16 w-36 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 p-2">
-                    <img src="{{ $partnerLogo->logoUrl() }}" alt="{{ $partnerLogo->name }}" class="max-h-full max-w-full object-contain filter grayscale contrast-125">
+                    <img src="{{ $partnerLogo->logoUrl() }}" alt="{{ $partnerLogo->name }}" class="max-h-full max-w-full object-contain">
                 </div>
             </div>
 

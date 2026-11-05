@@ -95,7 +95,7 @@
                                 <div class="flex items-center gap-2.5">
                             @endif
                                 @if($logo->logo_path)
-                                    <img src="{{ $logo->logoUrl() }}" alt="{{ $logo->name }}" width="150" height="44" loading="lazy" decoding="async" class="h-9 sm:h-11 w-auto max-w-[150px] object-contain grayscale opacity-80 hover:opacity-100 transition-opacity">
+                                    <img src="{{ $logo->logoUrl() }}" alt="{{ $logo->name }}" width="150" height="44" loading="lazy" decoding="async" class="h-9 sm:h-11 w-auto max-w-[150px] object-contain">
                                 @else
                                     <span class="font-sans text-sm font-bold uppercase tracking-wider text-public-ink/80">{{ $logo->name }}</span>
                                 @endif
@@ -115,7 +115,7 @@
                                 <div class="flex items-center gap-2.5">
                             @endif
                                 @if($logo->logo_path)
-                                    <img src="{{ $logo->logoUrl() }}" alt="{{ $logo->name }}" width="150" height="44" loading="lazy" decoding="async" class="h-9 sm:h-11 w-auto max-w-[150px] object-contain grayscale opacity-80 hover:opacity-100 transition-opacity">
+                                    <img src="{{ $logo->logoUrl() }}" alt="{{ $logo->name }}" width="150" height="44" loading="lazy" decoding="async" class="h-9 sm:h-11 w-auto max-w-[150px] object-contain">
                                 @else
                                     <span class="font-sans text-sm font-bold uppercase tracking-wider text-public-ink/80">{{ $logo->name }}</span>
                                 @endif
