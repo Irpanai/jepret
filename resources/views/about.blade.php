@@ -12,7 +12,7 @@
     title="Tentang Jepret — Every Moment. One Place."
     description="Jepret mempertemukan orang yang mencari momen dengan fotografer yang menangkapnya dalam satu marketplace fotografi digital."
     :canonical="route('about')"
-    :og-image="asset('images/galeri.jpeg')"
+    :og-image="asset('images/galeri.png')"
     :structured-data="$structuredData"
 >
     <article class="about-page text-public-ink">
@@ -72,7 +72,7 @@
                         <figure class="sm:col-span-8" data-hero-photo style="--reveal-index: 1">
                             <div class="about-image-reveal aspect-[16/11] overflow-hidden border border-public-line bg-public-mist">
                                 <img
-                                    src="{{ asset('images/galeri.jpeg') }}"
+                                    src="{{ asset('images/galeri.png') }}"
                                     alt="Suasana dokumentasi event dan pencarian momen di galeri Jepret"
                                     width="960"
                                     height="660"
@@ -90,7 +90,7 @@
                         <figure class="hidden sm:col-span-4 sm:block" data-hero-photo style="--reveal-index: 2">
                             <div class="about-image-reveal aspect-[3/4] overflow-hidden border border-public-line bg-public-mist">
                                 <img
-                                    src="{{ asset('images/photographers.jpg') }}"
+                                    src="{{ asset('images/photographers.png') }}"
                                     alt="Fotografer profesional sedang mengabadikan momen di lapangan"
                                     width="480"
                                     height="640"
@@ -259,7 +259,7 @@
                         <figure class="mt-8">
                             <div class="about-image-reveal aspect-[4/5] overflow-hidden border border-public-line bg-public-mist">
                                 <img
-                                    src="{{ asset('images/photographers.jpg') }}"
+                                    src="{{ asset('images/photographers.png') }}"
                                     alt="Fotografer mengabadikan momen event menggunakan kamera profesional"
                                     width="720"
                                     height="900"

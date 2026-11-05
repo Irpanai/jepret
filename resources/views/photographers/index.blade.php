@@ -13,7 +13,7 @@
     :structured-data="$structuredData"
 >
     <section class="relative overflow-hidden border-b border-public-line bg-public-ink py-10 text-white sm:py-14">
-        <img src="{{ asset('images/photographers.jpg') }}" alt="" class="absolute inset-0 h-full w-full object-cover" aria-hidden="true">
+        <img src="{{ asset('images/photographers.png') }}" alt="" class="absolute inset-0 h-full w-full object-cover" aria-hidden="true">
         <div class="absolute inset-0 bg-black/55" aria-hidden="true"></div>
         <div class="public-container relative z-10">
             <p class="public-kicker">Creator</p>

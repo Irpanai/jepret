@@ -5,7 +5,7 @@
 
 <x-marketplace-layout title="Galeri Foto Event | Jepret"
     description="Jelajahi foto event Jepret berdasarkan event, photographer, kategori, lokasi, tanggal, dan waktu. Preview terlindungi, original terbuka setelah pembelian."
-    :canonical="route('galeri')" :og-image="asset('images/galeri.jpeg')" :structured-data="$structuredData">
+    :canonical="route('galeri')" :og-image="asset('images/galeri.png')" :structured-data="$structuredData">
     <div class="gallery-page" data-gallery-page>
         <div x-data="{ visible: false, message: '', timer: null }"
             @cart:added.window="message = $event.detail.message; visible = true; clearTimeout(timer); timer = setTimeout(() => visible = false, 2400)"
@@ -29,7 +29,7 @@
         @endif
         <section class="gallery-hero relative overflow-hidden bg-neutral-200 text-public-ink" data-gallery-hero>
             <div class="gallery-hero-media absolute inset-0 bg-cover bg-center"
-                style="background-image: url('{{ asset('images/galeri.jpeg') }}')" aria-hidden="true"></div>
+                style="background-image: url('{{ asset('images/galeri.png') }}')" aria-hidden="true"></div>
             <div class="absolute inset-0 bg-gradient-to-r from-white/85 via-white/45 to-white/15" aria-hidden="true">
             </div>
             <div

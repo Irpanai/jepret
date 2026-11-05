@@ -8,7 +8,7 @@
 <article {{ $attributes->merge(['class' => 'grid h-full border border-public-line bg-white']) }}>
     <a href="{{ $profileUrl }}" class="relative block aspect-[5/4] overflow-hidden bg-public-mist">
         <img
-            src="{{ $photo ? route('media.preview', $photo) : asset('images/galeri.jpeg') }}"
+            src="{{ $photo ? route('media.preview', $photo) : asset('images/galeri.png') }}"
             alt="{{ $photo?->title ?: 'Karya dari '.($photographer->studio_name ?: $photographer->name) }}"
             loading="lazy"
             class="h-full w-full object-cover {{ $photo ? '' : 'opacity-70' }}"
